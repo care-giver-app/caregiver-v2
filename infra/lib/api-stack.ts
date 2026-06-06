@@ -19,6 +19,8 @@ export class ApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
+    const resourceName = `caregiver-${props.stage}-api`;
+
     const apiRoot = path.resolve(__dirname, '..', '..', 'api');
     const bootstrapDir = path.resolve(apiRoot, 'cmd', 'lambda');
 
@@ -29,14 +31,14 @@ export class ApiStack extends cdk.Stack {
     );
 
     const logGroup = new logs.LogGroup(this, 'ApiFunctionLogs', {
-      logGroupName: `/aws/lambda/caregiver-${props.stage}-api`,
+      logGroupName: `/aws/lambda/${resourceName}`,
       retention:
         props.stage === 'prod' ? logs.RetentionDays.ONE_MONTH : logs.RetentionDays.ONE_WEEK,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     this.apiFunction = new lambda.Function(this, 'ApiFunction', {
-      functionName: `caregiver-${props.stage}-api`,
+      functionName: resourceName,
       runtime: lambda.Runtime.PROVIDED_AL2023,
       architecture: lambda.Architecture.ARM_64,
       handler: 'bootstrap',
@@ -55,7 +57,7 @@ export class ApiStack extends cdk.Stack {
     });
 
     const httpApi = new apigw.HttpApi(this, 'HttpApi', {
-      apiName: `caregiver-${props.stage}-api`,
+      apiName: resourceName,
     });
 
     httpApi.addRoutes({
