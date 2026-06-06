@@ -3,7 +3,7 @@
  * Do not make direct changes to the file.
  */
 export interface paths {
-    "/health": {
+    '/health': {
         parameters: {
             query?: never;
             header?: never;
@@ -14,7 +14,7 @@ export interface paths {
          * Health check
          * @description Returns service health and build metadata.
          */
-        get: operations["getHealth"];
+        get: operations['getHealth'];
         put?: never;
         post?: never;
         delete?: never;
@@ -29,7 +29,7 @@ export interface components {
     schemas: {
         Health: {
             /** @enum {string} */
-            status: "ok" | "degraded";
+            status: 'ok' | 'degraded';
             /** @example 0.1.0 */
             version: string;
             /** Format: date-time */
@@ -59,7 +59,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Health"];
+                    'application/json': components['schemas']['Health'];
                 };
             };
         };
