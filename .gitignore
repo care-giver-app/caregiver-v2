@@ -1,0 +1,52 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
+.next/
+.turbo/
+
+# Go
+*.test
+*.out
+*.exe
+bin/
+
+# CDK
+infra/cdk.out/
+infra/.cdk.staging/
+
+# Build artifacts
+dist/
+build/
+coverage/
+*.log
+
+# Lambda
+api/cmd/lambda/bootstrap
+services/*/bootstrap
+
+# Secrets / env
+.env
+.env.local
+.env.*.local
+
+# iOS
+ios/build/
+ios/DerivedData/
+ios/*.xcuserdata/
+ios/Pods/
+
+# Lefthook
+.lefthook/
+
+# AWS
+.aws-sam/
