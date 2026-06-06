@@ -15,7 +15,7 @@
 ## Prerequisites (one-time, manual, before Task 1)
 
 - [ ] AWS account exists; you have an admin IAM user/role for setup.
-- [ ] AWS CLI v2 installed locally; `aws configure` complete; default region set (recommend `us-east-1`).
+- [ ] AWS CLI v2 installed locally; `aws configure` complete; default region set to `us-east-2`.
 - [ ] Node 20+, pnpm 9+, Go 1.23+, Xcode 16+, Docker (for testcontainers).
 - [ ] GitHub account with permissions to create a repo and set branch protection.
 - [ ] `gh` CLI installed and authenticated.
@@ -1049,7 +1049,7 @@ Note: tightening to least-privilege is a follow-up ADR after F1 ships.
 ```bash
 ROLE_ARN=$(aws iam get-role --role-name CaregiverGitHubDeploy --query 'Role.Arn' --output text)
 gh secret set AWS_DEPLOY_ROLE_ARN --body "$ROLE_ARN"
-gh variable set AWS_REGION --body "us-east-1"
+gh variable set AWS_REGION --body "us-east-2"
 ```
 
 Expected: secret and variable set on the repo.
@@ -1174,7 +1174,7 @@ import { SharedStack } from '../lib/shared-stack';
 const app = new cdk.App();
 
 const account = process.env.CDK_DEFAULT_ACCOUNT;
-const region = process.env.CDK_DEFAULT_REGION ?? 'us-east-1';
+const region = process.env.CDK_DEFAULT_REGION ?? 'us-east-2';
 const env = { account, region };
 
 const stage = (app.node.tryGetContext('stage') as string | undefined) ?? 'dev';
@@ -1321,7 +1321,7 @@ git commit -m "feat(infra): shared-stack with alarm SNS topic"
 - [ ] **Step 13.1: Bootstrap CDK in the account/region**
 
 ```bash
-cd infra && pnpm exec cdk bootstrap aws://<ACCOUNT>/us-east-1
+cd infra && pnpm exec cdk bootstrap aws://658340567265/us-east-2
 ```
 
 Expected: `CDKToolkit` stack created in AWS.
@@ -2677,7 +2677,7 @@ import { ApiStack } from '../lib/api-stack';
 const app = new cdk.App();
 
 const account = process.env.CDK_DEFAULT_ACCOUNT;
-const region = process.env.CDK_DEFAULT_REGION ?? 'us-east-1';
+const region = process.env.CDK_DEFAULT_REGION ?? 'us-east-2';
 const env = { account, region };
 
 const stage = (app.node.tryGetContext('stage') as string | undefined) ?? 'dev';
@@ -3140,7 +3140,7 @@ import { ObservabilityStack } from '../lib/observability-stack';
 const app = new cdk.App();
 
 const account = process.env.CDK_DEFAULT_ACCOUNT;
-const region = process.env.CDK_DEFAULT_REGION ?? 'us-east-1';
+const region = process.env.CDK_DEFAULT_REGION ?? 'us-east-2';
 const env = { account, region };
 
 const stage = (app.node.tryGetContext('stage') as string | undefined) ?? 'dev';
@@ -3609,9 +3609,12 @@ export interface ApiStackProps extends cdk.StackProps {
 Inside the `ApiStack` constructor, after `const fn = new lambda.Function(...)`, add:
 
 ```ts
+// ARM64 AppConfig extension layer ARN — region-specific.
+// us-east-2 published account: 728743619870.
+// Layer version below was current at plan-write time; VERIFY against the AWS docs
+// before deploying: https://docs.aws.amazon.com/appconfig/latest/userguide/appconfig-integration-lambda-extensions-versions.html
 const appConfigExtensionLayerArn =
-  // ARM64 ARN for us-east-1; see https://docs.aws.amazon.com/appconfig/latest/userguide/appconfig-integration-lambda-extensions-versions.html
-  'arn:aws:lambda:us-east-1:027255383542:layer:AWS-AppConfig-Extension-Arm64:67';
+  'arn:aws:lambda:us-east-2:728743619870:layer:AWS-AppConfig-Extension-Arm64:67';
 
 fn.addLayers(
   lambda.LayerVersion.fromLayerVersionArn(this, 'AppConfigExtension', appConfigExtensionLayerArn),
@@ -4389,5 +4392,5 @@ This serves as the closing marker for F1. Future work (B1, B2, ...) builds on th
 - **Repo lives in the `care-giver-app` GitHub org.** All Go module paths use `github.com/care-giver-app/caregiver-v2/...` and the IAM trust policy is scoped to `repo:care-giver-app/caregiver-v2:*`. If the org name changes later, update those references together.
 - **Replace `<ACCOUNT>` with your 12-digit AWS account ID** in Task 10 and `cdk bootstrap` (Task 13).
 - **Replace `<YOUR_EMAIL>`** in Task 13/17/30 wherever it appears.
-- **Region `us-east-1` is assumed.** If you choose a different region: the CloudWatch billing alarm in `BillingStack` must still be deployed to `us-east-1` because AWS only publishes billing metrics there. Adjust if needed.
+- **Region `us-east-2` is the default for all stacks except `BillingStack`.** The CloudWatch billing alarm in `BillingStack` is pinned to `us-east-1` (Task 30, Step 30.4) because AWS only publishes billing metrics there. AWS Budgets is global, so the budget portion works regardless of stack region.
 - **Free-tier reminder.** The `noInvocationsAlarm` only alerts in prod (Task 29) — in dev, an idle environment would page constantly.
