@@ -1,0 +1,43 @@
+name: cd-main
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        # Version comes from package.json `packageManager` field; do NOT add `with: version`.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Run all tests
+        run: |
+          pnpm --filter @caregiver/infra run test
+          for dir in $(find . -name go.mod -not -path './node_modules/*' -exec dirname {} \;); do
+            (cd "$dir" && go test ./...)
+          done
+      - name: CDK deploy prod
+        run: pnpm --filter @caregiver/infra exec cdk deploy --all --context stage=prod --require-approval never
