@@ -57,3 +57,59 @@ jobs:
           for dir in $(find . -name go.mod -not -path './node_modules/*' -exec dirname {} \;); do
             (cd "$dir" && go test ./...)
           done
+
+  cdk-diff:
+    name: CDK synth + diff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        # Version comes from package.json `packageManager` field; do NOT add `with: version`.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: CDK synth
+        run: pnpm --filter @caregiver/infra exec cdk synth --context stage=dev
+      - name: CDK diff
+        id: cdk-diff
+        run: |
+          set +e
+          pnpm --filter @caregiver/infra exec cdk diff --context stage=dev > /tmp/cdk-diff.txt 2>&1
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/cdk-diff.txt
+      - name: Post diff as PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const diff = fs.readFileSync('/tmp/cdk-diff.txt', 'utf8');
+            const body = `### CDK diff (dev)\n\n\`\`\`\n${diff.slice(0, 60000)}\n\`\`\``;
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body.startsWith('### CDK diff'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
