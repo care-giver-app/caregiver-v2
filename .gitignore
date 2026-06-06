@@ -19,6 +19,7 @@ node_modules/
 *.out
 *.exe
 bin/
+!infra/bin/
 
 # CDK
 infra/cdk.out/

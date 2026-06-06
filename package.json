@@ -1,0 +1,21 @@
+{
+  "name": "caregiver-v2",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "build": "pnpm -r run build",
+    "codegen": "pnpm --filter @caregiver/openapi run codegen"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "lefthook": "^2.1.9",
+    "prettier": "^3.3.3"
+  }
+}

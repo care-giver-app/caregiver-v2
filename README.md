@@ -4,19 +4,19 @@ Greenfield rewrite of the Caregiver tracking app. Multi-tenant, custom event typ
 
 ## Layout
 
-| Directory | Purpose |
-|---|---|
-| `api/` | Synchronous HTTP API (Go Lambda) |
-| `services/` | Async/scheduled Lambda services (one per directory) |
-| `shared/openapi/` | OpenAPI 3 contract — source of truth |
-| `shared/go-common/` | Shared Go libraries |
-| `shared/types-{go,ts,swift}/` | Generated clients from OpenAPI |
-| `web/` | Next.js + React web client |
-| `ios/` | SwiftUI iOS client |
-| `infra/` | AWS CDK in TypeScript |
-| `docs/specs/` | Brainstormed design specs |
-| `docs/adr/` | Architecture decision records (MADR) |
-| `docs/plans/` | Implementation plans |
+| Directory                     | Purpose                                             |
+| ----------------------------- | --------------------------------------------------- |
+| `api/`                        | Synchronous HTTP API (Go Lambda)                    |
+| `services/`                   | Async/scheduled Lambda services (one per directory) |
+| `shared/openapi/`             | OpenAPI 3 contract — source of truth                |
+| `shared/go-common/`           | Shared Go libraries                                 |
+| `shared/types-{go,ts,swift}/` | Generated clients from OpenAPI                      |
+| `web/`                        | Next.js + React web client                          |
+| `ios/`                        | SwiftUI iOS client                                  |
+| `infra/`                      | AWS CDK in TypeScript                               |
+| `docs/specs/`                 | Brainstormed design specs                           |
+| `docs/adr/`                   | Architecture decision records (MADR)                |
+| `docs/plans/`                 | Implementation plans                                |
 
 ## Quickstart
 

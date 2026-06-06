@@ -9,7 +9,7 @@
 
 Establish the engineering rails for the Caregiver v2 rewrite: contracts that don't drift, deploys that don't surprise, decisions that don't get lost, and observability that won't surprise-bill. Every choice optimizes for **solo-dev velocity at near-zero AWS cost** while building transferable skills.
 
-This is sub-project **F1** in a larger decomposition. F1 is a *foundations* spec — it does not define any product feature. It establishes the substrate that B1, B2, B3, C1, C2, C3 will all build on.
+This is sub-project **F1** in a larger decomposition. F1 is a _foundations_ spec — it does not define any product feature. It establishes the substrate that B1, B2, B3, C1, C2, C3 will all build on.
 
 ## 2. Context
 
@@ -102,11 +102,11 @@ caregiver-v2/
 
 **Triggers:**
 
-| Event | Action |
-|---|---|
+| Event                                         | Action                                                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | PR opened/updated (from internal branch only) | Lint, type-check, build, run tests for affected packages; `cdk diff` posted as PR comment; `cdk deploy CaregiverDev` clobbering prior state |
-| Merge to `main` | Run all tests; `cdk deploy CaregiverProd`; no manual gate |
-| Tag `vX.Y.Z` | Fastlane uploads iOS build to TestFlight |
+| Merge to `main`                               | Run all tests; `cdk deploy CaregiverProd`; no manual gate                                                                                   |
+| Tag `vX.Y.Z`                                  | Fastlane uploads iOS build to TestFlight                                                                                                    |
 
 **Guards:**
 
@@ -134,26 +134,26 @@ caregiver-v2/
 
 **Flag taxonomy:**
 
-| Type | Purpose |
-|---|---|
-| Release flag | Gate a new feature during rollout. Naming: `feat_<area>_<feature>`. |
-| Kill switch | Instantly disable a risky code path. Naming: `kill_<area>_<thing>`. |
-| Experiment flag | Percentage rollout for A/B. Naming: `exp_<area>_<feature>`. |
+| Type            | Purpose                                                             |
+| --------------- | ------------------------------------------------------------------- |
+| Release flag    | Gate a new feature during rollout. Naming: `feat_<area>_<feature>`. |
+| Kill switch     | Instantly disable a risky code path. Naming: `kill_<area>_<thing>`. |
+| Experiment flag | Percentage rollout for A/B. Naming: `exp_<area>_<feature>`.         |
 
 **Every flag has an ADR** documenting purpose, default value, owner, and retirement criteria. Flags without a retirement plan are bugs.
 
 ## 9. Testing strategy — Trophy shape
 
-| Layer | Tooling | When |
-|---|---|---|
-| Static analysis | TS strict mode, `golangci-lint`, Swift compiler, generated types from OpenAPI | Always, in CI |
-| Integration | Go: `testing` + `testcontainers` for DynamoDB Local + LocalStack; TS: Vitest + MSW for components; Swift: XCTest with stubbed networking | Every PR |
-| Unit | Reserved for non-trivial logic (date math, permission rules, flag evaluation) | As needed |
-| E2E smoke | Playwright (web), `xcuitest` (iOS) — 1–3 critical flows per client | On prod deploy |
+| Layer           | Tooling                                                                                                                                  | When           |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| Static analysis | TS strict mode, `golangci-lint`, Swift compiler, generated types from OpenAPI                                                            | Always, in CI  |
+| Integration     | Go: `testing` + `testcontainers` for DynamoDB Local + LocalStack; TS: Vitest + MSW for components; Swift: XCTest with stubbed networking | Every PR       |
+| Unit            | Reserved for non-trivial logic (date math, permission rules, flag evaluation)                                                            | As needed      |
+| E2E smoke       | Playwright (web), `xcuitest` (iOS) — 1–3 critical flows per client                                                                       | On prod deploy |
 
 **TDD on the integration layer is encouraged** (per superpowers' `test-driven-development` skill). TDD on pure-orchestration code is not required.
 
-**Coverage targets:** none specified (Goodhart's law). Rule of thumb: *"if this breaks in prod, did a test fail?" — if no, write the test.*
+**Coverage targets:** none specified (Goodhart's law). Rule of thumb: _"if this breaks in prod, did a test fail?" — if no, write the test._
 
 ## 10. Decision tracking — MADR
 
@@ -164,46 +164,52 @@ caregiver-v2/
 
 **Seed ADRs** (to be written as part of F1 implementation):
 
-| # | Title |
-|---|---|
-| 0001 | Parallel v2 over evolve-in-place |
-| 0002 | Single monorepo over polyrepo |
-| 0003 | OpenAPI 3 as contract source of truth |
-| 0004 | Dev + prod environments; PR→dev, merge→prod |
-| 0005 | AWS AppConfig for feature flags |
-| 0006 | Testing trophy shape |
+| #    | Title                                                        |
+| ---- | ------------------------------------------------------------ |
+| 0001 | Parallel v2 over evolve-in-place                             |
+| 0002 | Single monorepo over polyrepo                                |
+| 0003 | OpenAPI 3 as contract source of truth                        |
+| 0004 | Dev + prod environments; PR→dev, merge→prod                  |
+| 0005 | AWS AppConfig for feature flags                              |
+| 0006 | Testing trophy shape                                         |
 | 0007 | CloudWatch + X-Ray native observability with cost guardrails |
-| 0008 | AWS CDK (TypeScript) for IaC |
-| 0009 | Go backend, Next.js + React web, SwiftUI iOS |
-| 0010 | AWS-native web hosting (CloudFront + S3 + Lambda SSR) |
+| 0008 | AWS CDK (TypeScript) for IaC                                 |
+| 0009 | Go backend, Next.js + React web, SwiftUI iOS                 |
+| 0010 | AWS-native web hosting (CloudFront + S3 + Lambda SSR)        |
 
 ## 11. Observability — CloudWatch + X-Ray with guardrails
 
 **Logs:**
+
 - Structured JSON via `slog` (Go) and `pino` (TS).
 - Required fields on every line: `request_id`, `user_id`, `tenant_id`, `event`, `level`.
 - Retention enforced in CDK: **7 days dev, 30 days prod**.
 
 **Metrics:**
+
 - Emitted via CloudWatch EMF (no PutMetricData calls).
 - **Cap at ~8 custom metrics.** A new metric requires an ADR or a removal.
 - **Forbidden dimension values:** anything high-cardinality (raw `user_id`, raw `tenant_id`, raw URL paths, raw error messages). High-cardinality values belong in logs and traces, never metric dimensions.
 - **Allowed dimensions:** `service`, `env`, `path_template` (e.g., `/users/{id}`, not `/users/abc-123`), `status_class` (e.g., `2xx`, `5xx`), bucketed enums.
 
 **Traces:**
+
 - X-Ray enabled on every Lambda.
 - 100% sampling until traffic exceeds free tier (100k traces/mo).
 
 **Dashboards:**
+
 - Maximum 2 (prod overview, dev overview). Defined in CDK, not hand-built in the console.
 - Anything else is ad-hoc Logs Insights.
 
 **Alarms:**
+
 - ≤8 prod, ≤4 dev.
 - Default set: 5xx rate, p95 latency, DynamoDB throttles, AppConfig fetch failures, DLQ depth.
 - Alarm destinations: SNS topic → email.
 
 **Cost tripwires:**
+
 - CloudWatch billing alarm at $5/month.
 - AWS Budgets alert at $20/month overall.
 
@@ -221,31 +227,31 @@ caregiver-v2/
 
 ## 13. Languages, frameworks, and conventions
 
-| Concern | Choice |
-|---|---|
-| Backend language | Go 1.23+ on Lambda `provided.al2` |
-| Web framework | Next.js 15+ with React 19+, App Router |
-| iOS | SwiftUI, minimum target iOS 17 |
-| Web hosting | AWS-native: CloudFront + S3 (assets) + Lambda for SSR |
-| Package management | Go modules; `pnpm` (TS); SPM (Swift) |
-| Lint/format | `gofmt` + `golangci-lint`; Prettier + ESLint; SwiftFormat |
-| Commits | Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`) |
-| Branch protection | `main` requires PR + green CI |
-| Pre-commit hooks | `pre-commit` framework runs format/lint locally |
-| Dependency updates | Renovate (free, more flexible than Dependabot) |
-| Secrets | SSM Parameter Store SecureString. **Default:** Lambda env vars resolved from SSM at deploy time (cheapest, simplest). **Exception:** rotation-sensitive secrets (DB passwords, third-party API keys with short TTLs) use the SSM Parameter Store Lambda extension for runtime fetch with caching. |
+| Concern            | Choice                                                                                                                                                                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend language   | Go 1.23+ on Lambda `provided.al2`                                                                                                                                                                                                                                                                 |
+| Web framework      | Next.js 15+ with React 19+, App Router                                                                                                                                                                                                                                                            |
+| iOS                | SwiftUI, minimum target iOS 17                                                                                                                                                                                                                                                                    |
+| Web hosting        | AWS-native: CloudFront + S3 (assets) + Lambda for SSR                                                                                                                                                                                                                                             |
+| Package management | Go modules; `pnpm` (TS); SPM (Swift)                                                                                                                                                                                                                                                              |
+| Lint/format        | `gofmt` + `golangci-lint`; Prettier + ESLint; SwiftFormat                                                                                                                                                                                                                                         |
+| Commits            | Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`)                                                                                                                                                                                                                   |
+| Branch protection  | `main` requires PR + green CI                                                                                                                                                                                                                                                                     |
+| Pre-commit hooks   | `pre-commit` framework runs format/lint locally                                                                                                                                                                                                                                                   |
+| Dependency updates | Renovate (free, more flexible than Dependabot)                                                                                                                                                                                                                                                    |
+| Secrets            | SSM Parameter Store SecureString. **Default:** Lambda env vars resolved from SSM at deploy time (cheapest, simplest). **Exception:** rotation-sensitive secrets (DB passwords, third-party API keys with short TTLs) use the SSM Parameter Store Lambda extension for runtime fetch with caching. |
 
 ## 14. v1 → v2 directory mapping
 
-| v1 | v2 |
-|---|---|
-| `care-giver-api` | `caregiver-v2/api/` |
+| v1                                     | v2                                                  |
+| -------------------------------------- | --------------------------------------------------- |
+| `care-giver-api`                       | `caregiver-v2/api/`                                 |
 | `care-giver-notification-orchestrator` | `caregiver-v2/services/notifications-orchestrator/` |
-| `care-giver-notification-executor` | `caregiver-v2/services/notifications-executor/` |
-| `care-giver-golang-common` | `caregiver-v2/shared/go-common/` |
-| `care-giver-site` | `caregiver-v2/web/` |
-| `care-giver-app-ios` | `caregiver-v2/ios/` |
-| `care-giver-specs` | `caregiver-v2/docs/specs/` |
+| `care-giver-notification-executor`     | `caregiver-v2/services/notifications-executor/`     |
+| `care-giver-golang-common`             | `caregiver-v2/shared/go-common/`                    |
+| `care-giver-site`                      | `caregiver-v2/web/`                                 |
+| `care-giver-app-ios`                   | `caregiver-v2/ios/`                                 |
+| `care-giver-specs`                     | `caregiver-v2/docs/specs/`                          |
 
 ## 15. Implementation order (high level)
 
@@ -270,10 +276,10 @@ This will be elaborated in the F1 implementation plan, but the rough sequence:
 
 ## 17. Risks
 
-- **Solo dev complexity creep.** Every guardrail (branch protection, pre-commit, Conventional Commits, ADRs) adds friction. If F1 is too heavy, it slows the very iteration it's meant to accelerate. *Mitigation: revisit each convention after 1 month — drop what hasn't paid off.*
-- **AppConfig misuse.** Feature flags accumulate. Without retirement discipline, the flag count grows unbounded. *Mitigation: ADR per flag with retirement criteria; quarterly flag-cleanup task.*
-- **CloudWatch metric explosion.** EMF makes it easy to emit high-cardinality metrics by accident. *Mitigation: hard cap in the spec; review every new metric in PR.*
-- **CDK lock-in.** Migrating away from CDK later is painful. *Mitigation: accept the lock-in. AWS-native is a stated goal.*
+- **Solo dev complexity creep.** Every guardrail (branch protection, pre-commit, Conventional Commits, ADRs) adds friction. If F1 is too heavy, it slows the very iteration it's meant to accelerate. _Mitigation: revisit each convention after 1 month — drop what hasn't paid off._
+- **AppConfig misuse.** Feature flags accumulate. Without retirement discipline, the flag count grows unbounded. _Mitigation: ADR per flag with retirement criteria; quarterly flag-cleanup task._
+- **CloudWatch metric explosion.** EMF makes it easy to emit high-cardinality metrics by accident. _Mitigation: hard cap in the spec; review every new metric in PR._
+- **CDK lock-in.** Migrating away from CDK later is painful. _Mitigation: accept the lock-in. AWS-native is a stated goal._
 
 ## 18. Success criteria
 

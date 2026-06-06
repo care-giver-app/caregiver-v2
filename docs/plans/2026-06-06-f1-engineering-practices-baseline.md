@@ -27,6 +27,7 @@
 ### Task 1: Create monorepo directory structure
 
 **Files:**
+
 - Create: `api/`, `services/`, `shared/openapi/`, `shared/go-common/`, `shared/types-ts/`, `shared/types-go/`, `shared/types-swift/`, `web/`, `ios/`, `infra/`, `.github/workflows/`
 
 Note: `docs/specs/` and `docs/adr/` already exist.
@@ -62,6 +63,7 @@ Expected output contains: `./api`, `./services`, `./shared`, `./web`, `./ios`, `
 ### Task 2: Initialize git, add root `.gitignore`, `.editorconfig`, root `README.md`
 
 **Files:**
+
 - Create: `.gitignore`, `.editorconfig`, `README.md`
 
 - [ ] **Step 2.1: `git init` and set default branch**
@@ -158,26 +160,26 @@ indent_style = tab
 
 Create `README.md`:
 
-````markdown
+```markdown
 # Caregiver v2
 
 Greenfield rewrite of the Caregiver tracking app. Multi-tenant, custom event types, real-time updates across iOS and web.
 
 ## Layout
 
-| Directory | Purpose |
-|---|---|
-| `api/` | Synchronous HTTP API (Go Lambda) |
-| `services/` | Async/scheduled Lambda services (one per directory) |
-| `shared/openapi/` | OpenAPI 3 contract — source of truth |
-| `shared/go-common/` | Shared Go libraries |
-| `shared/types-{go,ts,swift}/` | Generated clients from OpenAPI |
-| `web/` | Next.js + React web client |
-| `ios/` | SwiftUI iOS client |
-| `infra/` | AWS CDK in TypeScript |
-| `docs/specs/` | Brainstormed design specs |
-| `docs/adr/` | Architecture decision records (MADR) |
-| `docs/plans/` | Implementation plans |
+| Directory                     | Purpose                                             |
+| ----------------------------- | --------------------------------------------------- |
+| `api/`                        | Synchronous HTTP API (Go Lambda)                    |
+| `services/`                   | Async/scheduled Lambda services (one per directory) |
+| `shared/openapi/`             | OpenAPI 3 contract — source of truth                |
+| `shared/go-common/`           | Shared Go libraries                                 |
+| `shared/types-{go,ts,swift}/` | Generated clients from OpenAPI                      |
+| `web/`                        | Next.js + React web client                          |
+| `ios/`                        | SwiftUI iOS client                                  |
+| `infra/`                      | AWS CDK in TypeScript                               |
+| `docs/specs/`                 | Brainstormed design specs                           |
+| `docs/adr/`                   | Architecture decision records (MADR)                |
+| `docs/plans/`                 | Implementation plans                                |
 
 ## Quickstart
 
@@ -186,7 +188,7 @@ See `docs/runbook.md` for the dev loop (added in F1's Task 41).
 ## Architecture
 
 See `docs/specs/2026-06-06-f1-engineering-practices-baseline-design.md`.
-````
+```
 
 - [ ] **Step 2.5: Initial commit**
 
@@ -203,6 +205,7 @@ Expected: one commit on `main`.
 ### Task 3: Set up pnpm workspace at root
 
 **Files:**
+
 - Create: `package.json`, `pnpm-workspace.yaml`, `.nvmrc`
 
 - [ ] **Step 3.1: Add `.nvmrc`**
@@ -244,10 +247,10 @@ Create `pnpm-workspace.yaml`:
 
 ```yaml
 packages:
-  - "infra"
-  - "web"
-  - "shared/types-ts"
-  - "shared/openapi"
+  - 'infra'
+  - 'web'
+  - 'shared/types-ts'
+  - 'shared/openapi'
 ```
 
 - [ ] **Step 3.4: Install root deps**
@@ -270,6 +273,7 @@ git commit -m "chore: pnpm workspace + Node 20"
 ### Task 4: Set up Prettier at root
 
 **Files:**
+
 - Create: `.prettierrc.json`, `.prettierignore`
 
 - [ ] **Step 4.1: Write `.prettierrc.json`**
@@ -323,6 +327,7 @@ git commit -m "chore: prettier config"
 ### Task 5: Set up Conventional Commits with commitlint + Lefthook
 
 **Files:**
+
 - Create: `commitlint.config.js`, `lefthook.yml`
 - Modify: `package.json`
 
@@ -359,7 +364,7 @@ pre-commit:
   parallel: true
   commands:
     prettier:
-      glob: "**/*.{ts,tsx,js,jsx,json,md,yaml,yml}"
+      glob: '**/*.{ts,tsx,js,jsx,json,md,yaml,yml}'
       run: pnpm exec prettier --check {staged_files}
 ```
 
@@ -399,6 +404,7 @@ git commit -m "chore: commitlint + lefthook for conventional commits"
 ### Task 6: Write seed ADRs 0001–0005
 
 **Files:**
+
 - Create: `docs/adr/0001-parallel-v2-over-evolve-in-place.md`, `0002-single-monorepo.md`, `0003-openapi-3-contract-source.md`, `0004-dev-prod-environments-pr-merge-triggers.md`, `0005-appconfig-feature-flags.md`
 
 Each ADR uses MADR-lite format. Templates below — fill with the rationale we discussed.
@@ -675,6 +681,7 @@ git commit -m "docs: seed ADRs 0001-0005"
 ### Task 7: Write seed ADRs 0006–0010
 
 **Files:**
+
 - Create: `docs/adr/0006-testing-trophy.md`, `0007-cloudwatch-xray-observability.md`, `0008-aws-cdk-typescript.md`, `0009-language-and-framework-choices.md`, `0010-aws-native-web-hosting.md`
 
 - [ ] **Step 7.1: Write ADR-0006 (Testing trophy)**
@@ -988,6 +995,7 @@ Expected: review settings present, force pushes disabled.
 ### Task 10: Configure GitHub OIDC for AWS (no long-lived keys)
 
 **Files:**
+
 - Create: `infra/lib/bootstrap-stack.ts` (later in Task 12); for now this task is AWS console + CLI setup.
 
 - [ ] **Step 10.1: Create OIDC identity provider in AWS**
@@ -1061,6 +1069,7 @@ Expected: secret and variable set on the repo.
 ### Task 11: Scaffold the CDK app
 
 **Files:**
+
 - Create: `infra/package.json`, `infra/tsconfig.json`, `infra/cdk.json`, `infra/bin/app.ts`, `infra/jest.config.js`, `infra/test/.gitkeep`
 
 - [ ] **Step 11.1: Add `infra/package.json`**
@@ -1132,7 +1141,15 @@ Expected: secret and variable set on the repo.
   "app": "npx ts-node --prefer-ts-exts bin/app.ts",
   "watch": {
     "include": ["**"],
-    "exclude": ["README.md", "cdk*.json", "**/*.d.ts", "**/*.js", "tsconfig.json", "package*.json", "node_modules"]
+    "exclude": [
+      "README.md",
+      "cdk*.json",
+      "**/*.d.ts",
+      "**/*.js",
+      "tsconfig.json",
+      "package*.json",
+      "node_modules"
+    ]
   },
   "context": {
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
@@ -1209,6 +1226,7 @@ git commit -m "chore(infra): scaffold CDK app"
 ### Task 12: Write shared-stack with test (TDD)
 
 **Files:**
+
 - Create: `infra/lib/shared-stack.ts`, `infra/test/shared-stack.test.ts`
 
 - [ ] **Step 12.1: Write failing test first**
@@ -1362,6 +1380,7 @@ Expected: subscription `PendingConfirmation` → `Confirmed` after clicking the 
 ### Task 14: GitHub Actions — Lint + TypeScript checks on PR
 
 **Files:**
+
 - Create: `.github/workflows/ci-pr.yml`
 
 - [ ] **Step 14.1: Write `ci-pr.yml`**
@@ -1391,8 +1410,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        # Version comes from package.json `packageManager` field — do NOT add `with: version`.
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -1464,6 +1482,7 @@ Expected: PR squash-merged; local `main` up to date.
 ### Task 15: GitHub Actions — `cdk synth` + diff comment on PR
 
 **Files:**
+
 - Modify: `.github/workflows/ci-pr.yml` (add new job)
 
 - [ ] **Step 15.1: Branch and add `cdk-diff` job to `ci-pr.yml`**
@@ -1475,62 +1494,61 @@ git checkout -b ci/cdk-diff
 Add this job to `.github/workflows/ci-pr.yml`:
 
 ```yaml
-  cdk-diff:
-    name: CDK synth + diff
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: true
-      - run: pnpm install --frozen-lockfile
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-      - name: CDK synth
-        run: pnpm --filter @caregiver/infra exec cdk synth --context stage=dev
-      - name: CDK diff
-        id: cdk-diff
-        run: |
-          set +e
-          pnpm --filter @caregiver/infra exec cdk diff --context stage=dev > /tmp/cdk-diff.txt 2>&1
-          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
-          cat /tmp/cdk-diff.txt
-      - name: Post diff as PR comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const diff = fs.readFileSync('/tmp/cdk-diff.txt', 'utf8');
-            const body = `### CDK diff (dev)\n\n\`\`\`\n${diff.slice(0, 60000)}\n\`\`\``;
-            const { data: comments } = await github.rest.issues.listComments({
+cdk-diff:
+  name: CDK synth + diff
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      # Version comes from package.json `packageManager` field — do NOT add `with: version`.
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        cache: true
+    - run: pnpm install --frozen-lockfile
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+        aws-region: ${{ vars.AWS_REGION }}
+    - name: CDK synth
+      run: pnpm --filter @caregiver/infra exec cdk synth --context stage=dev
+    - name: CDK diff
+      id: cdk-diff
+      run: |
+        set +e
+        pnpm --filter @caregiver/infra exec cdk diff --context stage=dev > /tmp/cdk-diff.txt 2>&1
+        echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+        cat /tmp/cdk-diff.txt
+    - name: Post diff as PR comment
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const diff = fs.readFileSync('/tmp/cdk-diff.txt', 'utf8');
+          const body = `### CDK diff (dev)\n\n\`\`\`\n${diff.slice(0, 60000)}\n\`\`\``;
+          const { data: comments } = await github.rest.issues.listComments({
+            ...context.repo,
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find(c => c.user.type === 'Bot' && c.body.startsWith('### CDK diff'));
+          if (existing) {
+            await github.rest.issues.updateComment({
+              ...context.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
               ...context.repo,
               issue_number: context.issue.number,
+              body,
             });
-            const existing = comments.find(c => c.user.type === 'Bot' && c.body.startsWith('### CDK diff'));
-            if (existing) {
-              await github.rest.issues.updateComment({
-                ...context.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                ...context.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
+          }
 ```
 
 - [ ] **Step 15.2: Open a PR and verify the diff comment posts**
@@ -1556,6 +1574,7 @@ git checkout main && git pull
 ### Task 16: GitHub Actions — Deploy to dev on PR
 
 **Files:**
+
 - Modify: `.github/workflows/ci-pr.yml` (add deploy job)
 
 - [ ] **Step 16.1: Branch**
@@ -1569,38 +1588,38 @@ git checkout -b ci/deploy-dev
 Add to `.github/workflows/ci-pr.yml`:
 
 ```yaml
-  deploy-dev:
-    name: Deploy to dev
-    needs: [lint, cdk-diff]
-    if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    concurrency:
-      group: deploy-dev
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: true
-      - run: pnpm install --frozen-lockfile
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-      - name: CDK deploy dev
-        run: pnpm --filter @caregiver/infra exec cdk deploy --all --context stage=dev --require-approval never
+deploy-dev:
+  name: Deploy to dev
+  needs: [lint, cdk-diff]
+  if: github.event.pull_request.head.repo.full_name == github.repository
+  runs-on: ubuntu-latest
+  concurrency:
+    group: deploy-dev
+    cancel-in-progress: false
+  steps:
+    - uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      # Version comes from package.json `packageManager` field — do NOT add `with: version`.
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        cache: true
+    - run: pnpm install --frozen-lockfile
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+        aws-region: ${{ vars.AWS_REGION }}
+    - name: CDK deploy dev
+      run: pnpm --filter @caregiver/infra exec cdk deploy --all --context stage=dev --require-approval never
 ```
 
 Notes:
+
 - `if: github.event.pull_request.head.repo.full_name == github.repository` blocks deploys from forks.
 - `concurrency: deploy-dev` serializes deploys so two PRs don't race.
 
@@ -1628,6 +1647,7 @@ git checkout main && git pull
 ### Task 17: GitHub Actions — Deploy to prod on merge to main
 
 **Files:**
+
 - Create: `.github/workflows/cd-main.yml`
 
 - [ ] **Step 17.1: Branch and write workflow**
@@ -1659,8 +1679,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        # Version comes from package.json `packageManager` field — do NOT add `with: version`.
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -1752,6 +1771,7 @@ Expected: future PRs require those four checks to pass before merge.
 ### Task 18: Create `openapi.yaml` with `/health`
 
 **Files:**
+
 - Create: `shared/openapi/package.json`, `shared/openapi/openapi.yaml`
 
 - [ ] **Step 18.1: Branch**
@@ -1847,6 +1867,7 @@ git commit -m "feat(openapi): add /health endpoint to contract"
 ### Task 19: Go server codegen with `oapi-codegen`
 
 **Files:**
+
 - Create: `shared/types-go/go.mod`, `shared/types-go/tools.go`, `shared/types-go/Makefile`, `shared/types-go/oapi-config.yaml`
 - Update: `pnpm-workspace.yaml` is fine; Go is outside pnpm.
 
@@ -1928,6 +1949,7 @@ git commit -m "feat(types-go): generated Go server stubs for /health"
 ### Task 20: TS client codegen with `openapi-typescript` + `openapi-fetch`
 
 **Files:**
+
 - Create: `shared/types-ts/package.json`, `shared/types-ts/tsconfig.json`, `shared/types-ts/src/client.ts`
 
 - [ ] **Step 20.1: Add `shared/types-ts/package.json`**
@@ -2019,6 +2041,7 @@ git commit -m "feat(types-ts): generated TS client for /health"
 ### Task 21: Swift client codegen with `swift-openapi-generator`
 
 **Files:**
+
 - Create: `shared/types-swift/Package.swift`, `shared/types-swift/Sources/CaregiverAPI/Empty.swift`, `shared/types-swift/openapi-generator-config.yaml`, copy of `openapi.yaml` symlink
 
 - [ ] **Step 21.1: Create `Package.swift`**
@@ -2110,6 +2133,7 @@ git commit -m "feat(types-swift): swift-openapi-generator package for /health"
 ### Task 22: Wire codegen into CI and pre-commit
 
 **Files:**
+
 - Modify: `.github/workflows/ci-pr.yml`, `lefthook.yml`
 
 - [ ] **Step 22.1: Add a `codegen-check` job to `ci-pr.yml`**
@@ -2119,40 +2143,39 @@ This job regenerates the Go and TS clients and fails if anything has drifted fro
 Add to `.github/workflows/ci-pr.yml`:
 
 ```yaml
-  codegen-check:
-    name: Codegen drift check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: true
-      - run: pnpm install --frozen-lockfile
-      - name: Regenerate TS client
-        run: pnpm --filter @caregiver/types-ts run build
-      - name: Regenerate Go server stubs
-        run: |
-          cd shared/types-go
-          go mod tidy
-          make codegen
-      - name: Copy openapi.yaml into Swift resources
-        run: cp shared/openapi/openapi.yaml shared/types-swift/Sources/CaregiverAPI/openapi.yaml
-      - name: Fail if anything changed
-        run: |
-          git status --porcelain
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::Generated files are out of date. Re-run codegen locally."
-            git diff
-            exit 1
-          fi
+codegen-check:
+  name: Codegen drift check
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      # Version comes from package.json `packageManager` field — do NOT add `with: version`.
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        cache: true
+    - run: pnpm install --frozen-lockfile
+    - name: Regenerate TS client
+      run: pnpm --filter @caregiver/types-ts run build
+    - name: Regenerate Go server stubs
+      run: |
+        cd shared/types-go
+        go mod tidy
+        make codegen
+    - name: Copy openapi.yaml into Swift resources
+      run: cp shared/openapi/openapi.yaml shared/types-swift/Sources/CaregiverAPI/openapi.yaml
+    - name: Fail if anything changed
+      run: |
+        git status --porcelain
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "::error::Generated files are out of date. Re-run codegen locally."
+          git diff
+          exit 1
+        fi
 ```
 
 - [ ] **Step 22.2: Add a pre-commit hook to regenerate when `openapi.yaml` changes**
@@ -2169,10 +2192,10 @@ pre-commit:
   parallel: true
   commands:
     prettier:
-      glob: "**/*.{ts,tsx,js,jsx,json,md,yaml,yml}"
+      glob: '**/*.{ts,tsx,js,jsx,json,md,yaml,yml}'
       run: pnpm exec prettier --check {staged_files}
     openapi-codegen:
-      glob: "shared/openapi/openapi.yaml"
+      glob: 'shared/openapi/openapi.yaml'
       run: |
         pnpm --filter @caregiver/types-ts run build
         (cd shared/types-go && make codegen)
@@ -2206,6 +2229,7 @@ git checkout main && git pull
 ### Task 23: Create `shared/go-common` with logger and config
 
 **Files:**
+
 - Create: `shared/go-common/go.mod`, `shared/go-common/logger/logger.go`, `shared/go-common/logger/logger_test.go`, `shared/go-common/config/config.go`
 
 - [ ] **Step 23.1: Branch and init module**
@@ -2353,6 +2377,7 @@ git commit -m "feat(go-common): structured logger + config"
 ### Task 24: Write the `/health` Lambda handler (TDD)
 
 **Files:**
+
 - Create: `api/go.mod`, `api/internal/handlers/health.go`, `api/internal/handlers/health_test.go`, `api/cmd/lambda/main.go`
 
 - [ ] **Step 24.1: Init API Go module**
@@ -2555,6 +2580,7 @@ git commit -m "feat(api): /health lambda handler with TDD"
 ### Task 25: Build the API stack in CDK
 
 **Files:**
+
 - Create: `infra/lib/api-stack.ts`, `infra/test/api-stack.test.ts`
 - Modify: `infra/bin/app.ts`, `infra/package.json` (add aws-cdk-lib already present + esbuild for bundling)
 
@@ -2765,6 +2791,7 @@ Expected: prod `/health` returns the same shape.
 ### Task 27: TS smoke test for `/health` via generated client
 
 **Files:**
+
 - Create: `shared/types-ts/test/smoke.test.ts`, modify `shared/types-ts/package.json` to add Vitest
 
 - [ ] **Step 27.1: Branch**
@@ -2842,6 +2869,7 @@ git commit -m "test(types-ts): smoke test for /health via generated client"
 ### Task 28: Swift smoke test for `/health` via generated client
 
 **Files:**
+
 - Create: `shared/types-swift/Tests/CaregiverAPITests/HealthSmokeTests.swift`
 - Modify: `shared/types-swift/Package.swift` to add the test target
 
@@ -2952,6 +2980,7 @@ Expected: PR passes CI, merges, prod deploy unaffected (tests don't run against 
 ### Task 29: CloudWatch dashboard in CDK (per env)
 
 **Files:**
+
 - Create: `infra/lib/observability-stack.ts`, `infra/test/observability-stack.test.ts`
 - Modify: `infra/bin/app.ts`, `infra/lib/api-stack.ts` (export Lambda for dashboard reference)
 
@@ -3048,7 +3077,10 @@ export class ObservabilityStack extends cdk.Stack {
 
     const errors = props.apiFunction.metricErrors({ period: cdk.Duration.minutes(5) });
     const throttles = props.apiFunction.metricThrottles({ period: cdk.Duration.minutes(5) });
-    const duration = props.apiFunction.metricDuration({ period: cdk.Duration.minutes(5), statistic: 'p95' });
+    const duration = props.apiFunction.metricDuration({
+      period: cdk.Duration.minutes(5),
+      statistic: 'p95',
+    });
     const invocations = props.apiFunction.metricInvocations({ period: cdk.Duration.minutes(5) });
 
     const action = new cwa.SnsAction(props.alarmTopic);
@@ -3181,6 +3213,7 @@ git commit -m "feat(infra): observability-stack with dashboard + 4 alarms"
 ### Task 30: Billing alarm + AWS Budgets
 
 **Files:**
+
 - Create: `infra/lib/billing-stack.ts`, `infra/test/billing-stack.test.ts`
 - Modify: `infra/bin/app.ts`
 
@@ -3276,9 +3309,7 @@ export class BillingStack extends cdk.Stack {
             threshold: 80,
             thresholdType: 'PERCENTAGE',
           },
-          subscribers: [
-            { subscriptionType: 'EMAIL', address: props.notificationEmail },
-          ],
+          subscribers: [{ subscriptionType: 'EMAIL', address: props.notificationEmail }],
         },
       ],
     });
@@ -3328,10 +3359,10 @@ Modify the prod workflow (`.github/workflows/cd-main.yml`) to pass `CAREGIVER_AL
 In the `CDK deploy prod` step:
 
 ```yaml
-      - name: CDK deploy prod
-        env:
-          CAREGIVER_ALERT_EMAIL: ${{ vars.CAREGIVER_ALERT_EMAIL }}
-        run: pnpm --filter @caregiver/infra exec cdk deploy --all --context stage=prod --require-approval never
+- name: CDK deploy prod
+  env:
+    CAREGIVER_ALERT_EMAIL: ${{ vars.CAREGIVER_ALERT_EMAIL }}
+  run: pnpm --filter @caregiver/infra exec cdk deploy --all --context stage=prod --require-approval never
 ```
 
 - [ ] **Step 30.6: Test passes**
@@ -3402,6 +3433,7 @@ aws cloudwatch set-alarm-state \
 ### Task 32: AppConfig application + profile in shared-stack
 
 **Files:**
+
 - Modify: `infra/lib/shared-stack.ts`, `infra/test/shared-stack.test.ts`
 - Create: `infra/lib/appconfig-content.ts` (default flag JSON), `infra/lib/appconfig-schema.json`
 
@@ -3588,6 +3620,7 @@ git commit -m "feat(infra): appconfig application + flags_demo seed"
 ### Task 33: Add AppConfig Lambda extension layer + permissions to API
 
 **Files:**
+
 - Modify: `infra/lib/api-stack.ts`
 
 - [ ] **Step 33.1: Take `appConfig*` IDs as props**
@@ -3680,6 +3713,7 @@ git commit -m "feat(infra): appconfig extension layer on api lambda"
 ### Task 34: Add flag-fetch helper in `shared/go-common`
 
 **Files:**
+
 - Create: `shared/go-common/flags/flags.go`, `shared/go-common/flags/flags_test.go`
 
 - [ ] **Step 34.1: Write the failing test**
@@ -3809,6 +3843,7 @@ git commit -m "feat(go-common): appconfig extension flag client"
 ### Task 35: Add `GET /flags` to the OpenAPI spec and Lambda
 
 **Files:**
+
 - Modify: `shared/openapi/openapi.yaml`, `api/cmd/lambda/mux.go`
 - Create: `api/internal/handlers/flags.go`, `api/internal/handlers/flags_test.go`
 
@@ -3817,28 +3852,28 @@ git commit -m "feat(go-common): appconfig extension flag client"
 Modify `shared/openapi/openapi.yaml` — under `paths:`:
 
 ```yaml
-  /flags:
-    get:
-      operationId: getFlags
-      summary: Return evaluated feature flags
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Flags'
+/flags:
+  get:
+    operationId: getFlags
+    summary: Return evaluated feature flags
+    responses:
+      '200':
+        description: OK
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Flags'
 ```
 
 Add to `components.schemas`:
 
 ```yaml
-    Flags:
-      type: object
-      additionalProperties: true
-      example:
-        flags_demo:
-          enabled: false
+Flags:
+  type: object
+  additionalProperties: true
+  example:
+    flags_demo:
+      enabled: false
 ```
 
 - [ ] **Step 35.2: Regenerate clients**
@@ -4036,6 +4071,7 @@ git checkout main && git pull
 ### Task 37: Add Renovate config
 
 **Files:**
+
 - Create: `renovate.json`
 
 - [ ] **Step 37.1: Branch**
@@ -4102,6 +4138,7 @@ Expected within ~1 hour: Renovate opens a "Configure Renovate" PR if it detects 
 ### Task 38: Write `docs/runbook.md`
 
 **Files:**
+
 - Create: `docs/runbook.md`
 
 - [ ] **Step 38.1: Branch**
@@ -4232,13 +4269,13 @@ aws ce get-cost-and-usage \
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Action |
-|---|---|---|
-| CI lint fails on Prettier | Unformatted files committed | `pnpm exec prettier --write . && git commit --amend --no-edit` |
-| Commit rejected | Bad commit message | Reword with Conventional Commits prefix |
-| `cdk diff` shows surprise changes | CDK or context drift | Read the diff, compare with what your code says |
-| Lambda 500 with "missing required env" | Forgot to add an env var in CDK | Add to `api-stack.ts`, redeploy |
-| AppConfig fetch returns stale value | Extension cache TTL | Wait 45s, or restart the Lambda runtime |
+| Symptom                                | Likely cause                    | Action                                                         |
+| -------------------------------------- | ------------------------------- | -------------------------------------------------------------- |
+| CI lint fails on Prettier              | Unformatted files committed     | `pnpm exec prettier --write . && git commit --amend --no-edit` |
+| Commit rejected                        | Bad commit message              | Reword with Conventional Commits prefix                        |
+| `cdk diff` shows surprise changes      | CDK or context drift            | Read the diff, compare with what your code says                |
+| Lambda 500 with "missing required env" | Forgot to add an env var in CDK | Add to `api-stack.ts`, redeploy                                |
+| AppConfig fetch returns stale value    | Extension cache TTL             | Wait 45s, or restart the Lambda runtime                        |
 
 ## Links
 
@@ -4259,6 +4296,7 @@ git commit -m "docs: runbook for dev loop, endpoint/flag/ADR additions"
 ### Task 39: Update root `README.md` to point at the runbook
 
 **Files:**
+
 - Modify: `README.md`
 
 - [ ] **Step 39.1: Update `README.md` "Quickstart" section**

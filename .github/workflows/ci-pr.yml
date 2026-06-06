@@ -1,0 +1,59 @@
+name: ci-pr
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-pr-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  lint:
+    name: Lint + TS check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Prettier check
+        run: pnpm exec prettier --check "**/*.{ts,tsx,json,md,yaml,yml}"
+      - name: TypeScript build (infra)
+        run: pnpm --filter @caregiver/infra run build
+
+  go-lint-test:
+    name: Go lint + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      - name: Verify Go modules exist
+        run: |
+          if find . -name 'go.mod' -not -path './node_modules/*' | grep -q .; then
+            echo "Go modules found"
+          else
+            echo "No Go modules yet (skipping)"
+          fi
+      - name: golangci-lint
+        if: hashFiles('**/go.mod') != ''
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.61
+      - name: go test
+        if: hashFiles('**/go.mod') != ''
+        run: |
+          for dir in $(find . -name go.mod -not -path './node_modules/*' -exec dirname {} \;); do
+            (cd "$dir" && go test ./...)
+          done
