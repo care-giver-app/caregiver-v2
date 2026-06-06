@@ -13,6 +13,9 @@
     "codegen": "pnpm --filter @caregiver/openapi run codegen"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "lefthook": "^2.1.9",
     "prettier": "^3.3.3"
   }
 }
