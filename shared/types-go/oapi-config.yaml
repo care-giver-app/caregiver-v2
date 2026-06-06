@@ -1,0 +1,8 @@
+package: caregiverapi
+output: ./caregiverapi/types.gen.go
+generate:
+  models: true
+  embedded-spec: true
+  strict-server: true
+  chi-server: false
+  std-http-server: true
