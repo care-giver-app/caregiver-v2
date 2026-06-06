@@ -1,0 +1,39 @@
+openapi: 3.0.3
+info:
+  title: Caregiver API
+  version: 0.1.0
+  description: Caregiver v2 API contract — source of truth.
+servers:
+  - url: https://api.dev.example.com
+    description: dev
+  - url: https://api.example.com
+    description: prod
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      description: Returns service health and build metadata.
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status, version, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        version:
+          type: string
+          example: '0.1.0'
+        timestamp:
+          type: string
+          format: date-time
