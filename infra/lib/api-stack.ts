@@ -36,6 +36,7 @@ export class ApiStack extends cdk.Stack {
     });
 
     this.apiFunction = new lambda.Function(this, 'ApiFunction', {
+      functionName: `caregiver-${props.stage}-api`,
       runtime: lambda.Runtime.PROVIDED_AL2023,
       architecture: lambda.Architecture.ARM_64,
       handler: 'bootstrap',
