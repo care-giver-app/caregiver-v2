@@ -1,5 +1,5 @@
 packages:
-  - "infra"
-  - "web"
-  - "shared/types-ts"
-  - "shared/openapi"
+  - 'infra'
+  - 'web'
+  - 'shared/types-ts'
+  - 'shared/openapi'

@@ -1,0 +1,12 @@
+node_modules/
+pnpm-lock.yaml
+*.tsbuildinfo
+.next/
+dist/
+build/
+infra/cdk.out/
+shared/types-ts/dist/
+shared/types-go/
+shared/types-swift/
+*.go
+*.swift
