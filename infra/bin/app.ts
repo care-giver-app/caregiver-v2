@@ -2,6 +2,7 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { SharedStack } from '../lib/shared-stack';
+import { ApiStack } from '../lib/api-stack';
 
 const app = new cdk.App();
 
@@ -15,8 +16,10 @@ if (stage !== 'dev' && stage !== 'prod') {
 }
 
 const prefix = stage === 'prod' ? 'CaregiverProd' : 'CaregiverDev';
+const version = process.env.APP_VERSION ?? '0.0.0-dev';
 
 new SharedStack(app, `${prefix}-Shared`, { env, stage });
+new ApiStack(app, `${prefix}-Api`, { env, stage, version });
 
 // v1/v2 coexistence guardrail: see ADR-0011.
 // All stacks in the CDK app must use the Caregiver{Dev|Prod}- prefix so this
