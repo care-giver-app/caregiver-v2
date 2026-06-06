@@ -4432,3 +4432,20 @@ This serves as the closing marker for F1. Future work (B1, B2, ...) builds on th
 - **Replace `<YOUR_EMAIL>`** in Task 13/17/30 wherever it appears.
 - **Region `us-east-2` is the default for all stacks except `BillingStack`.** The CloudWatch billing alarm in `BillingStack` is pinned to `us-east-1` (Task 30, Step 30.4) because AWS only publishes billing metrics there. AWS Budgets is global, so the budget portion works regardless of stack region.
 - **Free-tier reminder.** The `noInvocationsAlarm` only alerts in prod (Task 29) — in dev, an idle environment would page constantly.
+
+## Notes added during execution
+
+### v1/v2 coexistence (added 2026-06-06)
+
+After Task 16, we audited the shared AWS account 658340567265 and confirmed v1 lives entirely in us-east-2 with these stack/resource patterns:
+
+- CFN stacks: `care-giver-*-{dev,prod}` (different naming pattern from v2 — no collision risk)
+- DynamoDB tables: **unprefixed** — `event-table-{dev,prod}`, `user-table-{dev,prod}`, `receiver-table-{dev,prod}`, `relationship-table-{dev,prod}`, `tracker-table-dev`
+- Lambda functions: `care-giver-*-{dev,prod}` (no collision)
+- SNS topics: none with caregiver naming
+
+We added ADR-0011 and a CDK synth-time guardrail (in `infra/bin/app.ts`) that throws if any stack name doesn't match `^Caregiver(Dev|Prod)-`. Run on every `cdk synth`, in every CI job, and on every prod deploy.
+
+**Constraint for B1 (multi-tenant data model spec, when written):** v2 DynamoDB tables MUST be prefixed (e.g., `caregiver-v2-<entity>` or `caregiver-{stage}-<entity>`) to avoid colliding with v1's unprefixed tables. Document this in the B1 spec when it's written.
+
+**Constraint for post-F1 IAM tightening:** `CaregiverGitHubDeploy` currently has `AdministratorAccess`. A future ADR should tighten it to resources tagged `Project: Caregiver-v2`. Deferred.
