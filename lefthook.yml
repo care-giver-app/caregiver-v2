@@ -9,3 +9,10 @@ pre-commit:
     prettier:
       glob: '**/*.{ts,tsx,js,jsx,json,md,yaml,yml}'
       run: pnpm exec prettier --check {staged_files}
+    openapi-codegen:
+      glob: 'shared/openapi/openapi.yaml'
+      run: |
+        pnpm --filter @caregiver/types-ts run build
+        (cd shared/types-go && make codegen)
+        cp shared/openapi/openapi.yaml shared/types-swift/Sources/CaregiverAPI/openapi.yaml
+        git add shared/types-ts shared/types-go shared/types-swift

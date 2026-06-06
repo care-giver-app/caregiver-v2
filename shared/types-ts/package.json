@@ -1,0 +1,27 @@
+{
+  "name": "@caregiver/types-ts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/client.js",
+  "types": "./dist/client.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    }
+  },
+  "scripts": {
+    "codegen": "openapi-typescript ../openapi/openapi.yaml -o src/schema.gen.ts && pnpm exec prettier --write src/schema.gen.ts",
+    "build": "pnpm codegen && tsc",
+    "test": "echo 'no tests'",
+    "lint": "echo 'no lint'"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.13.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.1",
+    "typescript": "^5.6.2"
+  }
+}

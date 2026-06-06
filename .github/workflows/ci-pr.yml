@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
       - name: Verify Go modules exist
         run: |
@@ -50,7 +50,8 @@ jobs:
         if: hashFiles('**/go.mod') != ''
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61
+          version: v1.64
+          working-directory: shared/types-go
       - name: go test
         if: hashFiles('**/go.mod') != ''
         run: |
@@ -71,7 +72,7 @@ jobs:
           cache: pnpm
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
       - run: pnpm install --frozen-lockfile
       - name: Configure AWS credentials
@@ -132,7 +133,7 @@ jobs:
           cache: pnpm
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
       - run: pnpm install --frozen-lockfile
       - name: Configure AWS credentials
@@ -142,3 +143,37 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
       - name: CDK deploy dev
         run: pnpm --filter @caregiver/infra exec cdk deploy --all --context stage=dev --require-approval never
+
+  codegen-check:
+    name: Codegen drift check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        # Version comes from package.json `packageManager` field; do NOT add `with: version`.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      - run: pnpm install --frozen-lockfile
+      - name: Regenerate TS client
+        run: pnpm --filter @caregiver/types-ts run build
+      - name: Regenerate Go server stubs
+        run: |
+          cd shared/types-go
+          go mod tidy
+          make codegen
+      - name: Copy openapi.yaml into Swift resources
+        run: cp shared/openapi/openapi.yaml shared/types-swift/Sources/CaregiverAPI/openapi.yaml
+      - name: Fail if anything changed
+        run: |
+          git status --porcelain
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Generated files are out of date. Re-run codegen locally."
+            git diff
+            exit 1
+          fi

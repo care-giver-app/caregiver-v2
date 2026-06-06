@@ -1,0 +1,13 @@
+{
+  "name": "@caregiver/openapi",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "lint": "redocly lint openapi.yaml",
+    "codegen": "echo 'See Tasks 19-21 for language-specific codegen.'",
+    "test": "echo 'no tests'"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^1.25.0"
+  }
+}
