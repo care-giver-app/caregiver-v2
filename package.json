@@ -1,0 +1,18 @@
+{
+  "name": "caregiver-v2",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "build": "pnpm -r run build",
+    "codegen": "pnpm --filter @caregiver/openapi run codegen"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}
