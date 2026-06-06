@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "codegen": "openapi-typescript ../openapi/openapi.yaml -o src/schema.gen.ts",
+    "codegen": "openapi-typescript ../openapi/openapi.yaml -o src/schema.gen.ts && pnpm exec prettier --write src/schema.gen.ts",
     "build": "pnpm codegen && tsc",
     "test": "echo 'no tests'",
     "lint": "echo 'no lint'"
