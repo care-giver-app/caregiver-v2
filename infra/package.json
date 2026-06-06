@@ -1,0 +1,31 @@
+{
+  "name": "@caregiver/infra",
+  "version": "0.0.0",
+  "private": true,
+  "bin": {
+    "infra": "bin/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "lint": "tsc --noEmit",
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "diff": "cdk diff"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.13",
+    "@types/node": "^20.16.5",
+    "aws-cdk": "^2.163.1",
+    "esbuild": "^0.24.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.163.1",
+    "constructs": "^10.4.2"
+  }
+}
