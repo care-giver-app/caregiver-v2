@@ -1410,8 +1410,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        # Version comes from package.json `packageManager` field — do NOT add `with: version`.
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -1501,8 +1500,7 @@ cdk-diff:
   steps:
     - uses: actions/checkout@v4
     - uses: pnpm/action-setup@v4
-      with:
-        version: 9
+      # Version comes from package.json `packageManager` field — do NOT add `with: version`.
     - uses: actions/setup-node@v4
       with:
         node-version-file: .nvmrc
@@ -1601,8 +1599,7 @@ deploy-dev:
   steps:
     - uses: actions/checkout@v4
     - uses: pnpm/action-setup@v4
-      with:
-        version: 9
+      # Version comes from package.json `packageManager` field — do NOT add `with: version`.
     - uses: actions/setup-node@v4
       with:
         node-version-file: .nvmrc
@@ -1682,8 +1679,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        # Version comes from package.json `packageManager` field — do NOT add `with: version`.
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -2153,8 +2149,7 @@ codegen-check:
   steps:
     - uses: actions/checkout@v4
     - uses: pnpm/action-setup@v4
-      with:
-        version: 9
+      # Version comes from package.json `packageManager` field — do NOT add `with: version`.
     - uses: actions/setup-node@v4
       with:
         node-version-file: .nvmrc
