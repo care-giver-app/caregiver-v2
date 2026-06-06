@@ -2,11 +2,13 @@ module github.com/care-giver-app/caregiver-v2/shared/types-go
 
 go 1.24.3
 
-require github.com/oapi-codegen/oapi-codegen/v2 v2.7.1
+require (
+	github.com/getkin/kin-openapi v0.135.0
+	github.com/oapi-codegen/oapi-codegen/v2 v2.7.1 // indirect
+)
 
 require (
 	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect
-	github.com/getkin/kin-openapi v0.135.0 // indirect
 	github.com/go-openapi/jsonpointer v0.22.4 // indirect
 	github.com/go-openapi/swag/jsonname v0.25.4 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -26,3 +28,5 @@ require (
 	golang.org/x/tools v0.42.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
