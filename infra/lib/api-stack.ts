@@ -100,6 +100,12 @@ export class ApiStack extends cdk.Stack {
       integration: new integ.HttpLambdaIntegration('HealthIntegration', this.apiFunction),
     });
 
+    httpApi.addRoutes({
+      path: '/flags',
+      methods: [apigw.HttpMethod.GET],
+      integration: new integ.HttpLambdaIntegration('FlagsIntegration', this.apiFunction),
+    });
+
     new cdk.CfnOutput(this, 'HttpApiUrl', { value: httpApi.apiEndpoint });
   }
 }
