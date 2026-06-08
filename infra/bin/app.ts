@@ -21,7 +21,14 @@ const prefix = stage === 'prod' ? 'CaregiverProd' : 'CaregiverDev';
 const version = process.env.APP_VERSION ?? '0.0.0-dev';
 
 const shared = new SharedStack(app, `${prefix}-Shared`, { env, stage });
-const api = new ApiStack(app, `${prefix}-Api`, { env, stage, version });
+const api = new ApiStack(app, `${prefix}-Api`, {
+  env,
+  stage,
+  version,
+  appConfigApplicationId: shared.appConfigApplicationId,
+  appConfigEnvironmentId: shared.appConfigEnvironmentId,
+  appConfigProfileId: shared.appConfigProfileId,
+});
 new ObservabilityStack(app, `${prefix}-Observability`, {
   env,
   stage,
