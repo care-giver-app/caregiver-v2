@@ -23,6 +23,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    '/flags': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Return evaluated feature flags */
+        get: operations['getFlags'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -34,6 +51,16 @@ export interface components {
             version: string;
             /** Format: date-time */
             timestamp: string;
+        };
+        /**
+         * @example {
+         *       "flags_demo": {
+         *         "enabled": false
+         *       }
+         *     }
+         */
+        Flags: {
+            [key: string]: unknown;
         };
     };
     responses: never;
@@ -60,6 +87,26 @@ export interface operations {
                 };
                 content: {
                     'application/json': components['schemas']['Health'];
+                };
+            };
+        };
+    };
+    getFlags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Flags'];
                 };
             };
         };

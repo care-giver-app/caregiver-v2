@@ -1344,6 +1344,8 @@ cd infra && pnpm exec cdk bootstrap aws://658340567265/us-east-2
 
 Expected: `CDKToolkit` stack created in AWS.
 
+> **Note:** Task 30 introduces `BillingStack` in `us-east-1`. Before the first prod deploy of Section 8, you must also run `cdk bootstrap aws://658340567265/us-east-1`. This is called out again at Step 30.3.
+
 - [ ] **Step 13.2: Deploy dev shared-stack locally as a smoke test**
 
 ```bash
@@ -3247,6 +3249,8 @@ cd infra && pnpm test
 ```
 
 > **Note:** A previous draft of this plan wired `BillingStack`'s alarm action to `shared.alarmTopic`. That's incorrect because `BillingStack` must live in `us-east-1` (AWS billing metrics) while `SharedStack` runs in `us-east-2`; CloudWatch alarm actions require same-region SNS topics. The AWS Budget already emails the subscriber on threshold breach, so the SNS action is redundant and has been removed.
+
+> **Prerequisite — bootstrap us-east-1:** `BillingStack` is the only stack outside `us-east-2`, so before the first prod deploy that includes it, run `cd infra && pnpm exec cdk bootstrap aws://<ACCOUNT>/us-east-1` once. Task 13 only bootstrapped `us-east-2`; without the us-east-1 bootstrap the prod deploy fails with `SSM parameter /cdk-bootstrap/hnb659fds/version not found`. Bootstrap is idempotent and the resources it creates (S3 staging bucket, ECR repo, 5 IAM roles, SSM param) are pure CDK plumbing — see ADR-0008.
 
 - [ ] **Step 30.3: Implement `billing-stack.ts`**
 
