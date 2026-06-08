@@ -39,6 +39,9 @@ func (e HealthStatus) Valid() bool {
 	}
 }
 
+// Flags defines model for Flags.
+type Flags map[string]interface{}
+
 // Health defines model for Health.
 type Health struct {
 	Status    HealthStatus `json:"status"`
@@ -51,6 +54,9 @@ type HealthStatus string
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Return evaluated feature flags
+	// (GET /flags)
+	GetFlags(w http.ResponseWriter, r *http.Request)
 	// Health check
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -64,6 +70,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetFlags operation middleware
+func (siw *ServerInterfaceWrapper) GetFlags(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFlags(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetHealth operation middleware
 func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
@@ -199,9 +219,31 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/flags", wrapper.GetFlags)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/health", wrapper.GetHealth)
 
 	return m
+}
+
+type GetFlagsRequestObject struct {
+}
+
+type GetFlagsResponseObject interface {
+	VisitGetFlagsResponse(w http.ResponseWriter) error
+}
+
+type GetFlags200JSONResponse Flags
+
+func (response GetFlags200JSONResponse) VisitGetFlagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type GetHealthRequestObject struct {
@@ -227,6 +269,9 @@ func (response GetHealth200JSONResponse) VisitGetHealthResponse(w http.ResponseW
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Return evaluated feature flags
+	// (GET /flags)
+	GetFlags(ctx context.Context, request GetFlagsRequestObject) (GetFlagsResponseObject, error)
 	// Health check
 	// (GET /health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
@@ -261,6 +306,30 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
+// GetFlags operation middleware
+func (sh *strictHandler) GetFlags(w http.ResponseWriter, r *http.Request) {
+	var request GetFlagsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFlags(ctx, request.(GetFlagsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFlags")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFlagsResponseObject); ok {
+		if err := validResponse.VisitGetFlagsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetHealth operation middleware
 func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 	var request GetHealthRequestObject
@@ -290,13 +359,15 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"bJJNbtwwDIWvIrBduvY02WkXdNEOumjQ7WAWjMQZKxn9lKKMDgIDPURP2JMUkt1O/lYmIH5+j+R7BBN9",
-	"ioGCZNCPkM1IHlv5hfAkY60Sx0QsjpYWQSmtolA86B3EB+jA0pHRkoV9B3JOBBqysAtHmDsQ5ykL+lSx",
-	"Q2SPAhosCn2oT/AGMhFnF0PT+Yk+nerzpv/Yb153zx0w/SiOyVY/q8PLP54auNiLd/dkBOaKu3CIVcpS",
-	"NuySNGX4hExHNxGr6Urd3G6ViUEYjag/v36rHAsbUvGghIuMfZOR5vMC3txunxj5N8HcQUwUMDnQcN1v",
-	"+mvoIKGMba/D+H/1R5LXtr6TFA5ZZeLJGVJLu8Jg1V1xJ6s8CVoUrJbq6bCCWwsaPpOsd60ryymGvFz1",
-	"arOpnzoghaaJKZ2caehwn5dLLPGo1XumA2h4N1zyM6zhGVaFttjnzr99bcfKZAo7OYPe7TvIxXvkM+g1",
-	"csqMZB4WvI5InEHvXi7B0gQdFD6BhlEkZT0MmFxvaerXwPQmepi7l2TiaN9En2H7+W8AAAD//w==",
+	"tJPPbtQwEMZfxRo4hmRpb75VSEDFgYrraoWm9mTjNrHNeBxRVZF4CJ6QJ0F2dtvtH3HjZK92vm/m+3ly",
+	"DyZMMXjykkDfQzIDTVivH0fc1wta68QFj+MVh0gsjhJo4UwN0E+c4kilrC/13y1Nofwij9cjWdA9jomW",
+	"pQG5iwQawvUNGYGlgc+EowylOJ743kMSlJxWkzyB3kK4hQYs7RktWdg9eCVh5/fFS9xESXCKdZLAEwpo",
+	"sCj0rvwFr0hm4uSCr32OKWDTvm83L6uXBph+ZMcl0fY44aPH6QC7F1GL3Pm+crGUDLsotTN8QKa9m4nV",
+	"fKYuri6VCV4Yjag/v36rFDIbUqFXwlmGtraROuej8OLq8mSQY4KlgRDJY3Sg4bzdtOfQQEQZKteuP77t",
+	"nqQcBT+WmS4taPhEsj5+SZ1i8Gl9mLPNphxlRvJVhzGOzlRld5NWmOsKldtbph40vOked6w7LFi3Nqho",
+	"niL5+qXiTnmakO9AwzeSzF7RjGNGIat6QslMqj9YNNAND6t0CPTUc7VIKhHPzpBayxV6q66zG62aSNCi",
+	"YEH8gsVhT/8jjEOHf9Agk9nJHejt7pTNKlRmIHO7yktE4gR6+xyCpRkayDyChkEkJt11GF1raW4PH0Br",
+	"wgRL81wZOdhXpU9ku+VvAAAA//8=",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

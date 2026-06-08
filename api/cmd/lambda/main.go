@@ -24,7 +24,11 @@ func main() {
 	log := logger.New(cfg.Service, cfg.Stage)
 	log.Info("starting", "version", cfg.Version)
 
-	mux := newMux(cfg)
+	mux, err := newMux(cfg)
+	if err != nil {
+		log.Error("mux init failed", "err", err)
+		os.Exit(1)
+	}
 	adapter := httpadapter.NewV2(mux)
 
 	lambda.Start(func(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
