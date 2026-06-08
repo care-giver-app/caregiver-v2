@@ -26,4 +26,19 @@ describe('SharedStack', () => {
       DisplayName: 'Caregiver Prod Alarms',
     });
   });
+
+  test('creates AppConfig application + profile + deployment', () => {
+    const app = new cdk.App();
+    const stack = new SharedStack(app, 'TestSharedAC', {
+      env: { account: '123456789012', region: 'us-east-1' },
+      stage: 'dev',
+    });
+    const template = Template.fromStack(stack);
+    template.resourceCountIs('AWS::AppConfig::Application', 1);
+    template.resourceCountIs('AWS::AppConfig::ConfigurationProfile', 1);
+    template.resourceCountIs('AWS::AppConfig::Environment', 1);
+    template.resourceCountIs('AWS::AppConfig::HostedConfigurationVersion', 1);
+    template.resourceCountIs('AWS::AppConfig::DeploymentStrategy', 1);
+    template.resourceCountIs('AWS::AppConfig::Deployment', 1);
+  });
 });
