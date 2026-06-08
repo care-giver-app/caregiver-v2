@@ -40,4 +40,6 @@ jobs:
             (cd "$dir" && go test ./...)
           done
       - name: CDK deploy prod
+        env:
+          CAREGIVER_ALERT_EMAIL: ${{ vars.CAREGIVER_ALERT_EMAIL }}
         run: pnpm --filter @caregiver/infra exec cdk deploy --all --context stage=prod --require-approval never

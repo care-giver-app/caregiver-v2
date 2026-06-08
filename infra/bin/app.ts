@@ -3,6 +3,8 @@ import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { SharedStack } from '../lib/shared-stack';
 import { ApiStack } from '../lib/api-stack';
+import { ObservabilityStack } from '../lib/observability-stack';
+import { BillingStack } from '../lib/billing-stack';
 
 const app = new cdk.App();
 
@@ -18,8 +20,29 @@ if (stage !== 'dev' && stage !== 'prod') {
 const prefix = stage === 'prod' ? 'CaregiverProd' : 'CaregiverDev';
 const version = process.env.APP_VERSION ?? '0.0.0-dev';
 
-new SharedStack(app, `${prefix}-Shared`, { env, stage });
-new ApiStack(app, `${prefix}-Api`, { env, stage, version });
+const shared = new SharedStack(app, `${prefix}-Shared`, { env, stage });
+const api = new ApiStack(app, `${prefix}-Api`, { env, stage, version });
+new ObservabilityStack(app, `${prefix}-Observability`, {
+  env,
+  stage,
+  apiFunction: api.apiFunction,
+  alarmTopic: shared.alarmTopic,
+});
+
+if (stage === 'prod') {
+  const notificationEmail = process.env.CAREGIVER_ALERT_EMAIL;
+  if (!notificationEmail) {
+    throw new Error(
+      'CAREGIVER_ALERT_EMAIL must be set (non-empty) for prod deploys. ' +
+        'Configure via: gh variable set CAREGIVER_ALERT_EMAIL --body "<email>"',
+    );
+  }
+  // BillingStack MUST be in us-east-1: AWS only publishes billing metrics there.
+  new BillingStack(app, `${prefix}-Billing`, {
+    env: { account: env.account, region: 'us-east-1' },
+    notificationEmail,
+  });
+}
 
 // v1/v2 coexistence guardrail: see ADR-0011.
 // All stacks in the CDK app must use the Caregiver{Dev|Prod}- prefix so this

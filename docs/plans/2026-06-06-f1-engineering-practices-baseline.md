@@ -3224,20 +3224,13 @@ Create `infra/test/billing-stack.test.ts`:
 ```ts
 import * as cdk from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
-import * as sns from 'aws-cdk-lib/aws-sns';
 import { BillingStack } from '../lib/billing-stack';
 
 describe('BillingStack', () => {
   test('creates a CloudWatch billing alarm and an AWS Budget', () => {
     const app = new cdk.App();
-    const refStack = new cdk.Stack(app, 'RefStack', {
-      env: { account: '123456789012', region: 'us-east-1' },
-    });
-    const topic = new sns.Topic(refStack, 'Topic');
-
     const stack = new BillingStack(app, 'TestBilling', {
       env: { account: '123456789012', region: 'us-east-1' },
-      alarmTopic: topic,
       notificationEmail: 'test@example.com',
     });
     const template = Template.fromStack(stack);
@@ -3253,6 +3246,8 @@ describe('BillingStack', () => {
 cd infra && pnpm test
 ```
 
+> **Note:** A previous draft of this plan wired `BillingStack`'s alarm action to `shared.alarmTopic`. That's incorrect because `BillingStack` must live in `us-east-1` (AWS billing metrics) while `SharedStack` runs in `us-east-2`; CloudWatch alarm actions require same-region SNS topics. The AWS Budget already emails the subscriber on threshold breach, so the SNS action is redundant and has been removed.
+
 - [ ] **Step 30.3: Implement `billing-stack.ts`**
 
 Create `infra/lib/billing-stack.ts`:
@@ -3261,12 +3256,9 @@ Create `infra/lib/billing-stack.ts`:
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as cw from 'aws-cdk-lib/aws-cloudwatch';
-import * as cwa from 'aws-cdk-lib/aws-cloudwatch-actions';
-import * as sns from 'aws-cdk-lib/aws-sns';
 import * as budgets from 'aws-cdk-lib/aws-budgets';
 
 export interface BillingStackProps extends cdk.StackProps {
-  alarmTopic: sns.Topic;
   notificationEmail: string;
 }
 
@@ -3283,7 +3275,7 @@ export class BillingStack extends cdk.Stack {
       statistic: 'Maximum',
     });
 
-    const billingAlarm = new cw.Alarm(this, 'CloudWatchSpendAlarm', {
+    new cw.Alarm(this, 'CloudWatchSpendAlarm', {
       alarmName: 'caregiver-cloudwatch-billing-tripwire',
       metric: cwBillingMetric,
       threshold: 5,
@@ -3292,7 +3284,6 @@ export class BillingStack extends cdk.Stack {
       treatMissingData: cw.TreatMissingData.NOT_BREACHING,
       alarmDescription: 'Alerts when total CloudWatch-eligible monthly charges exceed $5.',
     });
-    billingAlarm.addAlarmAction(new cwa.SnsAction(props.alarmTopic));
 
     new budgets.CfnBudget(this, 'OverallMonthlyBudget', {
       budget: {
@@ -3323,10 +3314,15 @@ Modify `infra/bin/app.ts` — add at the end:
 
 ```ts
 if (stage === 'prod') {
-  const notificationEmail = process.env.CAREGIVER_ALERT_EMAIL ?? 'change-me@example.com';
+  const notificationEmail = process.env.CAREGIVER_ALERT_EMAIL;
+  if (!notificationEmail) {
+    throw new Error(
+      'CAREGIVER_ALERT_EMAIL must be set (non-empty) for prod deploys. ' +
+        'Configure via: gh variable set CAREGIVER_ALERT_EMAIL --body "<email>"',
+    );
+  }
   new (require('../lib/billing-stack').BillingStack)(app, `${prefix}-Billing`, {
     env,
-    alarmTopic: shared.alarmTopic,
     notificationEmail,
   });
 }
@@ -3338,11 +3334,16 @@ Cleaner version using a static import (replace the `require` with an import at t
 import { BillingStack } from '../lib/billing-stack';
 // ... and at the bottom:
 if (stage === 'prod') {
-  const notificationEmail = process.env.CAREGIVER_ALERT_EMAIL ?? 'change-me@example.com';
+  const notificationEmail = process.env.CAREGIVER_ALERT_EMAIL;
+  if (!notificationEmail) {
+    throw new Error(
+      'CAREGIVER_ALERT_EMAIL must be set (non-empty) for prod deploys. ' +
+        'Configure via: gh variable set CAREGIVER_ALERT_EMAIL --body "<email>"',
+    );
+  }
   // BillingStack MUST be in us-east-1: AWS only publishes billing metrics there.
   new BillingStack(app, `${prefix}-Billing`, {
     env: { account: env.account, region: 'us-east-1' },
-    alarmTopic: shared.alarmTopic,
     notificationEmail,
   });
 }
