@@ -42,6 +42,8 @@ describe('ApiStack', () => {
       }),
     });
     template.resourceCountIs('AWS::ApiGatewayV2::Api', 1);
-    template.resourceCountIs('AWS::ApiGatewayV2::Route', 1);
+    template.resourceCountIs('AWS::ApiGatewayV2::Route', 2);
+    template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: 'GET /health' });
+    template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: 'GET /flags' });
   });
 });
