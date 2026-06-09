@@ -29,6 +29,8 @@ jobs:
         run: pnpm exec prettier --check "**/*.{ts,tsx,json,md,yaml,yml}"
       - name: TypeScript build (infra)
         run: pnpm --filter @caregiver/infra run build
+      - name: Infra unit tests
+        run: pnpm --filter @caregiver/infra run test
 
   go-lint-test:
     name: Go lint + test
