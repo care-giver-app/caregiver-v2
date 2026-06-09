@@ -20,7 +20,22 @@ Greenfield rewrite of the Caregiver tracking app. Multi-tenant, custom event typ
 
 ## Quickstart
 
-See `docs/runbook.md` for the dev loop (added in F1's Task 41).
+See [`docs/runbook.md`](docs/runbook.md) for the day-to-day dev loop and operational guides.
+
+### Prerequisites
+
+- Node 20+, pnpm 9+
+- Go 1.23+
+- Xcode 16+ (for iOS work)
+- Docker (for testcontainers)
+- AWS CLI v2, configured
+
+### First-time setup
+
+```bash
+pnpm install
+pnpm exec lefthook install
+```
 
 ## Architecture
 
