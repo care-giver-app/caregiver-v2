@@ -4020,10 +4020,24 @@ func newMux(cfg config.Config) http.Handler {
 cd api && go test ./...
 ```
 
+- [ ] **Step 35.7a: Register the `/flags` route on the HTTP API in CDK**
+
+> **Gotcha discovered post-Section-8 merge:** wiring a route in `mux.go` is necessary but not sufficient. API Gateway only forwards paths it has a matching `httpApi.addRoutes(...)` block for — anything else returns 404 at the gateway, never reaching Lambda. Every new endpoint needs both a Go mux line and a CDK route block until/unless we refactor to a catch-all `ANY /{proxy+}` route.
+
+Modify `infra/lib/api-stack.ts` — after the existing `/health` route block, add:
+
+```ts
+httpApi.addRoutes({
+  path: '/flags',
+  methods: [apigw.HttpMethod.GET],
+  integration: new integ.HttpLambdaIntegration('FlagsIntegration', this.apiFunction),
+});
+```
+
 - [ ] **Step 35.8: Commit**
 
 ```bash
-git add shared/openapi/ shared/types-ts/ shared/types-go/ shared/types-swift/ api/
+git add shared/openapi/ shared/types-ts/ shared/types-go/ shared/types-swift/ api/ infra/lib/api-stack.ts
 git commit -m "feat(api): GET /flags backed by appconfig extension"
 ```
 
