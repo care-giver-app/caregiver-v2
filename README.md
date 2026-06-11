@@ -17,10 +17,12 @@ Greenfield rewrite of the Caregiver tracking app. Multi-tenant, custom event typ
 | `docs/specs/`                 | Brainstormed design specs                           |
 | `docs/adr/`                   | Architecture decision records (MADR)                |
 | `docs/plans/`                 | Implementation plans                                |
+| `docs/roadmap.md`             | Product roadmap — phases B1–B4, C1–C3               |
 
 ## Quickstart
 
 See [`docs/runbook.md`](docs/runbook.md) for the day-to-day dev loop and operational guides.
+See [`docs/roadmap.md`](docs/roadmap.md) for what's being built after F1 and in what order.
 
 ### Prerequisites
 
