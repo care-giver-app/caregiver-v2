@@ -5,6 +5,9 @@ import * as apigw from 'aws-cdk-lib/aws-apigatewayv2';
 import * as integ from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
+import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import * as path from 'node:path';
 import { execSync } from 'node:child_process';
 import type { Stage } from './shared-stack';
@@ -15,6 +18,14 @@ export interface ApiStackProps extends cdk.StackProps {
   appConfigApplicationId: string;
   appConfigEnvironmentId: string;
   appConfigProfileId: string;
+  userPool: cognito.IUserPool;
+  userPoolClient: cognito.IUserPoolClient;
+  tables: {
+    users: dynamodb.ITable;
+    careGroups: dynamodb.ITable;
+    memberships: dynamodb.ITable;
+    invitations: dynamodb.ITable;
+  };
 }
 
 export class ApiStack extends cdk.Stack {
@@ -79,6 +90,14 @@ export class ApiStack extends cdk.Stack {
     this.apiFunction.addEnvironment('APPCONFIG_ENVIRONMENT_ID', props.appConfigEnvironmentId);
     this.apiFunction.addEnvironment('APPCONFIG_PROFILE_ID', props.appConfigProfileId);
 
+    for (const table of Object.values(props.tables)) {
+      table.grantReadWriteData(this.apiFunction);
+    }
+    this.apiFunction.addEnvironment('USERS_TABLE', props.tables.users.tableName);
+    this.apiFunction.addEnvironment('CARE_GROUPS_TABLE', props.tables.careGroups.tableName);
+    this.apiFunction.addEnvironment('MEMBERSHIPS_TABLE', props.tables.memberships.tableName);
+    this.apiFunction.addEnvironment('INVITATIONS_TABLE', props.tables.invitations.tableName);
+
     // AppConfig actions: `StartConfigurationSession` is a control-plane call that
     // doesn't accept a resource ARN, and `GetLatestConfiguration` operates on
     // session tokens — neither supports resource-level scoping. See AWS IAM docs
@@ -105,6 +124,31 @@ export class ApiStack extends cdk.Stack {
       methods: [apigw.HttpMethod.GET],
       integration: new integ.HttpLambdaIntegration('FlagsIntegration', this.apiFunction),
     });
+
+    const authorizer = new HttpUserPoolAuthorizer('JwtAuthorizer', props.userPool, {
+      userPoolClients: [props.userPoolClient],
+    });
+    const lambdaIntegration = new integ.HttpLambdaIntegration('ApiIntegration', this.apiFunction);
+
+    const authedRoutes: Array<{ path: string; methods: apigw.HttpMethod[] }> = [
+      { path: '/me', methods: [apigw.HttpMethod.GET] },
+      { path: '/care-groups', methods: [apigw.HttpMethod.POST] },
+      { path: '/care-groups/{careGroupId}/invitations', methods: [apigw.HttpMethod.POST] },
+      {
+        path: '/care-groups/{careGroupId}/invitations/{token}',
+        methods: [apigw.HttpMethod.DELETE],
+      },
+      { path: '/invitations/mine', methods: [apigw.HttpMethod.GET] },
+      { path: '/invitations/{token}/accept', methods: [apigw.HttpMethod.POST] },
+    ];
+    for (const route of authedRoutes) {
+      httpApi.addRoutes({
+        path: route.path,
+        methods: route.methods,
+        integration: lambdaIntegration,
+        authorizer,
+      });
+    }
 
     new cdk.CfnOutput(this, 'HttpApiUrl', { value: httpApi.apiEndpoint });
   }

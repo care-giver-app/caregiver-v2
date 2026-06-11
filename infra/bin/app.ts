@@ -28,6 +28,9 @@ const api = new ApiStack(app, `${prefix}-Api`, {
   appConfigApplicationId: shared.appConfigApplicationId,
   appConfigEnvironmentId: shared.appConfigEnvironmentId,
   appConfigProfileId: shared.appConfigProfileId,
+  userPool: shared.userPool,
+  userPoolClient: shared.userPoolClient,
+  tables: shared.tables,
 });
 new ObservabilityStack(app, `${prefix}-Observability`, {
   env,
