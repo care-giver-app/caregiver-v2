@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-lambda-go v1.54.0
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2
 	github.com/care-giver-app/caregiver-v2/shared/go-common v0.0.0-00010101000000-000000000000
+	github.com/google/uuid v1.6.0
 )
 
 require (
@@ -46,7 +47,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
