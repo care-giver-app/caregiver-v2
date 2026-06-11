@@ -41,4 +41,34 @@ describe('SharedStack', () => {
     template.resourceCountIs('AWS::AppConfig::DeploymentStrategy', 1);
     template.resourceCountIs('AWS::AppConfig::Deployment', 1);
   });
+
+  test('shared stack creates the four B1 tables with prefixed names', () => {
+    const app = new cdk.App();
+    const stack = new SharedStack(app, 'CaregiverDev-Shared', {
+      env: { account: '123456789012', region: 'us-east-2' },
+      stage: 'dev',
+    });
+    const t = Template.fromStack(stack);
+    t.resourceCountIs('AWS::DynamoDB::Table', 4);
+    for (const name of [
+      'caregiver-dev-user',
+      'caregiver-dev-care-group',
+      'caregiver-dev-membership',
+      'caregiver-dev-invitation',
+    ]) {
+      t.hasResourceProperties('AWS::DynamoDB::Table', { TableName: name });
+    }
+  });
+
+  test('invitation table has a TTL on expires_at', () => {
+    const app = new cdk.App();
+    const stack = new SharedStack(app, 'CaregiverDev-Shared2', {
+      env: { account: '123456789012', region: 'us-east-2' },
+      stage: 'dev',
+    });
+    Template.fromStack(stack).hasResourceProperties('AWS::DynamoDB::Table', {
+      TableName: 'caregiver-dev-invitation',
+      TimeToLiveSpecification: { AttributeName: 'expires_at', Enabled: true },
+    });
+  });
 });
