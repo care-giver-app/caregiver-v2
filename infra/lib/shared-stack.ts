@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as appconfig from 'aws-cdk-lib/aws-appconfig';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { defaultFlagContent } from './appconfig-content';
@@ -24,6 +25,8 @@ export class SharedStack extends cdk.Stack {
     memberships: dynamodb.Table;
     invitations: dynamodb.Table;
   };
+  public readonly userPool: cognito.UserPool;
+  public readonly userPoolClient: cognito.UserPoolClient;
 
   constructor(scope: Construct, id: string, props: SharedStackProps) {
     super(scope, id, props);
@@ -145,6 +148,30 @@ export class SharedStack extends cdk.Stack {
     });
 
     this.tables = { users, careGroups, memberships, invitations };
+
+    this.userPool = new cognito.UserPool(this, 'UserPool', {
+      userPoolName: `caregiver-${props.stage}`,
+      selfSignUpEnabled: true,
+      signInAliases: { email: true },
+      autoVerify: { email: true },
+      standardAttributes: {
+        email: { required: true, mutable: true },
+        fullname: { required: false, mutable: true },
+      },
+      passwordPolicy: { minLength: 8, requireLowercase: true, requireDigits: true },
+      removalPolicy: props.stage === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+    });
+
+    // Public client for the native iOS app (no secret). userSrp is what the app
+    // uses; adminUserPassword lets server-side test sign-in mint a token.
+    this.userPoolClient = this.userPool.addClient('AppClient', {
+      userPoolClientName: `caregiver-${props.stage}-app`,
+      authFlows: { userSrp: true, adminUserPassword: true },
+      generateSecret: false,
+    });
+
+    new cdk.CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
+    new cdk.CfnOutput(this, 'UserPoolClientId', { value: this.userPoolClient.userPoolClientId });
 
     cdk.Tags.of(this).add('Project', 'Caregiver');
     cdk.Tags.of(this).add('Stage', props.stage);

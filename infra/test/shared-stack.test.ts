@@ -71,4 +71,15 @@ describe('SharedStack', () => {
       TimeToLiveSpecification: { AttributeName: 'expires_at', Enabled: true },
     });
   });
+
+  test('shared stack creates a Cognito user pool + app client', () => {
+    const app = new cdk.App();
+    const stack = new SharedStack(app, 'CaregiverDev-Shared3', {
+      env: { account: '123456789012', region: 'us-east-2' },
+      stage: 'dev',
+    });
+    const t = Template.fromStack(stack);
+    t.hasResourceProperties('AWS::Cognito::UserPool', { UserPoolName: 'caregiver-dev' });
+    t.resourceCountIs('AWS::Cognito::UserPoolClient', 1);
+  });
 });
