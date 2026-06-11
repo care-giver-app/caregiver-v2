@@ -11,6 +11,19 @@ import (
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/store/dynamotest"
 )
 
+func TestUserStore_GetByEmail(t *testing.T) {
+	s := dynamotest.Start(t)
+	ctx := context.Background()
+	_, _ = s.Users.CreateIfAbsent(ctx, domain.User{UserID: "sub-1", Email: "a@b.com", Name: "A", CreatedAt: time.Now().UTC()})
+	u, err := s.Users.GetByEmail(ctx, "a@b.com")
+	if err != nil || u.UserID != "sub-1" {
+		t.Fatalf("GetByEmail: %+v err=%v", u, err)
+	}
+	if _, err := s.Users.GetByEmail(ctx, "none@x.com"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("want ErrNotFound, got %v", err)
+	}
+}
+
 func TestUserStore_CreateIfAbsent_andGet(t *testing.T) {
 	s := dynamotest.Start(t)
 	ctx := context.Background()

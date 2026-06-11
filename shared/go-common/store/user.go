@@ -35,6 +35,30 @@ func (s *UserStore) Get(ctx context.Context, userID string) (domain.User, error)
 	return u, nil
 }
 
+// GetByEmail looks up a user via the email-index. Returns ErrNotFound if none.
+func (s *UserStore) GetByEmail(ctx context.Context, email string) (domain.User, error) {
+	out, err := s.client.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String(s.table),
+		IndexName:              aws.String(emailIndex),
+		KeyConditionExpression: aws.String("email = :e"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":e": &types.AttributeValueMemberS{Value: email},
+		},
+		Limit: aws.Int32(1),
+	})
+	if err != nil {
+		return domain.User{}, err
+	}
+	if len(out.Items) == 0 {
+		return domain.User{}, ErrNotFound
+	}
+	var u domain.User
+	if err := attributevalue.UnmarshalMap(out.Items[0], &u); err != nil {
+		return domain.User{}, err
+	}
+	return u, nil
+}
+
 // CreateIfAbsent writes the user only if no row exists for the id. It returns
 // created=false (no error) if a row already exists — the idempotent JIT path.
 func (s *UserStore) CreateIfAbsent(ctx context.Context, u domain.User) (bool, error) {
