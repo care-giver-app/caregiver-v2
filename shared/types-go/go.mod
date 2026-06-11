@@ -7,6 +7,8 @@ require (
 	github.com/oapi-codegen/oapi-codegen/v2 v2.7.1 // indirect
 )
 
+require github.com/oapi-codegen/runtime v1.4.1
+
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect
@@ -16,7 +18,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
-	github.com/oapi-codegen/runtime v1.4.1 // indirect
 	github.com/oasdiff/yaml v0.0.9 // indirect
 	github.com/oasdiff/yaml3 v0.0.9 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
