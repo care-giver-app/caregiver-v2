@@ -8,6 +8,8 @@ servers:
     description: dev
   - url: https://api.example.com
     description: prod
+security:
+  - bearerAuth: []
 paths:
   /health:
     get:
@@ -33,7 +35,124 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Flags'
+  /me:
+    get:
+      operationId: getMe
+      summary: Current user and their care-group memberships
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /care-groups:
+    post:
+      operationId: createCareGroup
+      summary: Create a care group; caller becomes Admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCareGroupRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareGroupMembership'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /care-groups/{careGroupId}/invitations:
+    post:
+      operationId: createInvitation
+      summary: Invite a user to the care group by email (admin only)
+      parameters:
+        - { name: careGroupId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvitationRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /care-groups/{careGroupId}/invitations/{token}:
+    delete:
+      operationId: revokeInvitation
+      summary: Revoke a pending invitation (admin only)
+      parameters:
+        - { name: careGroupId, in: path, required: true, schema: { type: string } }
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /invitations/mine:
+    get:
+      operationId: listMyInvitations
+      summary: Pending invitations for the caller's verified email
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PendingInvitation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /invitations/{token}/accept:
+    post:
+      operationId: acceptInvitation
+      summary: Accept an invitation by token; creates a membership
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptInvitationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Cognito-issued JWT access token, validated by the API Gateway JWT authorizer.
   schemas:
     Health:
       type: object
@@ -54,3 +173,112 @@ components:
       example:
         flags_demo:
           enabled: false
+    Role:
+      type: string
+      enum: [admin, caregiver]
+    User:
+      type: object
+      required: [user_id, email, name, created_at]
+      properties:
+        user_id: { type: string }
+        email: { type: string, format: email }
+        name: { type: string }
+        created_at: { type: string, format: date-time }
+    MembershipView:
+      type: object
+      required: [care_group_id, name, role]
+      properties:
+        care_group_id: { type: string }
+        name: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+    Me:
+      type: object
+      required: [user, memberships]
+      properties:
+        user: { $ref: '#/components/schemas/User' }
+        memberships:
+          type: array
+          items: { $ref: '#/components/schemas/MembershipView' }
+    CreateCareGroupRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+    CareGroupMembership:
+      type: object
+      required: [care_group_id, name, role]
+      properties:
+        care_group_id: { type: string }
+        name: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+    CreateInvitationRequest:
+      type: object
+      required: [email, role]
+      properties:
+        email: { type: string, format: email }
+        role: { $ref: '#/components/schemas/Role' }
+    Invitation:
+      type: object
+      required: [token, email, role, expires_at]
+      properties:
+        token: { type: string }
+        email: { type: string, format: email }
+        role: { $ref: '#/components/schemas/Role' }
+        expires_at: { type: string, format: date-time }
+    PendingInvitation:
+      type: object
+      required: [token, care_group_id, care_group_name, role, invited_by]
+      properties:
+        token: { type: string }
+        care_group_id: { type: string }
+        care_group_name: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        invited_by: { type: string }
+    AcceptInvitationResponse:
+      type: object
+      required: [care_group_id, role]
+      properties:
+        care_group_id: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Not permitted
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Conflict (duplicate)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Gone:
+      description: Invitation expired or already used
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

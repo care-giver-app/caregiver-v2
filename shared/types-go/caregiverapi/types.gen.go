@@ -19,6 +19,12 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
+)
+
+const (
+	BearerAuthScopes bearerAuthContextKey = "bearerAuth.Scopes"
 )
 
 // Defines values for HealthStatus.
@@ -39,6 +45,53 @@ func (e HealthStatus) Valid() bool {
 	}
 }
 
+// Defines values for Role.
+const (
+	Admin     Role = "admin"
+	Caregiver Role = "caregiver"
+)
+
+// Valid indicates whether the value is a known member of the Role enum.
+func (e Role) Valid() bool {
+	switch e {
+	case Admin:
+		return true
+	case Caregiver:
+		return true
+	default:
+		return false
+	}
+}
+
+// AcceptInvitationResponse defines model for AcceptInvitationResponse.
+type AcceptInvitationResponse struct {
+	CareGroupId string `json:"care_group_id"`
+	Role        Role   `json:"role"`
+}
+
+// CareGroupMembership defines model for CareGroupMembership.
+type CareGroupMembership struct {
+	CareGroupId string `json:"care_group_id"`
+	Name        string `json:"name"`
+	Role        Role   `json:"role"`
+}
+
+// CreateCareGroupRequest defines model for CreateCareGroupRequest.
+type CreateCareGroupRequest struct {
+	Name string `json:"name"`
+}
+
+// CreateInvitationRequest defines model for CreateInvitationRequest.
+type CreateInvitationRequest struct {
+	Email openapi_types.Email `json:"email"`
+	Role  Role                `json:"role"`
+}
+
+// Error defines model for Error.
+type Error struct {
+	Message string `json:"message"`
+}
+
 // Flags defines model for Flags.
 type Flags map[string]interface{}
 
@@ -52,14 +105,100 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// Invitation defines model for Invitation.
+type Invitation struct {
+	Email     openapi_types.Email `json:"email"`
+	ExpiresAt time.Time           `json:"expires_at"`
+	Role      Role                `json:"role"`
+	Token     string              `json:"token"`
+}
+
+// Me defines model for Me.
+type Me struct {
+	Memberships []MembershipView `json:"memberships"`
+	User        User             `json:"user"`
+}
+
+// MembershipView defines model for MembershipView.
+type MembershipView struct {
+	CareGroupId string `json:"care_group_id"`
+	Name        string `json:"name"`
+	Role        Role   `json:"role"`
+}
+
+// PendingInvitation defines model for PendingInvitation.
+type PendingInvitation struct {
+	CareGroupId   string `json:"care_group_id"`
+	CareGroupName string `json:"care_group_name"`
+	InvitedBy     string `json:"invited_by"`
+	Role          Role   `json:"role"`
+	Token         string `json:"token"`
+}
+
+// Role defines model for Role.
+type Role string
+
+// User defines model for User.
+type User struct {
+	CreatedAt time.Time           `json:"created_at"`
+	Email     openapi_types.Email `json:"email"`
+	Name      string              `json:"name"`
+	UserId    string              `json:"user_id"`
+}
+
+// BadRequest defines model for BadRequest.
+type BadRequest = Error
+
+// Conflict defines model for Conflict.
+type Conflict = Error
+
+// Forbidden defines model for Forbidden.
+type Forbidden = Error
+
+// Gone defines model for Gone.
+type Gone = Error
+
+// NotFound defines model for NotFound.
+type NotFound = Error
+
+// Unauthorized defines model for Unauthorized.
+type Unauthorized = Error
+
+// bearerAuthContextKey is the context key for bearerAuth security scheme
+type bearerAuthContextKey string
+
+// CreateCareGroupJSONRequestBody defines body for CreateCareGroup for application/json ContentType.
+type CreateCareGroupJSONRequestBody = CreateCareGroupRequest
+
+// CreateInvitationJSONRequestBody defines body for CreateInvitation for application/json ContentType.
+type CreateInvitationJSONRequestBody = CreateInvitationRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Create a care group; caller becomes Admin
+	// (POST /care-groups)
+	CreateCareGroup(w http.ResponseWriter, r *http.Request)
+	// Invite a user to the care group by email (admin only)
+	// (POST /care-groups/{careGroupId}/invitations)
+	CreateInvitation(w http.ResponseWriter, r *http.Request, careGroupId string)
+	// Revoke a pending invitation (admin only)
+	// (DELETE /care-groups/{careGroupId}/invitations/{token})
+	RevokeInvitation(w http.ResponseWriter, r *http.Request, careGroupId string, token string)
 	// Return evaluated feature flags
 	// (GET /flags)
 	GetFlags(w http.ResponseWriter, r *http.Request)
 	// Health check
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// Pending invitations for the caller's verified email
+	// (GET /invitations/mine)
+	ListMyInvitations(w http.ResponseWriter, r *http.Request)
+	// Accept an invitation by token; creates a membership
+	// (POST /invitations/{token}/accept)
+	AcceptInvitation(w http.ResponseWriter, r *http.Request, token string)
+	// Current user and their care-group memberships
+	// (GET /me)
+	GetMe(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -71,8 +210,107 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// CreateCareGroup operation middleware
+func (siw *ServerInterfaceWrapper) CreateCareGroup(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCareGroup(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateInvitation operation middleware
+func (siw *ServerInterfaceWrapper) CreateInvitation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "careGroupId" -------------
+	var careGroupId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "careGroupId", r.PathValue("careGroupId"), &careGroupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "careGroupId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateInvitation(w, r, careGroupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeInvitation operation middleware
+func (siw *ServerInterfaceWrapper) RevokeInvitation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "careGroupId" -------------
+	var careGroupId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "careGroupId", r.PathValue("careGroupId"), &careGroupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "careGroupId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "token" -------------
+	var token string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token", r.PathValue("token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeInvitation(w, r, careGroupId, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetFlags operation middleware
 func (siw *ServerInterfaceWrapper) GetFlags(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetFlags(w, r)
@@ -90,6 +328,78 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyInvitations operation middleware
+func (siw *ServerInterfaceWrapper) ListMyInvitations(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyInvitations(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AcceptInvitation operation middleware
+func (siw *ServerInterfaceWrapper) AcceptInvitation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "token" -------------
+	var token string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "token", r.PathValue("token"), &token, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "token", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AcceptInvitation(w, r, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMe operation middleware
+func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMe(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -219,10 +529,216 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/care-groups", wrapper.CreateCareGroup)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/care-groups/{careGroupId}/invitations", wrapper.CreateInvitation)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/care-groups/{careGroupId}/invitations/{token}", wrapper.RevokeInvitation)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/flags", wrapper.GetFlags)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/health", wrapper.GetHealth)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/invitations/mine", wrapper.ListMyInvitations)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/invitations/{token}/accept", wrapper.AcceptInvitation)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me", wrapper.GetMe)
 
 	return m
+}
+
+type BadRequestJSONResponse Error
+
+type ConflictJSONResponse Error
+
+type ForbiddenJSONResponse Error
+
+type GoneJSONResponse Error
+
+type NotFoundJSONResponse Error
+
+type UnauthorizedJSONResponse Error
+
+type CreateCareGroupRequestObject struct {
+	Body *CreateCareGroupJSONRequestBody
+}
+
+type CreateCareGroupResponseObject interface {
+	VisitCreateCareGroupResponse(w http.ResponseWriter) error
+}
+
+type CreateCareGroup201JSONResponse CareGroupMembership
+
+func (response CreateCareGroup201JSONResponse) VisitCreateCareGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCareGroup400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateCareGroup400JSONResponse) VisitCreateCareGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCareGroup401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateCareGroup401JSONResponse) VisitCreateCareGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInvitationRequestObject struct {
+	CareGroupId string `json:"careGroupId"`
+	Body        *CreateInvitationJSONRequestBody
+}
+
+type CreateInvitationResponseObject interface {
+	VisitCreateInvitationResponse(w http.ResponseWriter) error
+}
+
+type CreateInvitation201JSONResponse Invitation
+
+func (response CreateInvitation201JSONResponse) VisitCreateInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInvitation400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateInvitation400JSONResponse) VisitCreateInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInvitation401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateInvitation401JSONResponse) VisitCreateInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInvitation403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateInvitation403JSONResponse) VisitCreateInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInvitation409JSONResponse struct{ ConflictJSONResponse }
+
+func (response CreateInvitation409JSONResponse) VisitCreateInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeInvitationRequestObject struct {
+	CareGroupId string `json:"careGroupId"`
+	Token       string `json:"token"`
+}
+
+type RevokeInvitationResponseObject interface {
+	VisitRevokeInvitationResponse(w http.ResponseWriter) error
+}
+
+type RevokeInvitation204Response struct {
+}
+
+func (response RevokeInvitation204Response) VisitRevokeInvitationResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RevokeInvitation401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response RevokeInvitation401JSONResponse) VisitRevokeInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeInvitation403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response RevokeInvitation403JSONResponse) VisitRevokeInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeInvitation404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response RevokeInvitation404JSONResponse) VisitRevokeInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type GetFlagsRequestObject struct {
@@ -267,14 +783,166 @@ func (response GetHealth200JSONResponse) VisitGetHealthResponse(w http.ResponseW
 	return err
 }
 
+type ListMyInvitationsRequestObject struct {
+}
+
+type ListMyInvitationsResponseObject interface {
+	VisitListMyInvitationsResponse(w http.ResponseWriter) error
+}
+
+type ListMyInvitations200JSONResponse []PendingInvitation
+
+func (response ListMyInvitations200JSONResponse) VisitListMyInvitationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyInvitations401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListMyInvitations401JSONResponse) VisitListMyInvitationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcceptInvitationRequestObject struct {
+	Token string `json:"token"`
+}
+
+type AcceptInvitationResponseObject interface {
+	VisitAcceptInvitationResponse(w http.ResponseWriter) error
+}
+
+type AcceptInvitation200JSONResponse AcceptInvitationResponse
+
+func (response AcceptInvitation200JSONResponse) VisitAcceptInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcceptInvitation401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AcceptInvitation401JSONResponse) VisitAcceptInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcceptInvitation404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response AcceptInvitation404JSONResponse) VisitAcceptInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcceptInvitation410JSONResponse struct{ GoneJSONResponse }
+
+func (response AcceptInvitation410JSONResponse) VisitAcceptInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(410)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMeRequestObject struct {
+}
+
+type GetMeResponseObject interface {
+	VisitGetMeResponse(w http.ResponseWriter) error
+}
+
+type GetMe200JSONResponse Me
+
+func (response GetMe200JSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMe401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetMe401JSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Create a care group; caller becomes Admin
+	// (POST /care-groups)
+	CreateCareGroup(ctx context.Context, request CreateCareGroupRequestObject) (CreateCareGroupResponseObject, error)
+	// Invite a user to the care group by email (admin only)
+	// (POST /care-groups/{careGroupId}/invitations)
+	CreateInvitation(ctx context.Context, request CreateInvitationRequestObject) (CreateInvitationResponseObject, error)
+	// Revoke a pending invitation (admin only)
+	// (DELETE /care-groups/{careGroupId}/invitations/{token})
+	RevokeInvitation(ctx context.Context, request RevokeInvitationRequestObject) (RevokeInvitationResponseObject, error)
 	// Return evaluated feature flags
 	// (GET /flags)
 	GetFlags(ctx context.Context, request GetFlagsRequestObject) (GetFlagsResponseObject, error)
 	// Health check
 	// (GET /health)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
+	// Pending invitations for the caller's verified email
+	// (GET /invitations/mine)
+	ListMyInvitations(ctx context.Context, request ListMyInvitationsRequestObject) (ListMyInvitationsResponseObject, error)
+	// Accept an invitation by token; creates a membership
+	// (POST /invitations/{token}/accept)
+	AcceptInvitation(ctx context.Context, request AcceptInvitationRequestObject) (AcceptInvitationResponseObject, error)
+	// Current user and their care-group memberships
+	// (GET /me)
+	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -304,6 +972,97 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// CreateCareGroup operation middleware
+func (sh *strictHandler) CreateCareGroup(w http.ResponseWriter, r *http.Request) {
+	var request CreateCareGroupRequestObject
+
+	var body CreateCareGroupJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateCareGroup(ctx, request.(CreateCareGroupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateCareGroup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateCareGroupResponseObject); ok {
+		if err := validResponse.VisitCreateCareGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateInvitation operation middleware
+func (sh *strictHandler) CreateInvitation(w http.ResponseWriter, r *http.Request, careGroupId string) {
+	var request CreateInvitationRequestObject
+
+	request.CareGroupId = careGroupId
+
+	var body CreateInvitationJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateInvitation(ctx, request.(CreateInvitationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateInvitation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateInvitationResponseObject); ok {
+		if err := validResponse.VisitCreateInvitationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevokeInvitation operation middleware
+func (sh *strictHandler) RevokeInvitation(w http.ResponseWriter, r *http.Request, careGroupId string, token string) {
+	var request RevokeInvitationRequestObject
+
+	request.CareGroupId = careGroupId
+	request.Token = token
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeInvitation(ctx, request.(RevokeInvitationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeInvitation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeInvitationResponseObject); ok {
+		if err := validResponse.VisitRevokeInvitationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetFlags operation middleware
@@ -354,20 +1113,110 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListMyInvitations operation middleware
+func (sh *strictHandler) ListMyInvitations(w http.ResponseWriter, r *http.Request) {
+	var request ListMyInvitationsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMyInvitations(ctx, request.(ListMyInvitationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMyInvitations")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMyInvitationsResponseObject); ok {
+		if err := validResponse.VisitListMyInvitationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AcceptInvitation operation middleware
+func (sh *strictHandler) AcceptInvitation(w http.ResponseWriter, r *http.Request, token string) {
+	var request AcceptInvitationRequestObject
+
+	request.Token = token
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AcceptInvitation(ctx, request.(AcceptInvitationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AcceptInvitation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AcceptInvitationResponseObject); ok {
+		if err := validResponse.VisitAcceptInvitationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMe operation middleware
+func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	var request GetMeRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMe(ctx, request.(GetMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMeResponseObject); ok {
+		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"tJPPbtQwEMZfxRo4hmRpb75VSEDFgYrraoWm9mTjNrHNeBxRVZF4CJ6QJ0F2dtvtH3HjZK92vm/m+3ly",
-	"DyZMMXjykkDfQzIDTVivH0fc1wta68QFj+MVh0gsjhJo4UwN0E+c4kilrC/13y1Nofwij9cjWdA9jomW",
-	"pQG5iwQawvUNGYGlgc+EowylOJ743kMSlJxWkzyB3kK4hQYs7RktWdg9eCVh5/fFS9xESXCKdZLAEwpo",
-	"sCj0rvwFr0hm4uSCr32OKWDTvm83L6uXBph+ZMcl0fY44aPH6QC7F1GL3Pm+crGUDLsotTN8QKa9m4nV",
-	"fKYuri6VCV4Yjag/v36rFDIbUqFXwlmGtraROuej8OLq8mSQY4KlgRDJY3Sg4bzdtOfQQEQZKteuP77t",
-	"nqQcBT+WmS4taPhEsj5+SZ1i8Gl9mLPNphxlRvJVhzGOzlRld5NWmOsKldtbph40vOked6w7LFi3Nqho",
-	"niL5+qXiTnmakO9AwzeSzF7RjGNGIat6QslMqj9YNNAND6t0CPTUc7VIKhHPzpBayxV6q66zG62aSNCi",
-	"YEH8gsVhT/8jjEOHf9Agk9nJHejt7pTNKlRmIHO7yktE4gR6+xyCpRkayDyChkEkJt11GF1raW4PH0Br",
-	"wgRL81wZOdhXpU9ku+VvAAAA//8=",
+	"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",
+	"H/AGic44nfLNlbnRondpY9nV8u8AAAD//w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
