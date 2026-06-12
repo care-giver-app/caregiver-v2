@@ -70,7 +70,7 @@ describe('ApiStack', () => {
     const t = Template.fromStack(apiStack);
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
-    t.resourceCountIs('AWS::ApiGatewayV2::Route', 8);
+    t.resourceCountIs('AWS::ApiGatewayV2::Route', 24);
 
     for (const routeKey of [
       'GET /me',
@@ -79,6 +79,9 @@ describe('ApiStack', () => {
       'DELETE /care-groups/{careGroupId}/invitations/{token}',
       'GET /invitations/mine',
       'POST /invitations/{token}/accept',
+      'GET /receivers',
+      'POST /trackers/{trackerId}/events',
+      'GET /tracker-templates',
     ]) {
       t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
         RouteKey: routeKey,
