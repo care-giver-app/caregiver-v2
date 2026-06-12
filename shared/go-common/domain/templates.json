@@ -1,0 +1,106 @@
+[
+  {
+    "template_id": "weight",
+    "name": "Weight",
+    "kind": "measurement",
+    "icon": "scalemass",
+    "color": "#4F8EF7",
+    "fields": [
+      {
+        "key": "weight",
+        "label": "Weight",
+        "type": "number",
+        "unit": "lb",
+        "required": true,
+        "threshold": { "min": 80, "max": 400 }
+      }
+    ]
+  },
+  {
+    "template_id": "blood_pressure",
+    "name": "Blood Pressure",
+    "kind": "measurement",
+    "icon": "heart",
+    "color": "#E5484D",
+    "fields": [
+      {
+        "key": "systolic",
+        "label": "Systolic",
+        "type": "number",
+        "unit": "mmHg",
+        "required": true,
+        "threshold": { "max": 140 }
+      },
+      {
+        "key": "diastolic",
+        "label": "Diastolic",
+        "type": "number",
+        "unit": "mmHg",
+        "required": true,
+        "threshold": { "max": 90 }
+      },
+      { "key": "pulse", "label": "Pulse", "type": "number", "unit": "bpm", "required": false }
+    ]
+  },
+  {
+    "template_id": "temperature",
+    "name": "Temperature",
+    "kind": "measurement",
+    "icon": "thermometer",
+    "color": "#F76808",
+    "fields": [
+      {
+        "key": "temperature",
+        "label": "Temperature",
+        "type": "number",
+        "unit": "°F",
+        "required": true,
+        "threshold": { "max": 100.4 }
+      }
+    ]
+  },
+  {
+    "template_id": "medication",
+    "name": "Medication",
+    "kind": "event",
+    "icon": "pills",
+    "color": "#30A46C",
+    "fields": [
+      { "key": "name", "label": "Medication", "type": "text", "required": true },
+      { "key": "dose", "label": "Dose", "type": "text", "required": false }
+    ]
+  },
+  {
+    "template_id": "meal",
+    "name": "Meal",
+    "kind": "event",
+    "icon": "fork.knife",
+    "color": "#FFB224",
+    "fields": [
+      {
+        "key": "meal",
+        "label": "Meal",
+        "type": "enum",
+        "required": true,
+        "options": ["breakfast", "lunch", "dinner", "snack"]
+      },
+      { "key": "ate_well", "label": "Ate well", "type": "boolean", "required": false }
+    ]
+  },
+  {
+    "template_id": "mood",
+    "name": "Mood",
+    "kind": "event",
+    "icon": "face.smiling",
+    "color": "#8E4EC6",
+    "fields": [
+      {
+        "key": "mood",
+        "label": "Mood",
+        "type": "enum",
+        "required": true,
+        "options": ["great", "ok", "low", "bad"]
+      }
+    ]
+  }
+]
