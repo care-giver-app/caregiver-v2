@@ -25,7 +25,7 @@ func Start(t *testing.T) *store.Stores {
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        "amazon/dynamodb-local:2.5.2",
 			ExposedPorts: []string{"8000/tcp"},
-			WaitingFor:   wait.ForListeningPort("8000/tcp"),
+			WaitingFor: wait.ForHTTP("/").WithPort("8000/tcp").WithStatusCodeMatcher(func(int) bool { return true }),
 		},
 		Started: true,
 	})

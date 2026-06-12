@@ -30,7 +30,7 @@ on fresh data **before** any v1 data migration. Web remains in scope but is seco
 | Code | Name                           | Scope                                                                           | Depends on          | Status                    |
 | ---- | ------------------------------ | ------------------------------------------------------------------------------- | ------------------- | ------------------------- |
 | F1   | Engineering Practices Baseline | Monorepo, CI/CD, CDK, feature flags, observability                              | —                   | ✅ Done                   |
-| B1   | Data model & identity          | Entities, multi-tenant DynamoDB tables, Cognito, authz                          | F1                  | Next up                   |
+| B1   | Data model & identity          | Entities, multi-tenant DynamoDB tables, Cognito, authz                          | F1                  | ✅ Done                   |
 | B2   | Async services & notifications | `services/` layer: notif prefs, schedules, APNs push, audit, rollups, real-time | B1                  | Planned                   |
 | B3   | API surface                    | OpenAPI contract + Go handlers for all sync CRUD                                | B1                  | Planned                   |
 | B4   | v1 → v2 migration              | Migrate the family's real data, cut over, retire v1                             | B1–B3 + iOS shipped | Planned (last)            |
@@ -41,7 +41,7 @@ on fresh data **before** any v1 data migration. Web remains in scope but is seco
 ## Critical path
 
 ```
-F1 ✅ → B1 → B3 → C1 (iOS MVP)        ← first usable v2, on fresh data
+F1 ✅ → B1 ✅ → B3 → C1 (iOS MVP)     ← first usable v2, on fresh data
                     → B2 + C2 (full iOS, can overlap)
                               → C3 (web)
                                     → B4 (migrate family off v1, retire it — last)
