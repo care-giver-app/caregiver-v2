@@ -25,7 +25,7 @@ func Start(t *testing.T) *store.Stores {
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        "amazon/dynamodb-local:2.5.2",
 			ExposedPorts: []string{"8000/tcp"},
-			WaitingFor: wait.ForHTTP("/").WithPort("8000/tcp").WithStatusCodeMatcher(func(int) bool { return true }),
+			WaitingFor:   wait.ForHTTP("/").WithPort("8000/tcp").WithStatusCodeMatcher(func(int) bool { return true }),
 		},
 		Started: true,
 	})
@@ -58,6 +58,9 @@ func Start(t *testing.T) *store.Stores {
 		CareGroups:  "test-care-group",
 		Memberships: "test-membership",
 		Invitations: "test-invitation",
+		Receivers:   "test-receiver",
+		Trackers:    "test-tracker",
+		Events:      "test-event",
 	}
 	createTables(t, ctx, client, names)
 	return store.New(client, names)
@@ -143,5 +146,69 @@ func createTables(t *testing.T, ctx context.Context, c *dynamodb.Client, n store
 				Projection: &types.Projection{ProjectionType: types.ProjectionTypeAll},
 			},
 		},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:   aws.String(n.Receivers),
+		BillingMode: types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{
+			{AttributeName: aws.String("receiver_id"), AttributeType: types.ScalarAttributeTypeS},
+			{AttributeName: aws.String("care_group_id"), AttributeType: types.ScalarAttributeTypeS},
+			{AttributeName: aws.String("created_at"), AttributeType: types.ScalarAttributeTypeS},
+		},
+		KeySchema: []types.KeySchemaElement{
+			{AttributeName: aws.String("receiver_id"), KeyType: types.KeyTypeHash},
+		},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{{
+			IndexName: aws.String("group-index"),
+			KeySchema: []types.KeySchemaElement{
+				{AttributeName: aws.String("care_group_id"), KeyType: types.KeyTypeHash},
+				{AttributeName: aws.String("created_at"), KeyType: types.KeyTypeRange},
+			},
+			Projection: &types.Projection{ProjectionType: types.ProjectionTypeAll},
+		}},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:   aws.String(n.Trackers),
+		BillingMode: types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{
+			{AttributeName: aws.String("tracker_id"), AttributeType: types.ScalarAttributeTypeS},
+			{AttributeName: aws.String("receiver_id"), AttributeType: types.ScalarAttributeTypeS},
+			{AttributeName: aws.String("created_at"), AttributeType: types.ScalarAttributeTypeS},
+		},
+		KeySchema: []types.KeySchemaElement{
+			{AttributeName: aws.String("tracker_id"), KeyType: types.KeyTypeHash},
+		},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{{
+			IndexName: aws.String("receiver-index"),
+			KeySchema: []types.KeySchemaElement{
+				{AttributeName: aws.String("receiver_id"), KeyType: types.KeyTypeHash},
+				{AttributeName: aws.String("created_at"), KeyType: types.KeyTypeRange},
+			},
+			Projection: &types.Projection{ProjectionType: types.ProjectionTypeAll},
+		}},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:   aws.String(n.Events),
+		BillingMode: types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{
+			{AttributeName: aws.String("tracker_id"), AttributeType: types.ScalarAttributeTypeS},
+			{AttributeName: aws.String("event_id"), AttributeType: types.ScalarAttributeTypeS},
+			{AttributeName: aws.String("occurred_at"), AttributeType: types.ScalarAttributeTypeS},
+		},
+		KeySchema: []types.KeySchemaElement{
+			{AttributeName: aws.String("tracker_id"), KeyType: types.KeyTypeHash},
+			{AttributeName: aws.String("event_id"), KeyType: types.KeyTypeRange},
+		},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{{
+			IndexName: aws.String("time-index"),
+			KeySchema: []types.KeySchemaElement{
+				{AttributeName: aws.String("tracker_id"), KeyType: types.KeyTypeHash},
+				{AttributeName: aws.String("occurred_at"), KeyType: types.KeyTypeRange},
+			},
+			Projection: &types.Projection{ProjectionType: types.ProjectionTypeAll},
+		}},
 	})
 }
