@@ -8,9 +8,11 @@ Orientation for working in this repo. Read `docs/roadmap.md` for what to build n
 Greenfield, multi-tenant rewrite of a family care-tracking app. Built as a **parallel v2** (v1 still
 runs for the family until v2 is ready — see `docs/adr/0001-*`). AWS-native, **iOS-first**.
 
-**Status:** F1 (engineering baseline) and B1 (data model & identity) are **done**. Next per the
-roadmap is **B3** (API surface) or **C1** (iOS MVP). Each phase goes brainstorm → design spec
-(`docs/specs/`) → implementation plan (`docs/plans/`) → implementation.
+**Status:** F1 (engineering baseline), B1 (data model & identity), and **B3a** (core care domain —
+Receivers, Trackers, Events) are **done**. B3 was decomposed: **B3b** (Schedules,
+NotificationPreferences, Audit read) is still planned. Next per the roadmap is **B3b** or **C1** (iOS
+MVP — now unblocked). Each phase goes brainstorm → design spec (`docs/specs/`) → implementation plan
+(`docs/plans/`) → implementation.
 
 ## Layout & modules
 
@@ -65,10 +67,14 @@ cd infra && pnpm exec cdk synth --context stage=dev          # prod needs CAREGI
 ## B1 domain model (the substrate everything builds on)
 
 Tenant = **`CareGroup`**; `care_group_id` scopes every record. Tables: `caregiver-{stage}-{user,
-care-group,membership,invitation}` (multi-table, per `docs/adr/0011-*`). A `User` (keyed by Cognito
-`sub`) joins groups via `Membership(role: admin|caregiver)`; `care_group` owns receivers (added in
-B3). Authz is structural: every group-scoped request checks `auth.AuthContext` via
-`httpx.RequireMember`/`RequireAdmin`.
+care-group,membership,invitation,receiver,tracker,event}` (multi-table, per `docs/adr/0011-*`). A
+`User` (keyed by Cognito `sub`) joins groups via `Membership(role: admin|caregiver)`; a `care_group`
+owns **receivers**, each receiver owns **trackers** (custom field schema + thresholds), and an
+**event** is logged against a tracker (B3a). `care_group_id` is denormalized onto tracker/event rows
+so authz is a single read. Authz is structural: every group-scoped request checks `auth.AuthContext`
+via `httpx.RequireMember`/`RequireAdmin`. **Admins manage Receivers/Trackers; all members log Events.**
+
+Full B3a design: `docs/specs/2026-06-12-b3a-core-care-domain-design.md`.
 
 - **Identity is JIT-provisioned** (read-first) in `api/internal/middleware/auth.go` from verified JWT
   claims. **Clients must send the Cognito _ID token_** (it carries `email`/`name`; access tokens

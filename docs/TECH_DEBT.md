@@ -27,10 +27,11 @@ The following were deferred (family-scale-safe today):
   `api/cmd/lambda/mux.go` (`authn.Wrap` registrations) list the same routes with nothing keeping them
   in sync. _Fix:_ route sensitive handlers through one wrapped sub-mux and assert parity, or generate
   one list from the other.
-- **Copy-pasted store get/query blocks** — the four stores repeat near-identical `GetItem`→nil-check
-  →`UnmarshalMap` and `Query`→`UnmarshalListOfMaps` code; the missing-pagination fix above must be
-  applied in each list copy. _Fix:_ extract generic `getItem[T]`/`queryItems[T]` helpers in
-  `shared/go-common/store/store.go` (do this alongside the pagination fix).
+- **Copy-pasted store get/query blocks (partially paid down in B3a)** — B3a added generic
+  `getItem[T]`/`queryItems[T]` + a cursor codec in `shared/go-common/store/store.go`, and the new
+  receiver/tracker/event stores consume them. The **four B1 stores** (user, care-group, membership,
+  invitation) were **not** retrofitted onto the helpers and still hand-roll `GetItem`/`Query`. _Fix:_
+  migrate them to the generics (and apply the missing-pagination fix above in the same pass).
 
 ## Contract / platform notes
 
