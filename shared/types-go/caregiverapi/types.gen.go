@@ -11,6 +11,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -26,6 +27,51 @@ import (
 const (
 	BearerAuthScopes bearerAuthContextKey = "bearerAuth.Scopes"
 )
+
+// Defines values for BreachBound.
+const (
+	Max BreachBound = "max"
+	Min BreachBound = "min"
+)
+
+// Valid indicates whether the value is a known member of the BreachBound enum.
+func (e BreachBound) Valid() bool {
+	switch e {
+	case Max:
+		return true
+	case Min:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FieldType.
+const (
+	Boolean  FieldType = "boolean"
+	Datetime FieldType = "datetime"
+	Enum     FieldType = "enum"
+	Number   FieldType = "number"
+	Text     FieldType = "text"
+)
+
+// Valid indicates whether the value is a known member of the FieldType enum.
+func (e FieldType) Valid() bool {
+	switch e {
+	case Boolean:
+		return true
+	case Datetime:
+		return true
+	case Enum:
+		return true
+	case Number:
+		return true
+	case Text:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for HealthStatus.
 const (
@@ -63,11 +109,43 @@ func (e Role) Valid() bool {
 	}
 }
 
+// Defines values for TrackerKind.
+const (
+	TrackerKindEvent       TrackerKind = "event"
+	TrackerKindMeasurement TrackerKind = "measurement"
+	TrackerKindScheduled   TrackerKind = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the TrackerKind enum.
+func (e TrackerKind) Valid() bool {
+	switch e {
+	case TrackerKindEvent:
+		return true
+	case TrackerKindMeasurement:
+		return true
+	case TrackerKindScheduled:
+		return true
+	default:
+		return false
+	}
+}
+
 // AcceptInvitationResponse defines model for AcceptInvitationResponse.
 type AcceptInvitationResponse struct {
 	CareGroupId string `json:"care_group_id"`
 	Role        Role   `json:"role"`
 }
+
+// Breach defines model for Breach.
+type Breach struct {
+	Bound BreachBound `json:"bound"`
+	Key   string      `json:"key"`
+	Limit float32     `json:"limit"`
+	Value float32     `json:"value"`
+}
+
+// BreachBound defines model for Breach.Bound.
+type BreachBound string
 
 // CareGroupMembership defines model for CareGroupMembership.
 type CareGroupMembership struct {
@@ -87,10 +165,57 @@ type CreateInvitationRequest struct {
 	Role  Role                `json:"role"`
 }
 
+// CreateReceiverRequest defines model for CreateReceiverRequest.
+type CreateReceiverRequest struct {
+	DateOfBirth *string `json:"date_of_birth,omitempty"`
+	Name        string  `json:"name"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	Message string `json:"message"`
 }
+
+// Event defines model for Event.
+type Event struct {
+	Breaches    *[]Breach              `json:"breaches,omitempty"`
+	CareGroupId string                 `json:"care_group_id"`
+	CreatedAt   time.Time              `json:"created_at"`
+	EventId     string                 `json:"event_id"`
+	LoggedBy    string                 `json:"logged_by"`
+	Note        *string                `json:"note,omitempty"`
+	OccurredAt  time.Time              `json:"occurred_at"`
+	ReceiverId  string                 `json:"receiver_id"`
+	TrackerId   string                 `json:"tracker_id"`
+	Values      map[string]interface{} `json:"values"`
+}
+
+// EventList defines model for EventList.
+type EventList struct {
+	Items      []Event `json:"items"`
+	NextCursor *string `json:"next_cursor,omitempty"`
+}
+
+// EventWrite defines model for EventWrite.
+type EventWrite struct {
+	Note       *string                `json:"note,omitempty"`
+	OccurredAt *time.Time             `json:"occurred_at,omitempty"`
+	Values     map[string]interface{} `json:"values"`
+}
+
+// Field defines model for Field.
+type Field struct {
+	Key       string     `json:"key"`
+	Label     string     `json:"label"`
+	Options   *[]string  `json:"options,omitempty"`
+	Required  *bool      `json:"required,omitempty"`
+	Threshold *Threshold `json:"threshold,omitempty"`
+	Type      FieldType  `json:"type"`
+	Unit      *string    `json:"unit,omitempty"`
+}
+
+// FieldType defines model for FieldType.
+type FieldType string
 
 // Flags defines model for Flags.
 type Flags map[string]interface{}
@@ -135,8 +260,68 @@ type PendingInvitation struct {
 	Token         string `json:"token"`
 }
 
+// Receiver defines model for Receiver.
+type Receiver struct {
+	Archived    bool      `json:"archived"`
+	CareGroupId string    `json:"care_group_id"`
+	CreatedAt   time.Time `json:"created_at"`
+	CreatedBy   string    `json:"created_by"`
+	DateOfBirth *string   `json:"date_of_birth,omitempty"`
+	Name        string    `json:"name"`
+	ReceiverId  string    `json:"receiver_id"`
+}
+
 // Role defines model for Role.
 type Role string
+
+// Threshold defines model for Threshold.
+type Threshold struct {
+	Max *float32 `json:"max,omitempty"`
+	Min *float32 `json:"min,omitempty"`
+}
+
+// Tracker defines model for Tracker.
+type Tracker struct {
+	Archived    bool        `json:"archived"`
+	CareGroupId string      `json:"care_group_id"`
+	Color       *string     `json:"color,omitempty"`
+	CreatedAt   time.Time   `json:"created_at"`
+	CreatedBy   string      `json:"created_by"`
+	Fields      []Field     `json:"fields"`
+	Icon        *string     `json:"icon,omitempty"`
+	Kind        TrackerKind `json:"kind"`
+	Name        string      `json:"name"`
+	ReceiverId  string      `json:"receiver_id"`
+	TrackerId   string      `json:"tracker_id"`
+}
+
+// TrackerKind defines model for TrackerKind.
+type TrackerKind string
+
+// TrackerTemplate defines model for TrackerTemplate.
+type TrackerTemplate struct {
+	Color      *string     `json:"color,omitempty"`
+	Fields     []Field     `json:"fields"`
+	Icon       *string     `json:"icon,omitempty"`
+	Kind       TrackerKind `json:"kind"`
+	Name       string      `json:"name"`
+	TemplateId string      `json:"template_id"`
+}
+
+// TrackerWrite defines model for TrackerWrite.
+type TrackerWrite struct {
+	Color  *string     `json:"color,omitempty"`
+	Fields []Field     `json:"fields"`
+	Icon   *string     `json:"icon,omitempty"`
+	Kind   TrackerKind `json:"kind"`
+	Name   string      `json:"name"`
+}
+
+// UpdateReceiverRequest defines model for UpdateReceiverRequest.
+type UpdateReceiverRequest struct {
+	DateOfBirth *string `json:"date_of_birth,omitempty"`
+	Name        *string `json:"name,omitempty"`
+}
 
 // User defines model for User.
 type User struct {
@@ -167,11 +352,42 @@ type Unauthorized = Error
 // bearerAuthContextKey is the context key for bearerAuth security scheme
 type bearerAuthContextKey string
 
+// ListReceiversParams defines parameters for ListReceivers.
+type ListReceiversParams struct {
+	CareGroupId *string `form:"careGroupId,omitempty" json:"careGroupId,omitempty"`
+}
+
+// ListEventsParams defines parameters for ListEvents.
+type ListEventsParams struct {
+	Limit  *int       `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor *string    `form:"cursor,omitempty" json:"cursor,omitempty"`
+	From   *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	To     *time.Time `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // CreateCareGroupJSONRequestBody defines body for CreateCareGroup for application/json ContentType.
 type CreateCareGroupJSONRequestBody = CreateCareGroupRequest
 
 // CreateInvitationJSONRequestBody defines body for CreateInvitation for application/json ContentType.
 type CreateInvitationJSONRequestBody = CreateInvitationRequest
+
+// CreateReceiverJSONRequestBody defines body for CreateReceiver for application/json ContentType.
+type CreateReceiverJSONRequestBody = CreateReceiverRequest
+
+// UpdateReceiverJSONRequestBody defines body for UpdateReceiver for application/json ContentType.
+type UpdateReceiverJSONRequestBody = UpdateReceiverRequest
+
+// CreateTrackerJSONRequestBody defines body for CreateTracker for application/json ContentType.
+type CreateTrackerJSONRequestBody = TrackerWrite
+
+// UpdateTrackerJSONRequestBody defines body for UpdateTracker for application/json ContentType.
+type UpdateTrackerJSONRequestBody = TrackerWrite
+
+// LogEventJSONRequestBody defines body for LogEvent for application/json ContentType.
+type LogEventJSONRequestBody = EventWrite
+
+// UpdateEventJSONRequestBody defines body for UpdateEvent for application/json ContentType.
+type UpdateEventJSONRequestBody = EventWrite
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -184,6 +400,9 @@ type ServerInterface interface {
 	// Revoke a pending invitation (admin only)
 	// (DELETE /care-groups/{careGroupId}/invitations/{token})
 	RevokeInvitation(w http.ResponseWriter, r *http.Request, careGroupId string, token string)
+	// Add a receiver to a care group (admin only)
+	// (POST /care-groups/{careGroupId}/receivers)
+	CreateReceiver(w http.ResponseWriter, r *http.Request, careGroupId string)
 	// Return evaluated feature flags
 	// (GET /flags)
 	GetFlags(w http.ResponseWriter, r *http.Request)
@@ -199,6 +418,51 @@ type ServerInterface interface {
 	// Current user and their care-group memberships
 	// (GET /me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// List receivers across the caller's groups (optionally one group)
+	// (GET /receivers)
+	ListReceivers(w http.ResponseWriter, r *http.Request, params ListReceiversParams)
+	// Archive a receiver (admin only)
+	// (DELETE /receivers/{receiverId})
+	ArchiveReceiver(w http.ResponseWriter, r *http.Request, receiverId string)
+	// Get a receiver
+	// (GET /receivers/{receiverId})
+	GetReceiver(w http.ResponseWriter, r *http.Request, receiverId string)
+	// Update a receiver (admin only)
+	// (PATCH /receivers/{receiverId})
+	UpdateReceiver(w http.ResponseWriter, r *http.Request, receiverId string)
+	// List a receiver's trackers
+	// (GET /receivers/{receiverId}/trackers)
+	ListTrackers(w http.ResponseWriter, r *http.Request, receiverId string)
+	// Create a tracker for a receiver (admin only)
+	// (POST /receivers/{receiverId}/trackers)
+	CreateTracker(w http.ResponseWriter, r *http.Request, receiverId string)
+	// List the seeded tracker-template catalog
+	// (GET /tracker-templates)
+	ListTrackerTemplates(w http.ResponseWriter, r *http.Request)
+	// Archive a tracker (admin only)
+	// (DELETE /trackers/{trackerId})
+	ArchiveTracker(w http.ResponseWriter, r *http.Request, trackerId string)
+	// Get a tracker
+	// (GET /trackers/{trackerId})
+	GetTracker(w http.ResponseWriter, r *http.Request, trackerId string)
+	// Update a tracker (admin only)
+	// (PATCH /trackers/{trackerId})
+	UpdateTracker(w http.ResponseWriter, r *http.Request, trackerId string)
+	// List a tracker's events, newest first (paginated)
+	// (GET /trackers/{trackerId}/events)
+	ListEvents(w http.ResponseWriter, r *http.Request, trackerId string, params ListEventsParams)
+	// Log an event against a tracker
+	// (POST /trackers/{trackerId}/events)
+	LogEvent(w http.ResponseWriter, r *http.Request, trackerId string)
+	// Delete a logged event
+	// (DELETE /trackers/{trackerId}/events/{eventId})
+	DeleteEvent(w http.ResponseWriter, r *http.Request, trackerId string, eventId string)
+	// Get a single event
+	// (GET /trackers/{trackerId}/events/{eventId})
+	GetEvent(w http.ResponseWriter, r *http.Request, trackerId string, eventId string)
+	// Edit a logged event
+	// (PATCH /trackers/{trackerId}/events/{eventId})
+	UpdateEvent(w http.ResponseWriter, r *http.Request, trackerId string, eventId string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -294,6 +558,38 @@ func (siw *ServerInterfaceWrapper) RevokeInvitation(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RevokeInvitation(w, r, careGroupId, token)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateReceiver operation middleware
+func (siw *ServerInterfaceWrapper) CreateReceiver(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "careGroupId" -------------
+	var careGroupId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "careGroupId", r.PathValue("careGroupId"), &careGroupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "careGroupId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateReceiver(w, r, careGroupId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -400,6 +696,563 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListReceivers operation middleware
+func (siw *ServerInterfaceWrapper) ListReceivers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListReceiversParams
+
+	// ------------- Optional query parameter "careGroupId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "careGroupId", r.URL.Query(), &params.CareGroupId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "careGroupId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "careGroupId", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListReceivers(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ArchiveReceiver operation middleware
+func (siw *ServerInterfaceWrapper) ArchiveReceiver(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "receiverId" -------------
+	var receiverId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "receiverId", r.PathValue("receiverId"), &receiverId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "receiverId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ArchiveReceiver(w, r, receiverId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetReceiver operation middleware
+func (siw *ServerInterfaceWrapper) GetReceiver(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "receiverId" -------------
+	var receiverId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "receiverId", r.PathValue("receiverId"), &receiverId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "receiverId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetReceiver(w, r, receiverId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateReceiver operation middleware
+func (siw *ServerInterfaceWrapper) UpdateReceiver(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "receiverId" -------------
+	var receiverId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "receiverId", r.PathValue("receiverId"), &receiverId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "receiverId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateReceiver(w, r, receiverId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTrackers operation middleware
+func (siw *ServerInterfaceWrapper) ListTrackers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "receiverId" -------------
+	var receiverId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "receiverId", r.PathValue("receiverId"), &receiverId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "receiverId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTrackers(w, r, receiverId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTracker operation middleware
+func (siw *ServerInterfaceWrapper) CreateTracker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "receiverId" -------------
+	var receiverId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "receiverId", r.PathValue("receiverId"), &receiverId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "receiverId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTracker(w, r, receiverId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTrackerTemplates operation middleware
+func (siw *ServerInterfaceWrapper) ListTrackerTemplates(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTrackerTemplates(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ArchiveTracker operation middleware
+func (siw *ServerInterfaceWrapper) ArchiveTracker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ArchiveTracker(w, r, trackerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTracker operation middleware
+func (siw *ServerInterfaceWrapper) GetTracker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTracker(w, r, trackerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateTracker operation middleware
+func (siw *ServerInterfaceWrapper) UpdateTracker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateTracker(w, r, trackerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListEvents operation middleware
+func (siw *ServerInterfaceWrapper) ListEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListEventsParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEvents(w, r, trackerId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// LogEvent operation middleware
+func (siw *ServerInterfaceWrapper) LogEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.LogEvent(w, r, trackerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteEvent operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteEvent(w, r, trackerId, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetEvent operation middleware
+func (siw *ServerInterfaceWrapper) GetEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetEvent(w, r, trackerId, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateEvent operation middleware
+func (siw *ServerInterfaceWrapper) UpdateEvent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateEvent(w, r, trackerId, eventId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -532,11 +1385,27 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/care-groups", wrapper.CreateCareGroup)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/care-groups/{careGroupId}/invitations", wrapper.CreateInvitation)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/care-groups/{careGroupId}/invitations/{token}", wrapper.RevokeInvitation)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/care-groups/{careGroupId}/receivers", wrapper.CreateReceiver)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/flags", wrapper.GetFlags)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/health", wrapper.GetHealth)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/invitations/mine", wrapper.ListMyInvitations)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/invitations/{token}/accept", wrapper.AcceptInvitation)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/me", wrapper.GetMe)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/receivers", wrapper.ListReceivers)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/receivers/{receiverId}", wrapper.ArchiveReceiver)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/receivers/{receiverId}", wrapper.GetReceiver)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/receivers/{receiverId}", wrapper.UpdateReceiver)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/receivers/{receiverId}/trackers", wrapper.ListTrackers)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/receivers/{receiverId}/trackers", wrapper.CreateTracker)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/tracker-templates", wrapper.ListTrackerTemplates)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/trackers/{trackerId}", wrapper.ArchiveTracker)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/trackers/{trackerId}", wrapper.GetTracker)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/trackers/{trackerId}", wrapper.UpdateTracker)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/trackers/{trackerId}/events", wrapper.ListEvents)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/trackers/{trackerId}/events", wrapper.LogEvent)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/trackers/{trackerId}/events/{eventId}", wrapper.DeleteEvent)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/trackers/{trackerId}/events/{eventId}", wrapper.GetEvent)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/trackers/{trackerId}/events/{eventId}", wrapper.UpdateEvent)
 
 	return m
 }
@@ -741,6 +1610,71 @@ func (response RevokeInvitation404JSONResponse) VisitRevokeInvitationResponse(w 
 	return err
 }
 
+type CreateReceiverRequestObject struct {
+	CareGroupId string `json:"careGroupId"`
+	Body        *CreateReceiverJSONRequestBody
+}
+
+type CreateReceiverResponseObject interface {
+	VisitCreateReceiverResponse(w http.ResponseWriter) error
+}
+
+type CreateReceiver201JSONResponse Receiver
+
+func (response CreateReceiver201JSONResponse) VisitCreateReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReceiver400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateReceiver400JSONResponse) VisitCreateReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReceiver401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateReceiver401JSONResponse) VisitCreateReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReceiver403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateReceiver403JSONResponse) VisitCreateReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetFlagsRequestObject struct {
 }
 
@@ -917,6 +1851,984 @@ func (response GetMe401JSONResponse) VisitGetMeResponse(w http.ResponseWriter) e
 	return err
 }
 
+type ListReceiversRequestObject struct {
+	Params ListReceiversParams
+}
+
+type ListReceiversResponseObject interface {
+	VisitListReceiversResponse(w http.ResponseWriter) error
+}
+
+type ListReceivers200JSONResponse []Receiver
+
+func (response ListReceivers200JSONResponse) VisitListReceiversResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReceivers401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListReceivers401JSONResponse) VisitListReceiversResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReceivers403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListReceivers403JSONResponse) VisitListReceiversResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArchiveReceiverRequestObject struct {
+	ReceiverId string `json:"receiverId"`
+}
+
+type ArchiveReceiverResponseObject interface {
+	VisitArchiveReceiverResponse(w http.ResponseWriter) error
+}
+
+type ArchiveReceiver204Response struct {
+}
+
+func (response ArchiveReceiver204Response) VisitArchiveReceiverResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ArchiveReceiver401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ArchiveReceiver401JSONResponse) VisitArchiveReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArchiveReceiver403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ArchiveReceiver403JSONResponse) VisitArchiveReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArchiveReceiver404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ArchiveReceiver404JSONResponse) VisitArchiveReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiverRequestObject struct {
+	ReceiverId string `json:"receiverId"`
+}
+
+type GetReceiverResponseObject interface {
+	VisitGetReceiverResponse(w http.ResponseWriter) error
+}
+
+type GetReceiver200JSONResponse Receiver
+
+func (response GetReceiver200JSONResponse) VisitGetReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiver401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetReceiver401JSONResponse) VisitGetReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiver403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetReceiver403JSONResponse) VisitGetReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReceiver404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetReceiver404JSONResponse) VisitGetReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiverRequestObject struct {
+	ReceiverId string `json:"receiverId"`
+	Body       *UpdateReceiverJSONRequestBody
+}
+
+type UpdateReceiverResponseObject interface {
+	VisitUpdateReceiverResponse(w http.ResponseWriter) error
+}
+
+type UpdateReceiver200JSONResponse Receiver
+
+func (response UpdateReceiver200JSONResponse) VisitUpdateReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiver400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateReceiver400JSONResponse) VisitUpdateReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiver401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateReceiver401JSONResponse) VisitUpdateReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiver403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateReceiver403JSONResponse) VisitUpdateReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateReceiver404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateReceiver404JSONResponse) VisitUpdateReceiverResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackersRequestObject struct {
+	ReceiverId string `json:"receiverId"`
+}
+
+type ListTrackersResponseObject interface {
+	VisitListTrackersResponse(w http.ResponseWriter) error
+}
+
+type ListTrackers200JSONResponse []Tracker
+
+func (response ListTrackers200JSONResponse) VisitListTrackersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackers401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTrackers401JSONResponse) VisitListTrackersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackers403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListTrackers403JSONResponse) VisitListTrackersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackers404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListTrackers404JSONResponse) VisitListTrackersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTrackerRequestObject struct {
+	ReceiverId string `json:"receiverId"`
+	Body       *CreateTrackerJSONRequestBody
+}
+
+type CreateTrackerResponseObject interface {
+	VisitCreateTrackerResponse(w http.ResponseWriter) error
+}
+
+type CreateTracker201JSONResponse Tracker
+
+func (response CreateTracker201JSONResponse) VisitCreateTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTracker400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateTracker400JSONResponse) VisitCreateTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTracker401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateTracker401JSONResponse) VisitCreateTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTracker403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateTracker403JSONResponse) VisitCreateTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTracker404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateTracker404JSONResponse) VisitCreateTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerTemplatesRequestObject struct {
+}
+
+type ListTrackerTemplatesResponseObject interface {
+	VisitListTrackerTemplatesResponse(w http.ResponseWriter) error
+}
+
+type ListTrackerTemplates200JSONResponse []TrackerTemplate
+
+func (response ListTrackerTemplates200JSONResponse) VisitListTrackerTemplatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerTemplates401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTrackerTemplates401JSONResponse) VisitListTrackerTemplatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArchiveTrackerRequestObject struct {
+	TrackerId string `json:"trackerId"`
+}
+
+type ArchiveTrackerResponseObject interface {
+	VisitArchiveTrackerResponse(w http.ResponseWriter) error
+}
+
+type ArchiveTracker204Response struct {
+}
+
+func (response ArchiveTracker204Response) VisitArchiveTrackerResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ArchiveTracker401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ArchiveTracker401JSONResponse) VisitArchiveTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArchiveTracker403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ArchiveTracker403JSONResponse) VisitArchiveTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ArchiveTracker404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ArchiveTracker404JSONResponse) VisitArchiveTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTrackerRequestObject struct {
+	TrackerId string `json:"trackerId"`
+}
+
+type GetTrackerResponseObject interface {
+	VisitGetTrackerResponse(w http.ResponseWriter) error
+}
+
+type GetTracker200JSONResponse Tracker
+
+func (response GetTracker200JSONResponse) VisitGetTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTracker401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetTracker401JSONResponse) VisitGetTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTracker403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetTracker403JSONResponse) VisitGetTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTracker404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetTracker404JSONResponse) VisitGetTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTrackerRequestObject struct {
+	TrackerId string `json:"trackerId"`
+	Body      *UpdateTrackerJSONRequestBody
+}
+
+type UpdateTrackerResponseObject interface {
+	VisitUpdateTrackerResponse(w http.ResponseWriter) error
+}
+
+type UpdateTracker200JSONResponse Tracker
+
+func (response UpdateTracker200JSONResponse) VisitUpdateTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTracker400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateTracker400JSONResponse) VisitUpdateTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTracker401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateTracker401JSONResponse) VisitUpdateTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTracker403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateTracker403JSONResponse) VisitUpdateTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateTracker404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateTracker404JSONResponse) VisitUpdateTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEventsRequestObject struct {
+	TrackerId string `json:"trackerId"`
+	Params    ListEventsParams
+}
+
+type ListEventsResponseObject interface {
+	VisitListEventsResponse(w http.ResponseWriter) error
+}
+
+type ListEvents200JSONResponse EventList
+
+func (response ListEvents200JSONResponse) VisitListEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEvents401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListEvents401JSONResponse) VisitListEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEvents403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListEvents403JSONResponse) VisitListEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEvents404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListEvents404JSONResponse) VisitListEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogEventRequestObject struct {
+	TrackerId string `json:"trackerId"`
+	Body      *LogEventJSONRequestBody
+}
+
+type LogEventResponseObject interface {
+	VisitLogEventResponse(w http.ResponseWriter) error
+}
+
+type LogEvent201JSONResponse Event
+
+func (response LogEvent201JSONResponse) VisitLogEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogEvent400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response LogEvent400JSONResponse) VisitLogEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogEvent401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response LogEvent401JSONResponse) VisitLogEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogEvent403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response LogEvent403JSONResponse) VisitLogEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogEvent404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response LogEvent404JSONResponse) VisitLogEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEventRequestObject struct {
+	TrackerId string `json:"trackerId"`
+	EventId   string `json:"eventId"`
+}
+
+type DeleteEventResponseObject interface {
+	VisitDeleteEventResponse(w http.ResponseWriter) error
+}
+
+type DeleteEvent204Response struct {
+}
+
+func (response DeleteEvent204Response) VisitDeleteEventResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteEvent401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response DeleteEvent401JSONResponse) VisitDeleteEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEvent403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteEvent403JSONResponse) VisitDeleteEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEvent404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteEvent404JSONResponse) VisitDeleteEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEventRequestObject struct {
+	TrackerId string `json:"trackerId"`
+	EventId   string `json:"eventId"`
+}
+
+type GetEventResponseObject interface {
+	VisitGetEventResponse(w http.ResponseWriter) error
+}
+
+type GetEvent200JSONResponse Event
+
+func (response GetEvent200JSONResponse) VisitGetEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEvent401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetEvent401JSONResponse) VisitGetEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEvent403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetEvent403JSONResponse) VisitGetEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEvent404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetEvent404JSONResponse) VisitGetEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEventRequestObject struct {
+	TrackerId string `json:"trackerId"`
+	EventId   string `json:"eventId"`
+	Body      *UpdateEventJSONRequestBody
+}
+
+type UpdateEventResponseObject interface {
+	VisitUpdateEventResponse(w http.ResponseWriter) error
+}
+
+type UpdateEvent200JSONResponse Event
+
+func (response UpdateEvent200JSONResponse) VisitUpdateEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEvent400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateEvent400JSONResponse) VisitUpdateEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEvent401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response UpdateEvent401JSONResponse) VisitUpdateEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEvent403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateEvent403JSONResponse) VisitUpdateEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateEvent404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateEvent404JSONResponse) VisitUpdateEventResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Create a care group; caller becomes Admin
@@ -928,6 +2840,9 @@ type StrictServerInterface interface {
 	// Revoke a pending invitation (admin only)
 	// (DELETE /care-groups/{careGroupId}/invitations/{token})
 	RevokeInvitation(ctx context.Context, request RevokeInvitationRequestObject) (RevokeInvitationResponseObject, error)
+	// Add a receiver to a care group (admin only)
+	// (POST /care-groups/{careGroupId}/receivers)
+	CreateReceiver(ctx context.Context, request CreateReceiverRequestObject) (CreateReceiverResponseObject, error)
 	// Return evaluated feature flags
 	// (GET /flags)
 	GetFlags(ctx context.Context, request GetFlagsRequestObject) (GetFlagsResponseObject, error)
@@ -943,6 +2858,51 @@ type StrictServerInterface interface {
 	// Current user and their care-group memberships
 	// (GET /me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+	// List receivers across the caller's groups (optionally one group)
+	// (GET /receivers)
+	ListReceivers(ctx context.Context, request ListReceiversRequestObject) (ListReceiversResponseObject, error)
+	// Archive a receiver (admin only)
+	// (DELETE /receivers/{receiverId})
+	ArchiveReceiver(ctx context.Context, request ArchiveReceiverRequestObject) (ArchiveReceiverResponseObject, error)
+	// Get a receiver
+	// (GET /receivers/{receiverId})
+	GetReceiver(ctx context.Context, request GetReceiverRequestObject) (GetReceiverResponseObject, error)
+	// Update a receiver (admin only)
+	// (PATCH /receivers/{receiverId})
+	UpdateReceiver(ctx context.Context, request UpdateReceiverRequestObject) (UpdateReceiverResponseObject, error)
+	// List a receiver's trackers
+	// (GET /receivers/{receiverId}/trackers)
+	ListTrackers(ctx context.Context, request ListTrackersRequestObject) (ListTrackersResponseObject, error)
+	// Create a tracker for a receiver (admin only)
+	// (POST /receivers/{receiverId}/trackers)
+	CreateTracker(ctx context.Context, request CreateTrackerRequestObject) (CreateTrackerResponseObject, error)
+	// List the seeded tracker-template catalog
+	// (GET /tracker-templates)
+	ListTrackerTemplates(ctx context.Context, request ListTrackerTemplatesRequestObject) (ListTrackerTemplatesResponseObject, error)
+	// Archive a tracker (admin only)
+	// (DELETE /trackers/{trackerId})
+	ArchiveTracker(ctx context.Context, request ArchiveTrackerRequestObject) (ArchiveTrackerResponseObject, error)
+	// Get a tracker
+	// (GET /trackers/{trackerId})
+	GetTracker(ctx context.Context, request GetTrackerRequestObject) (GetTrackerResponseObject, error)
+	// Update a tracker (admin only)
+	// (PATCH /trackers/{trackerId})
+	UpdateTracker(ctx context.Context, request UpdateTrackerRequestObject) (UpdateTrackerResponseObject, error)
+	// List a tracker's events, newest first (paginated)
+	// (GET /trackers/{trackerId}/events)
+	ListEvents(ctx context.Context, request ListEventsRequestObject) (ListEventsResponseObject, error)
+	// Log an event against a tracker
+	// (POST /trackers/{trackerId}/events)
+	LogEvent(ctx context.Context, request LogEventRequestObject) (LogEventResponseObject, error)
+	// Delete a logged event
+	// (DELETE /trackers/{trackerId}/events/{eventId})
+	DeleteEvent(ctx context.Context, request DeleteEventRequestObject) (DeleteEventResponseObject, error)
+	// Get a single event
+	// (GET /trackers/{trackerId}/events/{eventId})
+	GetEvent(ctx context.Context, request GetEventRequestObject) (GetEventResponseObject, error)
+	// Edit a logged event
+	// (PATCH /trackers/{trackerId}/events/{eventId})
+	UpdateEvent(ctx context.Context, request UpdateEventRequestObject) (UpdateEventResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -1058,6 +3018,39 @@ func (sh *strictHandler) RevokeInvitation(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RevokeInvitationResponseObject); ok {
 		if err := validResponse.VisitRevokeInvitationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateReceiver operation middleware
+func (sh *strictHandler) CreateReceiver(w http.ResponseWriter, r *http.Request, careGroupId string) {
+	var request CreateReceiverRequestObject
+
+	request.CareGroupId = careGroupId
+
+	var body CreateReceiverJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateReceiver(ctx, request.(CreateReceiverRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateReceiver")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateReceiverResponseObject); ok {
+		if err := validResponse.VisitCreateReceiverResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1187,36 +3180,481 @@ func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListReceivers operation middleware
+func (sh *strictHandler) ListReceivers(w http.ResponseWriter, r *http.Request, params ListReceiversParams) {
+	var request ListReceiversRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListReceivers(ctx, request.(ListReceiversRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListReceivers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListReceiversResponseObject); ok {
+		if err := validResponse.VisitListReceiversResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ArchiveReceiver operation middleware
+func (sh *strictHandler) ArchiveReceiver(w http.ResponseWriter, r *http.Request, receiverId string) {
+	var request ArchiveReceiverRequestObject
+
+	request.ReceiverId = receiverId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ArchiveReceiver(ctx, request.(ArchiveReceiverRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ArchiveReceiver")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ArchiveReceiverResponseObject); ok {
+		if err := validResponse.VisitArchiveReceiverResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetReceiver operation middleware
+func (sh *strictHandler) GetReceiver(w http.ResponseWriter, r *http.Request, receiverId string) {
+	var request GetReceiverRequestObject
+
+	request.ReceiverId = receiverId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReceiver(ctx, request.(GetReceiverRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReceiver")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetReceiverResponseObject); ok {
+		if err := validResponse.VisitGetReceiverResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateReceiver operation middleware
+func (sh *strictHandler) UpdateReceiver(w http.ResponseWriter, r *http.Request, receiverId string) {
+	var request UpdateReceiverRequestObject
+
+	request.ReceiverId = receiverId
+
+	var body UpdateReceiverJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateReceiver(ctx, request.(UpdateReceiverRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateReceiver")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateReceiverResponseObject); ok {
+		if err := validResponse.VisitUpdateReceiverResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTrackers operation middleware
+func (sh *strictHandler) ListTrackers(w http.ResponseWriter, r *http.Request, receiverId string) {
+	var request ListTrackersRequestObject
+
+	request.ReceiverId = receiverId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTrackers(ctx, request.(ListTrackersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTrackers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTrackersResponseObject); ok {
+		if err := validResponse.VisitListTrackersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTracker operation middleware
+func (sh *strictHandler) CreateTracker(w http.ResponseWriter, r *http.Request, receiverId string) {
+	var request CreateTrackerRequestObject
+
+	request.ReceiverId = receiverId
+
+	var body CreateTrackerJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTracker(ctx, request.(CreateTrackerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTracker")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTrackerResponseObject); ok {
+		if err := validResponse.VisitCreateTrackerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTrackerTemplates operation middleware
+func (sh *strictHandler) ListTrackerTemplates(w http.ResponseWriter, r *http.Request) {
+	var request ListTrackerTemplatesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTrackerTemplates(ctx, request.(ListTrackerTemplatesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTrackerTemplates")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTrackerTemplatesResponseObject); ok {
+		if err := validResponse.VisitListTrackerTemplatesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ArchiveTracker operation middleware
+func (sh *strictHandler) ArchiveTracker(w http.ResponseWriter, r *http.Request, trackerId string) {
+	var request ArchiveTrackerRequestObject
+
+	request.TrackerId = trackerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ArchiveTracker(ctx, request.(ArchiveTrackerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ArchiveTracker")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ArchiveTrackerResponseObject); ok {
+		if err := validResponse.VisitArchiveTrackerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTracker operation middleware
+func (sh *strictHandler) GetTracker(w http.ResponseWriter, r *http.Request, trackerId string) {
+	var request GetTrackerRequestObject
+
+	request.TrackerId = trackerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTracker(ctx, request.(GetTrackerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTracker")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTrackerResponseObject); ok {
+		if err := validResponse.VisitGetTrackerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateTracker operation middleware
+func (sh *strictHandler) UpdateTracker(w http.ResponseWriter, r *http.Request, trackerId string) {
+	var request UpdateTrackerRequestObject
+
+	request.TrackerId = trackerId
+
+	var body UpdateTrackerJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateTracker(ctx, request.(UpdateTrackerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateTracker")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateTrackerResponseObject); ok {
+		if err := validResponse.VisitUpdateTrackerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListEvents operation middleware
+func (sh *strictHandler) ListEvents(w http.ResponseWriter, r *http.Request, trackerId string, params ListEventsParams) {
+	var request ListEventsRequestObject
+
+	request.TrackerId = trackerId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListEvents(ctx, request.(ListEventsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListEvents")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListEventsResponseObject); ok {
+		if err := validResponse.VisitListEventsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// LogEvent operation middleware
+func (sh *strictHandler) LogEvent(w http.ResponseWriter, r *http.Request, trackerId string) {
+	var request LogEventRequestObject
+
+	request.TrackerId = trackerId
+
+	var body LogEventJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.LogEvent(ctx, request.(LogEventRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "LogEvent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(LogEventResponseObject); ok {
+		if err := validResponse.VisitLogEventResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteEvent operation middleware
+func (sh *strictHandler) DeleteEvent(w http.ResponseWriter, r *http.Request, trackerId string, eventId string) {
+	var request DeleteEventRequestObject
+
+	request.TrackerId = trackerId
+	request.EventId = eventId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteEvent(ctx, request.(DeleteEventRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteEvent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteEventResponseObject); ok {
+		if err := validResponse.VisitDeleteEventResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetEvent operation middleware
+func (sh *strictHandler) GetEvent(w http.ResponseWriter, r *http.Request, trackerId string, eventId string) {
+	var request GetEventRequestObject
+
+	request.TrackerId = trackerId
+	request.EventId = eventId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetEvent(ctx, request.(GetEventRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetEvent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetEventResponseObject); ok {
+		if err := validResponse.VisitGetEventResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateEvent operation middleware
+func (sh *strictHandler) UpdateEvent(w http.ResponseWriter, r *http.Request, trackerId string, eventId string) {
+	var request UpdateEventRequestObject
+
+	request.TrackerId = trackerId
+	request.EventId = eventId
+
+	var body UpdateEventJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateEvent(ctx, request.(UpdateEventRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateEvent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateEventResponseObject); ok {
+		if err := validResponse.VisitUpdateEventResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"H/AGic44nfLNlbnRondpY9nV8u8AAAD//w==",
+	"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",
+	"vwAAAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

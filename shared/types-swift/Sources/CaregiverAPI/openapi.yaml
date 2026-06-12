@@ -146,6 +146,274 @@ paths:
           $ref: '#/components/responses/NotFound'
         '410':
           $ref: '#/components/responses/Gone'
+  /receivers:
+    get:
+      operationId: listReceivers
+      summary: List receivers across the caller's groups (optionally one group)
+      parameters:
+        - { name: careGroupId, in: query, required: false, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Receiver' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /care-groups/{careGroupId}/receivers:
+    post:
+      operationId: createReceiver
+      summary: Add a receiver to a care group (admin only)
+      parameters:
+        - { name: careGroupId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateReceiverRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Receiver' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /receivers/{receiverId}:
+    get:
+      operationId: getReceiver
+      summary: Get a receiver
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Receiver' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateReceiver
+      summary: Update a receiver (admin only)
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateReceiverRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Receiver' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: archiveReceiver
+      summary: Archive a receiver (admin only)
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /receivers/{receiverId}/trackers:
+    get:
+      operationId: listTrackers
+      summary: List a receiver's trackers
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Tracker' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: createTracker
+      summary: Create a tracker for a receiver (admin only)
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrackerWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tracker' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /trackers/{trackerId}:
+    get:
+      operationId: getTracker
+      summary: Get a tracker
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tracker' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateTracker
+      summary: Update a tracker (admin only)
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrackerWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Tracker' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: archiveTracker
+      summary: Archive a tracker (admin only)
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /trackers/{trackerId}/events:
+    get:
+      operationId: listEvents
+      summary: List a tracker's events, newest first (paginated)
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+        - {
+            name: limit,
+            in: query,
+            required: false,
+            schema: { type: integer, minimum: 1, maximum: 100 },
+          }
+        - { name: cursor, in: query, required: false, schema: { type: string } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: logEvent
+      summary: Log an event against a tracker
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /trackers/{trackerId}/events/{eventId}:
+    get:
+      operationId: getEvent
+      summary: Get a single event
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+        - { name: eventId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateEvent
+      summary: Edit a logged event
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+        - { name: eventId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteEvent
+      summary: Delete a logged event
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+        - { name: eventId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /tracker-templates:
+    get:
+      operationId: listTrackerTemplates
+      summary: List the seeded tracker-template catalog
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TrackerTemplate' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 components:
   securitySchemes:
     bearerAuth:
@@ -240,6 +508,156 @@ components:
       properties:
         care_group_id: { type: string }
         role: { $ref: '#/components/schemas/Role' }
+    TrackerKind:
+      type: string
+      enum: [event, measurement, scheduled]
+    FieldType:
+      type: string
+      enum: [number, text, boolean, enum, datetime]
+    Threshold:
+      type: object
+      properties:
+        min: { type: number }
+        max: { type: number }
+    Field:
+      type: object
+      required: [key, label, type]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        type: { $ref: '#/components/schemas/FieldType' }
+        unit: { type: string }
+        required: { type: boolean }
+        options:
+          type: array
+          items: { type: string }
+        threshold: { $ref: '#/components/schemas/Threshold' }
+    Receiver:
+      type: object
+      required: [receiver_id, care_group_id, name, created_by, created_at, archived]
+      properties:
+        receiver_id: { type: string }
+        care_group_id: { type: string }
+        name: { type: string }
+        date_of_birth: { type: string }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        archived: { type: boolean }
+    CreateReceiverRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        date_of_birth: { type: string }
+    UpdateReceiverRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        date_of_birth: { type: string }
+    Tracker:
+      type: object
+      required:
+        [
+          tracker_id,
+          receiver_id,
+          care_group_id,
+          name,
+          kind,
+          fields,
+          created_by,
+          created_at,
+          archived,
+        ]
+      properties:
+        tracker_id: { type: string }
+        receiver_id: { type: string }
+        care_group_id: { type: string }
+        name: { type: string }
+        kind: { $ref: '#/components/schemas/TrackerKind' }
+        icon: { type: string }
+        color: { type: string }
+        fields:
+          type: array
+          items: { $ref: '#/components/schemas/Field' }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        archived: { type: boolean }
+    TrackerWrite:
+      type: object
+      required: [name, kind, fields]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        kind: { $ref: '#/components/schemas/TrackerKind' }
+        icon: { type: string }
+        color: { type: string }
+        fields:
+          type: array
+          items: { $ref: '#/components/schemas/Field' }
+    TrackerTemplate:
+      type: object
+      required: [template_id, name, kind, fields]
+      properties:
+        template_id: { type: string }
+        name: { type: string }
+        kind: { $ref: '#/components/schemas/TrackerKind' }
+        icon: { type: string }
+        color: { type: string }
+        fields:
+          type: array
+          items: { $ref: '#/components/schemas/Field' }
+    Breach:
+      type: object
+      required: [key, value, bound, limit]
+      properties:
+        key: { type: string }
+        value: { type: number }
+        bound: { type: string, enum: [min, max] }
+        limit: { type: number }
+    Event:
+      type: object
+      required:
+        [
+          tracker_id,
+          event_id,
+          care_group_id,
+          receiver_id,
+          values,
+          occurred_at,
+          logged_by,
+          created_at,
+        ]
+      properties:
+        tracker_id: { type: string }
+        event_id: { type: string }
+        care_group_id: { type: string }
+        receiver_id: { type: string }
+        values:
+          type: object
+          additionalProperties: true
+        note: { type: string }
+        occurred_at: { type: string, format: date-time }
+        logged_by: { type: string }
+        created_at: { type: string, format: date-time }
+        breaches:
+          type: array
+          items: { $ref: '#/components/schemas/Breach' }
+    EventWrite:
+      type: object
+      required: [values]
+      properties:
+        occurred_at: { type: string, format: date-time }
+        values:
+          type: object
+          additionalProperties: true
+        note: { type: string }
+    EventList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Event' }
+        next_cursor: { type: string }
     Error:
       type: object
       required: [message]
