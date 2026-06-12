@@ -40,6 +40,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    '/me': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current user and their care-group memberships */
+        get: operations['getMe'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/care-groups': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a care group; caller becomes Admin */
+        post: operations['createCareGroup'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/care-groups/{careGroupId}/invitations': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invite a user to the care group by email (admin only) */
+        post: operations['createInvitation'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/care-groups/{careGroupId}/invitations/{token}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a pending invitation (admin only) */
+        delete: operations['revokeInvitation'];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/invitations/mine': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pending invitations for the caller's verified email */
+        get: operations['listMyInvitations'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/invitations/{token}/accept': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept an invitation by token; creates a membership */
+        post: operations['acceptInvitation'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -62,8 +164,117 @@ export interface components {
         Flags: {
             [key: string]: unknown;
         };
+        /** @enum {string} */
+        Role: 'admin' | 'caregiver';
+        User: {
+            user_id: string;
+            /** Format: email */
+            email: string;
+            name: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        MembershipView: {
+            care_group_id: string;
+            name: string;
+            role: components['schemas']['Role'];
+        };
+        Me: {
+            user: components['schemas']['User'];
+            memberships: components['schemas']['MembershipView'][];
+        };
+        CreateCareGroupRequest: {
+            name: string;
+        };
+        CareGroupMembership: {
+            care_group_id: string;
+            name: string;
+            role: components['schemas']['Role'];
+        };
+        CreateInvitationRequest: {
+            /** Format: email */
+            email: string;
+            role: components['schemas']['Role'];
+        };
+        Invitation: {
+            token: string;
+            /** Format: email */
+            email: string;
+            role: components['schemas']['Role'];
+            /** Format: date-time */
+            expires_at: string;
+        };
+        PendingInvitation: {
+            token: string;
+            care_group_id: string;
+            care_group_name: string;
+            role: components['schemas']['Role'];
+            invited_by: string;
+        };
+        AcceptInvitationResponse: {
+            care_group_id: string;
+            role: components['schemas']['Role'];
+        };
+        Error: {
+            message: string;
+        };
     };
-    responses: never;
+    responses: {
+        /** @description Bad request */
+        BadRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description Missing or invalid token */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description Not permitted */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description Not found */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description Conflict (duplicate) */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description Invitation expired or already used */
+        Gone: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -109,6 +320,153 @@ export interface operations {
                     'application/json': components['schemas']['Flags'];
                 };
             };
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Me'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+        };
+    };
+    createCareGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['CreateCareGroupRequest'];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CareGroupMembership'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+        };
+    };
+    createInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                careGroupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['CreateInvitationRequest'];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Invitation'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            409: components['responses']['Conflict'];
+        };
+    };
+    revokeInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                careGroupId: string;
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    listMyInvitations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['PendingInvitation'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+        };
+    };
+    acceptInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['AcceptInvitationResponse'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            404: components['responses']['NotFound'];
+            410: components['responses']['Gone'];
         };
     };
 }
