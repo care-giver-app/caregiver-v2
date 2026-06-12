@@ -221,6 +221,13 @@ What a client POSTs to log an event:
 The server fills `event_id`, `logged_by` (from the auth context), `created_at`, and the denormalized
 `care_group_id` / `receiver_id`. The response echoes the stored row plus derived breach info (§7.3).
 
+**An event belongs to exactly one tracker.** Capturing several readings at once (e.g. systolic +
+diastolic + pulse) is done with a **multi-field tracker** — the `values` map holds all of them — not
+by associating one event with multiple trackers. Logging several _independent_ trackers in one user
+gesture (a "morning check-in") is a client/UI concern (a batch of one-tracker events), not a
+many-to-many data model; a `POST /events:batch` convenience can be added later if needed without
+changing the event keying.
+
 ### 7.2 Validation (server-side, against the tracker's field schema)
 
 1. **Unknown keys rejected** — every key in `values` must match a `field.key`. → 400
