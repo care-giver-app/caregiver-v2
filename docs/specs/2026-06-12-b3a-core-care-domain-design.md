@@ -351,6 +351,13 @@ Testing-trophy (ADR-0006) — static + integration carry the weight, as in B1.
   that becomes a feature, descendant `care_group_id` values need a rewrite path.
 - **Store-helper retrofit.** Retrofitting the four B1 stores onto the new generic helpers is optional
   and may remain a `TECH_DEBT.md` follow-up.
+- **Per-field analytics (B2 rollups, C2 charts).** Each tracker `field` is an independently-analyzable
+  time series, addressable by its stable `key` across the event history, and carries its own
+  `label` / `unit` / `threshold` / `type`. A multi-field event is only a write-time grouping; on read
+  each field stands alone. Implementers must **not** flatten or merge the `values` map into an
+  un-keyable shape — doing so would foreclose per-measurement widgets (e.g. separate systolic /
+  diastolic / pulse charts from one blood-pressure event). B2 rollups key naturally per
+  `(tracker, field)`; C2 renders one widget per field.
 
 ## 13. Success criteria
 
