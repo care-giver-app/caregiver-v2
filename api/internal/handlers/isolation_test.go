@@ -1,0 +1,83 @@
+package handlers_test
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/care-giver-app/caregiver-v2/api/internal/handlers"
+	"github.com/care-giver-app/caregiver-v2/shared/go-common/domain"
+	"github.com/care-giver-app/caregiver-v2/shared/go-common/store/dynamotest"
+)
+
+// Isolation: a user who is admin of their own group must not touch another group.
+
+func TestIsolation_nonMemberCannotInvite(t *testing.T) {
+	s := dynamotest.Start(t)
+	ctx := context.Background()
+	now := time.Now().UTC()
+	_ = s.CreateCareGroupWithAdmin(ctx,
+		domain.CareGroup{CareGroupID: "g1", Name: "A", CreatedBy: "userA", CreatedAt: now},
+		domain.Membership{UserID: "userA", CareGroupID: "g1", Role: domain.RoleAdmin, CreatedAt: now})
+
+	cg := handlers.NewCareGroups(s)
+	req := httptest.NewRequest(http.MethodPost, "/care-groups/g1/invitations", strings.NewReader(`{"email":"z@z.com","role":"caregiver"}`))
+	req.SetPathValue("careGroupId", "g1")
+	req = withAuth(req, "userB", "userB@x.com", map[string]domain.Role{"g2": domain.RoleAdmin})
+	rec := httptest.NewRecorder()
+	cg.CreateInvitation(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("stranger invite should be 403, got %d", rec.Code)
+	}
+}
+
+func TestIsolation_zeroMembershipSeesNothing(t *testing.T) {
+	s := dynamotest.Start(t)
+	_, _ = s.Users.CreateIfAbsent(context.Background(), domain.User{UserID: "lonely", Email: "l@x.com", Name: "L", CreatedAt: time.Now().UTC()})
+	me := handlers.NewMe(s)
+	req := withAuth(httptest.NewRequest(http.MethodGet, "/me", nil), "lonely", "l@x.com", nil)
+	rec := httptest.NewRecorder()
+	me.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"memberships":[]`) {
+		t.Fatalf("zero-membership user should see empty memberships: %s", rec.Body.String())
+	}
+}
+
+func TestIsolation_caregiverCannotInvite(t *testing.T) {
+	s := dynamotest.Start(t)
+	cg := handlers.NewCareGroups(s)
+	req := httptest.NewRequest(http.MethodPost, "/care-groups/g1/invitations", strings.NewReader(`{"email":"z@z.com","role":"caregiver"}`))
+	req.SetPathValue("careGroupId", "g1")
+	req = withAuth(req, "u3", "u3@x.com", map[string]domain.Role{"g1": domain.RoleCaregiver})
+	rec := httptest.NewRecorder()
+	cg.CreateInvitation(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("caregiver invite should be 403, got %d", rec.Code)
+	}
+}
+
+func TestIsolation_strangerCannotRevoke(t *testing.T) {
+	s := dynamotest.Start(t)
+	ctx := context.Background()
+	now := time.Now().UTC()
+	_ = s.Invitations.Create(ctx, domain.Invitation{
+		Token: "tokA", CareGroupID: "g1", Email: "p@x.com", Role: domain.RoleCaregiver,
+		Status: domain.InvitePending, InvitedBy: "userA", CreatedAt: now, ExpiresAt: now.Add(time.Hour).Unix(),
+	})
+	cg := handlers.NewCareGroups(s)
+	req := httptest.NewRequest(http.MethodDelete, "/care-groups/g1/invitations/tokA", nil)
+	req.SetPathValue("careGroupId", "g1")
+	req.SetPathValue("token", "tokA")
+	req = withAuth(req, "userB", "userB@x.com", map[string]domain.Role{"g2": domain.RoleAdmin})
+	rec := httptest.NewRecorder()
+	cg.RevokeInvitation(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("stranger revoke should be 403, got %d", rec.Code)
+	}
+	if inv, _ := s.Invitations.Get(ctx, "tokA"); inv.Status != domain.InvitePending {
+		t.Fatalf("invite should remain pending, got %s", inv.Status)
+	}
+}
