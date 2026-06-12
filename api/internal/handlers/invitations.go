@@ -87,6 +87,13 @@ func (h *Invitations) Accept(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Admin-role invites are bound to the invited email (higher bar for the higher
+	// privilege). Caregiver invites stay token-first (supports Apple private relay).
+	if inv.Role == domain.RoleAdmin && domain.NormalizeEmail(ac.Email) != inv.Email {
+		httpx.WriteError(w, http.StatusForbidden, "this invitation must be accepted from the invited email")
+		return
+	}
+
 	mem := domain.Membership{UserID: ac.UserID, CareGroupID: inv.CareGroupID, Role: inv.Role, CreatedAt: h.now().UTC()}
 	if err := h.stores.AcceptInvitation(ctx, token, mem); err != nil {
 		if _, gErr := h.stores.Memberships.Get(ctx, ac.UserID, inv.CareGroupID); gErr == nil {

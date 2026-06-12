@@ -56,7 +56,11 @@ func (s *Stores) AcceptInvitation(ctx context.Context, token string, m domain.Me
 					":pending":  &types.AttributeValueMemberS{Value: string(domain.InvitePending)},
 				},
 			}},
-			{Put: &types.Put{TableName: aws.String(s.names.Memberships), Item: mi}},
+			{Put: &types.Put{
+				TableName:           aws.String(s.names.Memberships),
+				Item:                mi,
+				ConditionExpression: aws.String("attribute_not_exists(user_id)"),
+			}},
 		},
 	})
 	return err

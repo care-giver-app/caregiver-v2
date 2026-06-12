@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -89,8 +90,18 @@ func (h *CareGroups) CreateInvitation(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if u, err := h.stores.Users.GetByEmail(ctx, email); err == nil {
-		if _, err := h.stores.Memberships.Get(ctx, u.UserID, groupID); err == nil {
+	u, uErr := h.stores.Users.GetByEmail(ctx, email)
+	if uErr != nil && !errors.Is(uErr, store.ErrNotFound) {
+		httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+		return
+	}
+	if uErr == nil {
+		_, mErr := h.stores.Memberships.Get(ctx, u.UserID, groupID)
+		if mErr != nil && !errors.Is(mErr, store.ErrNotFound) {
+			httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+			return
+		}
+		if mErr == nil {
 			httpx.WriteError(w, http.StatusConflict, "already a member")
 			return
 		}

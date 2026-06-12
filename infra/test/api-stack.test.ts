@@ -71,5 +71,25 @@ describe('ApiStack', () => {
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
     t.resourceCountIs('AWS::ApiGatewayV2::Route', 8);
+
+    for (const routeKey of [
+      'GET /me',
+      'POST /care-groups',
+      'POST /care-groups/{careGroupId}/invitations',
+      'DELETE /care-groups/{careGroupId}/invitations/{token}',
+      'GET /invitations/mine',
+      'POST /invitations/{token}/accept',
+    ]) {
+      t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
+        RouteKey: routeKey,
+        AuthorizationType: 'JWT',
+      });
+    }
+    for (const routeKey of ['GET /health', 'GET /flags']) {
+      t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
+        RouteKey: routeKey,
+        AuthorizationType: 'NONE',
+      });
+    }
   });
 });

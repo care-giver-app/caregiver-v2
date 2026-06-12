@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -39,10 +40,17 @@ func (m *Authenticator) Wrap(next http.Handler) http.Handler {
 		ctx := r.Context()
 		email := domain.NormalizeEmail(c.Email)
 
-		if _, err := m.stores.Users.CreateIfAbsent(ctx, domain.User{
-			UserID: c.Sub, Email: email, Name: c.Name, CreatedAt: m.now().UTC(),
-		}); err != nil {
-			httpx.WriteError(w, http.StatusInternalServerError, "provisioning failed")
+		// Read-first: only write on a user's first request, so the steady-state
+		// hot path is a read rather than a conditional write that always fails.
+		if _, err := m.stores.Users.Get(ctx, c.Sub); errors.Is(err, store.ErrNotFound) {
+			if _, cerr := m.stores.Users.CreateIfAbsent(ctx, domain.User{
+				UserID: c.Sub, Email: email, Name: c.Name, CreatedAt: m.now().UTC(),
+			}); cerr != nil {
+				httpx.WriteError(w, http.StatusInternalServerError, "provisioning failed")
+				return
+			}
+		} else if err != nil {
+			httpx.WriteError(w, http.StatusInternalServerError, "auth load failed")
 			return
 		}
 
