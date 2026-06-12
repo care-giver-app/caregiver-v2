@@ -143,6 +143,150 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/receivers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List receivers across the caller's groups (optionally one group) */
+    get: operations['listReceivers'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/care-groups/{careGroupId}/receivers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Add a receiver to a care group (admin only) */
+    post: operations['createReceiver'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/receivers/{receiverId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a receiver */
+    get: operations['getReceiver'];
+    put?: never;
+    post?: never;
+    /** Archive a receiver (admin only) */
+    delete: operations['archiveReceiver'];
+    options?: never;
+    head?: never;
+    /** Update a receiver (admin only) */
+    patch: operations['updateReceiver'];
+    trace?: never;
+  };
+  '/receivers/{receiverId}/trackers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List a receiver's trackers */
+    get: operations['listTrackers'];
+    put?: never;
+    /** Create a tracker for a receiver (admin only) */
+    post: operations['createTracker'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/trackers/{trackerId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a tracker */
+    get: operations['getTracker'];
+    put?: never;
+    post?: never;
+    /** Archive a tracker (admin only) */
+    delete: operations['archiveTracker'];
+    options?: never;
+    head?: never;
+    /** Update a tracker (admin only) */
+    patch: operations['updateTracker'];
+    trace?: never;
+  };
+  '/trackers/{trackerId}/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List a tracker's events, newest first (paginated) */
+    get: operations['listEvents'];
+    put?: never;
+    /** Log an event against a tracker */
+    post: operations['logEvent'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/trackers/{trackerId}/events/{eventId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a single event */
+    get: operations['getEvent'];
+    put?: never;
+    post?: never;
+    /** Delete a logged event */
+    delete: operations['deleteEvent'];
+    options?: never;
+    head?: never;
+    /** Edit a logged event */
+    patch: operations['updateEvent'];
+    trace?: never;
+  };
+  '/tracker-templates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List the seeded tracker-template catalog */
+    get: operations['listTrackerTemplates'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -215,6 +359,105 @@ export interface components {
     AcceptInvitationResponse: {
       care_group_id: string;
       role: components['schemas']['Role'];
+    };
+    /** @enum {string} */
+    TrackerKind: 'event' | 'measurement' | 'scheduled';
+    /** @enum {string} */
+    FieldType: 'number' | 'text' | 'boolean' | 'enum' | 'datetime';
+    Threshold: {
+      min?: number;
+      max?: number;
+    };
+    Field: {
+      key: string;
+      label: string;
+      type: components['schemas']['FieldType'];
+      unit?: string;
+      required?: boolean;
+      options?: string[];
+      threshold?: components['schemas']['Threshold'];
+    };
+    Receiver: {
+      receiver_id: string;
+      care_group_id: string;
+      name: string;
+      date_of_birth?: string;
+      created_by: string;
+      /** Format: date-time */
+      created_at: string;
+      archived: boolean;
+    };
+    CreateReceiverRequest: {
+      name: string;
+      date_of_birth?: string;
+    };
+    UpdateReceiverRequest: {
+      name?: string;
+      date_of_birth?: string;
+    };
+    Tracker: {
+      tracker_id: string;
+      receiver_id: string;
+      care_group_id: string;
+      name: string;
+      kind: components['schemas']['TrackerKind'];
+      icon?: string;
+      color?: string;
+      fields: components['schemas']['Field'][];
+      created_by: string;
+      /** Format: date-time */
+      created_at: string;
+      archived: boolean;
+    };
+    TrackerWrite: {
+      name: string;
+      kind: components['schemas']['TrackerKind'];
+      icon?: string;
+      color?: string;
+      fields: components['schemas']['Field'][];
+    };
+    TrackerTemplate: {
+      template_id: string;
+      name: string;
+      kind: components['schemas']['TrackerKind'];
+      icon?: string;
+      color?: string;
+      fields: components['schemas']['Field'][];
+    };
+    Breach: {
+      key: string;
+      value: number;
+      /** @enum {string} */
+      bound: 'min' | 'max';
+      limit: number;
+    };
+    Event: {
+      tracker_id: string;
+      event_id: string;
+      care_group_id: string;
+      receiver_id: string;
+      values: {
+        [key: string]: unknown;
+      };
+      note?: string;
+      /** Format: date-time */
+      occurred_at: string;
+      logged_by: string;
+      /** Format: date-time */
+      created_at: string;
+      breaches?: components['schemas']['Breach'][];
+    };
+    EventWrite: {
+      /** Format: date-time */
+      occurred_at?: string;
+      values: {
+        [key: string]: unknown;
+      };
+      note?: string;
+    };
+    EventList: {
+      items: components['schemas']['Event'][];
+      next_cursor?: string;
     };
     Error: {
       message: string;
@@ -468,6 +711,432 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       404: components['responses']['NotFound'];
       410: components['responses']['Gone'];
+    };
+  };
+  listReceivers: {
+    parameters: {
+      query?: {
+        careGroupId?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Receiver'][];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+    };
+  };
+  createReceiver: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        careGroupId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateReceiverRequest'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Receiver'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+    };
+  };
+  getReceiver: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        receiverId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Receiver'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  archiveReceiver: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        receiverId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  updateReceiver: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        receiverId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateReceiverRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Receiver'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  listTrackers: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        receiverId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Tracker'][];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  createTracker: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        receiverId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TrackerWrite'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Tracker'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  getTracker: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        trackerId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Tracker'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  archiveTracker: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        trackerId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  updateTracker: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        trackerId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TrackerWrite'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Tracker'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  listEvents: {
+    parameters: {
+      query?: {
+        limit?: number;
+        cursor?: string;
+        from?: string;
+        to?: string;
+      };
+      header?: never;
+      path: {
+        trackerId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EventList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  logEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        trackerId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EventWrite'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Event'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  getEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        trackerId: string;
+        eventId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Event'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  deleteEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        trackerId: string;
+        eventId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  updateEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        trackerId: string;
+        eventId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EventWrite'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Event'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  listTrackerTemplates: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TrackerTemplate'][];
+        };
+      };
+      401: components['responses']['Unauthorized'];
     };
   };
 }

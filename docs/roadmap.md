@@ -32,7 +32,8 @@ on fresh data **before** any v1 data migration. Web remains in scope but is seco
 | F1   | Engineering Practices Baseline | Monorepo, CI/CD, CDK, feature flags, observability                              | —                   | ✅ Done                   |
 | B1   | Data model & identity          | Entities, multi-tenant DynamoDB tables, Cognito, authz                          | F1                  | ✅ Done                   |
 | B2   | Async services & notifications | `services/` layer: notif prefs, schedules, APNs push, audit, rollups, real-time | B1                  | Planned                   |
-| B3   | API surface                    | OpenAPI contract + Go handlers for all sync CRUD                                | B1                  | Planned                   |
+| B3a  | Core care domain               | Receivers + Trackers + Events: OpenAPI contract + Go handlers + CDK tables      | B1                  | ✅ Done                   |
+| B3b  | Scheduling & prefs API         | Schedules + NotificationPreferences + Audit read API                            | B1                  | Planned                   |
 | B4   | v1 → v2 migration              | Migrate the family's real data, cut over, retire v1                             | B1–B3 + iOS shipped | Planned (last)            |
 | C1   | **iOS MVP** + design language  | Native SwiftUI core flows: auth, dashboard, log/view events                     | B1, B3              | **Primary / next client** |
 | C2   | Full iOS                       | Tracker builder, schedules, notif prefs, analytics, audit, APNs push            | C1, B2, B3          | Planned                   |
@@ -41,11 +42,15 @@ on fresh data **before** any v1 data migration. Web remains in scope but is seco
 ## Critical path
 
 ```
-F1 ✅ → B1 ✅ → B3 → C1 (iOS MVP)     ← first usable v2, on fresh data
-                    → B2 + C2 (full iOS, can overlap)
-                              → C3 (web)
-                                    → B4 (migrate family off v1, retire it — last)
+F1 ✅ → B1 ✅ → B3a ✅ → C1 (iOS MVP)     ← first usable v2, on fresh data
+                     → B2 + B3b + C2 (full iOS, can overlap)
+                                 → C3 (web)
+                                       → B4 (migrate family off v1, retire it — last)
 ```
+
+B3 was decomposed into **B3a** (core care domain — Receivers/Trackers/Events, the slice C1 needs;
+done) and **B3b** (Schedules, NotificationPreferences, Audit read — sequenced with B2/C2). See
+`docs/specs/2026-06-12-b3a-core-care-domain-design.md`.
 
 The migration (B4) is deliberately last: the iOS app must be shippable and usable on new data before
 we touch the family's live v1 data.
@@ -89,11 +94,19 @@ iOS app; audit-log middleware writing an `AuditLog` entry per mutation; analytic
 DynamoDB Streams → Lambda; and support for real-time polling sync. **Depends on:** B1 (parallelizable
 with B3).
 
-### B3 — API surface
+### B3 — API surface _(decomposed into B3a + B3b)_
 
-The full synchronous REST API in `api/`: the OpenAPI 3 contract plus Go handlers for
-Trackers / Events / Schedules / NotificationPreferences / Audit CRUD. This is the contract the iOS
-client (and later web) consume; it generates the Swift client into `shared/types-swift/`.
+The synchronous REST API in `api/`: OpenAPI 3 contract + Go handlers, generating the Swift client
+into `shared/types-swift/`. Split into two slices:
+
+- **B3a (done)** — Receivers, Trackers (custom field schema + thresholds + seeded templates), and
+  Events (validated, paginated history, computed breach flag). The slice C1 needs. Design:
+  `docs/specs/2026-06-12-b3a-core-care-domain-design.md`.
+- **B3b (planned)** — Schedules, NotificationPreferences, and the Audit read API; sequenced with B2
+  (async) and C2 (full iOS). The `scheduled` tracker kind is reserved in B3a but inert until B3b adds
+  the Schedule entity.
+
+Member management (remove member, change role, leave, last-admin guard) remains its own later slice.
 **Depends on:** B1.
 
 ### C1 — iOS MVP + design language _(primary, next client)_

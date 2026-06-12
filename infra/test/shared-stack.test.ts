@@ -42,19 +42,22 @@ describe('SharedStack', () => {
     template.resourceCountIs('AWS::AppConfig::Deployment', 1);
   });
 
-  test('shared stack creates the four B1 tables with prefixed names', () => {
+  test('shared stack creates the B1+B3a tables with prefixed names', () => {
     const app = new cdk.App();
     const stack = new SharedStack(app, 'CaregiverDev-Shared', {
       env: { account: '123456789012', region: 'us-east-2' },
       stage: 'dev',
     });
     const t = Template.fromStack(stack);
-    t.resourceCountIs('AWS::DynamoDB::Table', 4);
+    t.resourceCountIs('AWS::DynamoDB::Table', 7);
     for (const name of [
       'caregiver-dev-user',
       'caregiver-dev-care-group',
       'caregiver-dev-membership',
       'caregiver-dev-invitation',
+      'caregiver-dev-receiver',
+      'caregiver-dev-tracker',
+      'caregiver-dev-event',
     ]) {
       t.hasResourceProperties('AWS::DynamoDB::Table', { TableName: name });
     }

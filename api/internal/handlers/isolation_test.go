@@ -81,3 +81,46 @@ func TestIsolation_strangerCannotRevoke(t *testing.T) {
 		t.Fatalf("invite should remain pending, got %s", inv.Status)
 	}
 }
+
+func TestIsolation_nonMemberCannotReadReceiver(t *testing.T) {
+	s := dynamotest.Start(t)
+	_ = s.Receivers.Put(context.Background(), domain.Receiver{ReceiverID: "r1", CareGroupID: "g1", Name: "Mom", CreatedAt: time.Now().UTC()})
+	h := handlers.NewReceivers(s)
+	req := httptest.NewRequest(http.MethodGet, "/receivers/r1", nil)
+	req.SetPathValue("receiverId", "r1")
+	req = withAuth(req, "stranger", "s@x.com", map[string]domain.Role{"g2": domain.RoleAdmin})
+	rec := httptest.NewRecorder()
+	h.Get(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("non-member receiver read should be 403, got %d", rec.Code)
+	}
+}
+
+func TestIsolation_nonMemberCannotLogEvent(t *testing.T) {
+	s := dynamotest.Start(t)
+	seedTracker(t, s.Trackers) // tr1 in g1
+	h := handlers.NewEvents(s)
+	req := httptest.NewRequest(http.MethodPost, "/trackers/tr1/events", strings.NewReader(`{"values":{"systolic":120}}`))
+	req.SetPathValue("trackerId", "tr1")
+	req = withAuth(req, "stranger", "s@x.com", map[string]domain.Role{"g2": domain.RoleAdmin})
+	rec := httptest.NewRecorder()
+	h.Create(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("non-member event log should be 403, got %d", rec.Code)
+	}
+}
+
+func TestIsolation_caregiverCannotCreateTracker(t *testing.T) {
+	s := dynamotest.Start(t)
+	_ = s.Receivers.Put(context.Background(), domain.Receiver{ReceiverID: "r1", CareGroupID: "g1", Name: "Mom", CreatedAt: time.Now().UTC()})
+	h := handlers.NewTrackers(s)
+	req := httptest.NewRequest(http.MethodPost, "/receivers/r1/trackers",
+		strings.NewReader(`{"name":"W","kind":"measurement","fields":[{"key":"w","label":"W","type":"number"}]}`))
+	req.SetPathValue("receiverId", "r1")
+	req = withAuth(req, "u1", "u1@x.com", map[string]domain.Role{"g1": domain.RoleCaregiver})
+	rec := httptest.NewRecorder()
+	h.Create(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("caregiver tracker create should be 403, got %d", rec.Code)
+	}
+}

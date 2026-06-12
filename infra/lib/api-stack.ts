@@ -25,6 +25,9 @@ export interface ApiStackProps extends cdk.StackProps {
     careGroups: dynamodb.ITable;
     memberships: dynamodb.ITable;
     invitations: dynamodb.ITable;
+    receivers: dynamodb.ITable;
+    trackers: dynamodb.ITable;
+    events: dynamodb.ITable;
   };
 }
 
@@ -97,6 +100,9 @@ export class ApiStack extends cdk.Stack {
     this.apiFunction.addEnvironment('CARE_GROUPS_TABLE', props.tables.careGroups.tableName);
     this.apiFunction.addEnvironment('MEMBERSHIPS_TABLE', props.tables.memberships.tableName);
     this.apiFunction.addEnvironment('INVITATIONS_TABLE', props.tables.invitations.tableName);
+    this.apiFunction.addEnvironment('RECEIVERS_TABLE', props.tables.receivers.tableName);
+    this.apiFunction.addEnvironment('TRACKERS_TABLE', props.tables.trackers.tableName);
+    this.apiFunction.addEnvironment('EVENTS_TABLE', props.tables.events.tableName);
 
     // AppConfig actions: `StartConfigurationSession` is a control-plane call that
     // doesn't accept a resource ARN, and `GetLatestConfiguration` operates on
@@ -140,6 +146,22 @@ export class ApiStack extends cdk.Stack {
       },
       { path: '/invitations/mine', methods: [apigw.HttpMethod.GET] },
       { path: '/invitations/{token}/accept', methods: [apigw.HttpMethod.POST] },
+      { path: '/receivers', methods: [apigw.HttpMethod.GET] },
+      { path: '/care-groups/{careGroupId}/receivers', methods: [apigw.HttpMethod.POST] },
+      { path: '/receivers/{receiverId}', methods: [apigw.HttpMethod.GET] },
+      { path: '/receivers/{receiverId}', methods: [apigw.HttpMethod.PATCH] },
+      { path: '/receivers/{receiverId}', methods: [apigw.HttpMethod.DELETE] },
+      { path: '/receivers/{receiverId}/trackers', methods: [apigw.HttpMethod.GET] },
+      { path: '/receivers/{receiverId}/trackers', methods: [apigw.HttpMethod.POST] },
+      { path: '/trackers/{trackerId}', methods: [apigw.HttpMethod.GET] },
+      { path: '/trackers/{trackerId}', methods: [apigw.HttpMethod.PATCH] },
+      { path: '/trackers/{trackerId}', methods: [apigw.HttpMethod.DELETE] },
+      { path: '/trackers/{trackerId}/events', methods: [apigw.HttpMethod.GET] },
+      { path: '/trackers/{trackerId}/events', methods: [apigw.HttpMethod.POST] },
+      { path: '/trackers/{trackerId}/events/{eventId}', methods: [apigw.HttpMethod.GET] },
+      { path: '/trackers/{trackerId}/events/{eventId}', methods: [apigw.HttpMethod.PATCH] },
+      { path: '/trackers/{trackerId}/events/{eventId}', methods: [apigw.HttpMethod.DELETE] },
+      { path: '/tracker-templates', methods: [apigw.HttpMethod.GET] },
     ];
     for (const route of authedRoutes) {
       httpApi.addRoutes({
