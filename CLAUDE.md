@@ -62,7 +62,23 @@ cd shared/types-go && make codegen
 # Infra
 cd infra && pnpm test
 cd infra && pnpm exec cdk synth --context stage=dev          # prod needs CAREGIVER_ALERT_EMAIL set
+
+# iOS (Xcode 26+, XcodeGen). project.yml is the source of truth — never hand-edit the .xcodeproj.
+cd ios && xcodegen generate && open Caregiver.xcodeproj      # to work in Xcode
+cd ios && xcodegen generate && xcodebuild test \
+  -scheme Caregiver -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -skipPackagePluginValidation                               # CLI build + test
 ```
+
+## iOS app (`ios/`)
+
+Native SwiftUI (iOS 17+), generated from `ios/project.yml` via **XcodeGen** (the `.xcodeproj` is
+gitignored — run `xcodegen generate` after pulling or editing `project.yml`). Consumes the generated
+`CaregiverAPI` Swift client + **Amplify** (Cognito auth). Auth sends the Cognito **ID token** via a
+client middleware. A path-gated **macOS CI job** builds + tests on PRs touching `ios/**`.
+**Gotchas:** every `xcodebuild` needs `-skipPackagePluginValidation` (CaregiverAPI uses the
+swift-openapi-generator build-tool plugin); the API base URL is injected per-stage from
+`Config/{Dev,Prod}.xcconfig` → Info.plist (`API_BASE_URL`). C1 status is in `docs/roadmap.md`.
 
 ## B1 domain model (the substrate everything builds on)
 

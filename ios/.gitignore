@@ -1,0 +1,7 @@
+# Generated Xcode project
+*.xcodeproj/
+# Build output
+DerivedData/
+build/
+.build/
+*.xcuserstate

@@ -1,0 +1,3 @@
+// v2 prod API. Canonical api.caretosher.com is reserved for the eventual
+// v1->v2 cutover (will require a baked-URL update then).
+API_BASE_URL = https:/$()/api-v2.caretosher.com

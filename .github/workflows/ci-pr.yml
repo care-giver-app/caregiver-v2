@@ -146,6 +146,42 @@ jobs:
       - name: CDK deploy dev
         run: pnpm --filter @caregiver/infra exec cdk deploy --all --context stage=dev --require-approval never
 
+  ios:
+    name: iOS build + test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            ios:
+              - 'ios/**'
+              - 'shared/types-swift/**'
+              - 'shared/openapi/openapi.yaml'
+      - name: Install XcodeGen
+        if: steps.changes.outputs.ios == 'true'
+        run: brew install xcodegen
+      - name: Build + test
+        if: steps.changes.outputs.ios == 'true'
+        run: |
+          cd ios
+          xcodegen generate
+          # Pick whatever iPhone simulator the runner's Xcode ships (device names
+          # vary by Xcode version, so resolve it rather than hard-coding).
+          DEVICE=$(xcrun simctl list devices available \
+            | grep -oE 'iPhone [0-9][^(]*' | head -1 | sed 's/ *$//')
+          echo "Using simulator: $DEVICE"
+          # -skipPackagePluginValidation: CaregiverAPI generates its sources via
+          # the swift-openapi-generator build-tool plugin, which xcodebuild won't
+          # run non-interactively without this flag.
+          xcodebuild test \
+            -scheme Caregiver \
+            -destination "platform=iOS Simulator,name=$DEVICE" \
+            -skipPackagePluginValidation \
+            -resultBundlePath TestResults \
+            CODE_SIGNING_ALLOWED=NO
+
   codegen-check:
     name: Codegen drift check
     runs-on: ubuntu-latest

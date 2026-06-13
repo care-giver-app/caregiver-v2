@@ -55,3 +55,5 @@ shared/types-swift/Package.resolved
 
 # AWS
 .aws-sam/
+
+.superpowers/

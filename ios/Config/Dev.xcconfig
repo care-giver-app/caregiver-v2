@@ -1,0 +1,4 @@
+// Trailing slash omitted intentionally.
+// v2 dev API (parallel to v1's api-dev.caretosher.com); provisioned by the
+// ApiStack custom domain on deploy-dev.
+API_BASE_URL = https:/$()/api-v2-dev.caretosher.com

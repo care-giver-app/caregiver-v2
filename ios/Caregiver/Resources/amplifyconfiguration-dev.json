@@ -1,0 +1,19 @@
+{
+  "auth": {
+    "plugins": {
+      "awsCognitoAuthPlugin": {
+        "IdentityManager": { "Default": {} },
+        "CognitoUserPool": {
+          "Default": {
+            "PoolId": "us-east-2_1dGtklA5G",
+            "AppClientId": "7lbkbg9fu8tadi3ctl4c11lvv7",
+            "Region": "us-east-2"
+          }
+        },
+        "Auth": {
+          "Default": { "authenticationFlowType": "USER_SRP_AUTH" }
+        }
+      }
+    }
+  }
+}

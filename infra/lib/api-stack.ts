@@ -7,6 +7,9 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import * as path from 'node:path';
 import { execSync } from 'node:child_process';
@@ -115,8 +118,43 @@ export class ApiStack extends cdk.Stack {
       }),
     );
 
+    // Custom domain. v2 runs in parallel with v1 (which owns api/api-dev.caretosher.com),
+    // so v2 uses its own hostnames: api-v2-dev (dev) / api-v2 (prod). The hosted zone is
+    // in this same account, so the DNS-validated cert + alias record are fully automated.
+    // The ACM cert is regional (this stack is us-east-2) — HTTP API custom domains use a
+    // cert in the API's own region, not us-east-1.
+    const rootDomain = 'caretosher.com';
+    const apiDomainName =
+      props.stage === 'prod' ? `api-v2.${rootDomain}` : `api-v2-dev.${rootDomain}`;
+
+    const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
+      domainName: rootDomain,
+    });
+
+    const certificate = new acm.Certificate(this, 'ApiCertificate', {
+      domainName: apiDomainName,
+      validation: acm.CertificateValidation.fromDns(hostedZone),
+    });
+
+    const apiDomain = new apigw.DomainName(this, 'ApiDomainName', {
+      domainName: apiDomainName,
+      certificate,
+    });
+
     const httpApi = new apigw.HttpApi(this, 'HttpApi', {
       apiName: resourceName,
+      defaultDomainMapping: { domainName: apiDomain },
+    });
+
+    new route53.ARecord(this, 'ApiAliasRecord', {
+      zone: hostedZone,
+      recordName: apiDomainName,
+      target: route53.RecordTarget.fromAlias(
+        new route53Targets.ApiGatewayv2DomainProperties(
+          apiDomain.regionalDomainName,
+          apiDomain.regionalHostedZoneId,
+        ),
+      ),
     });
 
     httpApi.addRoutes({
@@ -173,5 +211,6 @@ export class ApiStack extends cdk.Stack {
     }
 
     new cdk.CfnOutput(this, 'HttpApiUrl', { value: httpApi.apiEndpoint });
+    new cdk.CfnOutput(this, 'ApiCustomUrl', { value: `https://${apiDomainName}` });
   }
 }
