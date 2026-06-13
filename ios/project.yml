@@ -48,3 +48,5 @@ targets:
       - target: Caregiver
     settings:
       groups: [base]
+      base:
+        GENERATE_INFOPLIST_FILE: YES
