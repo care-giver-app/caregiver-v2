@@ -1,0 +1,2 @@
+// Trailing slash omitted intentionally.
+API_BASE_URL = https:/$()/api.dev.example.com

@@ -1,0 +1,50 @@
+name: Caregiver
+options:
+  bundleIdPrefix: app.caregiver
+  deploymentTarget:
+    iOS: '17.0'
+  developmentLanguage: en
+configs:
+  Debug: debug
+  Release: release
+settingGroups:
+  base:
+    SWIFT_VERSION: '6.0'
+    TARGETED_DEVICE_FAMILY: '1' # iPhone
+    GENERATE_INFOPLIST_FILE: NO
+packages:
+  CaregiverAPI:
+    path: ../shared/types-swift
+  Amplify:
+    url: https://github.com/aws-amplify/amplify-swift
+    from: '2.39.0'
+targets:
+  Caregiver:
+    type: application
+    platform: iOS
+    sources:
+      - Caregiver
+    configFiles:
+      Debug: Config/Dev.xcconfig
+      Release: Config/Prod.xcconfig
+    settings:
+      groups: [base]
+      base:
+        INFOPLIST_FILE: Caregiver/Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: app.caregiver.ios
+    dependencies:
+      - package: CaregiverAPI
+        product: CaregiverAPI
+      - package: Amplify
+        product: Amplify
+      - package: Amplify
+        product: AWSCognitoAuthPlugin
+  CaregiverTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - CaregiverTests
+    dependencies:
+      - target: Caregiver
+    settings:
+      groups: [base]
