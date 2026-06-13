@@ -4,13 +4,15 @@ import AWSCognitoAuthPlugin
 
 @main
 struct CaregiverApp: App {
+    @State private var session = Session()
+
     init() {
         configureAmplify()
     }
 
     var body: some Scene {
         WindowGroup {
-            DashboardPlaceholderView() // replaced by RootView in Section D
+            RootView().environment(session)
         }
     }
 
