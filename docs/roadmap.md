@@ -116,6 +116,12 @@ authenticate via Cognito, view a dashboard, log an event against a tracker, and 
 consuming the generated Swift client. Works entirely on fresh data, with no dependency on v1
 migration. Push notifications are deferred to C2. **Depends on:** B1, B3.
 
+**Status: Foundation landed (Stage 1 of 2).** The XcodeGen app, design system, networking/auth
+spine (Amplify Cognito + ID-token middleware), and `Session` `/me` routing are built and
+unit-tested on a macOS CI job; the app authenticates and routes to onboarding/dashboard
+placeholders. v2 API custom domains (`api-v2-dev` / `api-v2`) are provisioned via the ApiStack.
+**Stage 2 (feature screens — receivers/trackers/events, dynamic log form, history)** is next.
+
 ### C2 — Full iOS
 
 The complete iOS feature set: custom tracker builder, schedules, notification preferences,
