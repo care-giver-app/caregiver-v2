@@ -52,6 +52,58 @@ describe('ApiStack', () => {
     template.hasResourceProperties('AWS::ApiGatewayV2::Route', { RouteKey: 'GET /flags' });
   });
 
+  test('wires a v2-specific custom domain with a DNS-validated cert and alias record', () => {
+    const app = new cdk.App();
+    const env = { account: '123456789012', region: 'us-east-2' };
+    const shared = new SharedStack(app, 'CaregiverDev-Shared', { env, stage: 'dev' });
+    const stack = new ApiStack(app, 'CaregiverDev-Api', {
+      env,
+      stage: 'dev',
+      version: '0.0.0-test',
+      appConfigApplicationId: 'app-test',
+      appConfigEnvironmentId: 'env-test',
+      appConfigProfileId: 'profile-test',
+      userPool: shared.userPool,
+      userPoolClient: shared.userPoolClient,
+      tables: shared.tables,
+    });
+    const template = Template.fromStack(stack);
+    // Dev uses api-v2-dev (NOT v1's api-dev), with a DNS-validated regional cert.
+    template.hasResourceProperties('AWS::CertificateManager::Certificate', {
+      DomainName: 'api-v2-dev.caretosher.com',
+      ValidationMethod: 'DNS',
+    });
+    template.hasResourceProperties('AWS::ApiGatewayV2::DomainName', {
+      DomainName: 'api-v2-dev.caretosher.com',
+    });
+    template.resourceCountIs('AWS::ApiGatewayV2::ApiMapping', 1);
+    template.hasResourceProperties('AWS::Route53::RecordSet', {
+      Name: 'api-v2-dev.caretosher.com.',
+      Type: 'A',
+    });
+  });
+
+  test('prod uses api-v2 (the canonical name is reserved for the v1 cutover)', () => {
+    const app = new cdk.App();
+    const env = { account: '123456789012', region: 'us-east-2' };
+    const shared = new SharedStack(app, 'CaregiverProd-Shared', { env, stage: 'prod' });
+    const stack = new ApiStack(app, 'CaregiverProd-Api', {
+      env,
+      stage: 'prod',
+      version: '0.0.0-test',
+      appConfigApplicationId: 'app-test',
+      appConfigEnvironmentId: 'env-test',
+      appConfigProfileId: 'profile-test',
+      userPool: shared.userPool,
+      userPoolClient: shared.userPoolClient,
+      tables: shared.tables,
+    });
+    const template = Template.fromStack(stack);
+    template.hasResourceProperties('AWS::ApiGatewayV2::DomainName', {
+      DomainName: 'api-v2.caretosher.com',
+    });
+  });
+
   test('api stack wires a JWT authorizer and authed routes', () => {
     const app = new cdk.App();
     const env = { account: '123456789012', region: 'us-east-2' };
