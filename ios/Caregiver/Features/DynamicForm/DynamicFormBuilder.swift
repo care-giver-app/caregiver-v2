@@ -76,6 +76,26 @@ enum DynamicFormBuilder {
         return .init(additionalProperties: try OpenAPIObjectContainer(unvalidatedValue: dict))
     }
 
+    /// Re-hydrates inputs from an existing event's values (for editing).
+    static func prefill(_ inputs: inout [FieldInput], from values: Components.Schemas.Event.ValuesPayload) {
+        let raw = values.additionalProperties.value
+        let iso = ISO8601DateFormatter()
+        for index in inputs.indices {
+            guard let value = raw[inputs[index].key] ?? nil else { continue }
+            switch inputs[index].kind {
+            case .number:
+                if let d = value as? Double { inputs[index].textValue = d == d.rounded() ? String(Int(d)) : String(d) }
+                else if let i = value as? Int { inputs[index].textValue = String(i) }
+            case .text, .enumeration:
+                if let s = value as? String { inputs[index].textValue = s }
+            case .boolean:
+                if let b = value as? Bool { inputs[index].boolValue = b }
+            case .datetime:
+                if let s = value as? String, let date = iso.date(from: s) { inputs[index].dateValue = date }
+            }
+        }
+    }
+
     /// One-line history summary, e.g. "Systolic: 120 mmHg · Taken: Yes".
     static func display(values: Components.Schemas.Event.ValuesPayload, fields: [Field]) -> String {
         let raw = values.additionalProperties.value
