@@ -11,6 +11,19 @@ struct Me: Equatable {
     }
     let userName: String
     let memberships: [Membership]
+
+    func role(inCareGroup id: String) -> String? {
+        memberships.first { $0.careGroupID == id }?.role
+    }
+
+    func isAdmin(inCareGroup id: String) -> Bool {
+        role(inCareGroup: id) == "admin"
+    }
+
+    /// Memberships where the caller is an admin (can add receivers/trackers).
+    var adminGroups: [Membership] {
+        memberships.filter { $0.role == "admin" }
+    }
 }
 
 @MainActor
