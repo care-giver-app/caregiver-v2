@@ -24,7 +24,7 @@ func main() {
 	log := logger.New(cfg.Service, cfg.Stage)
 	log.Info("starting", "version", cfg.Version)
 
-	mux, err := newMux(cfg)
+	mux, err := newMux(cfg, log)
 	if err != nil {
 		log.Error("mux init failed", "err", err)
 		os.Exit(1)
