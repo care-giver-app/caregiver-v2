@@ -73,6 +73,7 @@ export class ApiStack extends cdk.Stack {
         SERVICE: 'api',
         STAGE: props.stage,
         APP_VERSION: props.version,
+        LOG_LEVEL: props.stage === 'prod' ? 'info' : 'debug',
       },
       logGroup,
     });

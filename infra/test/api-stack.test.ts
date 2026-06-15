@@ -32,6 +32,7 @@ describe('ApiStack', () => {
           APPCONFIG_APPLICATION_ID: 'app-test',
           APPCONFIG_ENVIRONMENT_ID: 'env-test',
           APPCONFIG_PROFILE_ID: 'profile-test',
+          LOG_LEVEL: 'debug',
         }),
       },
     });
@@ -101,6 +102,11 @@ describe('ApiStack', () => {
     const template = Template.fromStack(stack);
     template.hasResourceProperties('AWS::ApiGatewayV2::DomainName', {
       DomainName: 'api-v2.caretosher.com',
+    });
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: {
+        Variables: Match.objectLike({ LOG_LEVEL: 'info' }),
+      },
     });
   });
 

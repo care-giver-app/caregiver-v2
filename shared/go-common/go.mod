@@ -7,6 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.41
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.33
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.56.0
+	github.com/aws/smithy-go v1.24.1
 	github.com/testcontainers/testcontainers-go v0.35.0
 )
 
@@ -26,7 +27,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.32.0 // indirect
-	github.com/aws/smithy-go v1.24.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/containerd/containerd v1.7.18 // indirect
 	github.com/containerd/log v0.1.0 // indirect

@@ -36,7 +36,7 @@ func (h *Invitations) Mine(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	invs, err := h.stores.Invitations.ListPendingByEmail(ctx, ac.Email)
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+		httpx.ServerError(w, r, err, "lookup failed")
 		return
 	}
 	ids := make([]string, 0, len(invs))
@@ -45,7 +45,7 @@ func (h *Invitations) Mine(w http.ResponseWriter, r *http.Request) {
 	}
 	groups, err := h.stores.CareGroups.BatchGet(ctx, ids)
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "group load failed")
+		httpx.ServerError(w, r, err, "group load failed")
 		return
 	}
 	out := make([]pendingInvitation, 0, len(invs))

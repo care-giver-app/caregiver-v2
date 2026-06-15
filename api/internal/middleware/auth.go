@@ -11,6 +11,7 @@ import (
 	"github.com/care-giver-app/caregiver-v2/api/internal/httpx"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/auth"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/domain"
+	"github.com/care-giver-app/caregiver-v2/shared/go-common/logger"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/store"
 )
 
@@ -37,7 +38,8 @@ func (m *Authenticator) Wrap(next http.Handler) http.Handler {
 			httpx.WriteError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-		ctx := r.Context()
+		ctx := logger.NewContext(r.Context(), logger.FromContext(r.Context()).With("user_id", c.Sub))
+		r = r.WithContext(ctx)
 		email := domain.NormalizeEmail(c.Email)
 
 		// Read-first: only write on a user's first request, so the steady-state
@@ -46,17 +48,17 @@ func (m *Authenticator) Wrap(next http.Handler) http.Handler {
 			if _, cerr := m.stores.Users.CreateIfAbsent(ctx, domain.User{
 				UserID: c.Sub, Email: email, Name: c.Name, CreatedAt: m.now().UTC(),
 			}); cerr != nil {
-				httpx.WriteError(w, http.StatusInternalServerError, "provisioning failed")
+				httpx.ServerError(w, r, cerr, "provisioning failed")
 				return
 			}
 		} else if err != nil {
-			httpx.WriteError(w, http.StatusInternalServerError, "auth load failed")
+			httpx.ServerError(w, r, err, "auth load failed")
 			return
 		}
 
 		ms, err := m.stores.Memberships.ListByUser(ctx, c.Sub)
 		if err != nil {
-			httpx.WriteError(w, http.StatusInternalServerError, "auth load failed")
+			httpx.ServerError(w, r, err, "auth load failed")
 			return
 		}
 		ac := &auth.AuthContext{UserID: c.Sub, Email: email, Memberships: make(map[string]domain.Role, len(ms))}

@@ -3,8 +3,9 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"net/http"
+
+	"github.com/care-giver-app/caregiver-v2/api/internal/httpx"
 )
 
 type FlagSource interface {
@@ -13,22 +14,17 @@ type FlagSource interface {
 
 type Flags struct {
 	source FlagSource
-	log    *slog.Logger
 }
 
-// NewFlags builds a Flags handler. Pass nil for log to use slog.Default().
-func NewFlags(src FlagSource, log *slog.Logger) *Flags {
-	if log == nil {
-		log = slog.Default()
-	}
-	return &Flags{source: src, log: log}
+// NewFlags builds a Flags handler.
+func NewFlags(src FlagSource) *Flags {
+	return &Flags{source: src}
 }
 
 func (h *Flags) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	flags, err := h.source.Get(r.Context())
 	if err != nil {
-		h.log.ErrorContext(r.Context(), "flags fetch failed", "err", err)
-		http.Error(w, "could not load flags", http.StatusInternalServerError)
+		httpx.ServerError(w, r, err, "could not load flags")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

@@ -56,7 +56,7 @@ func (h *Trackers) ListByReceiver(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+		httpx.ServerError(w, r, err, "lookup failed")
 		return
 	}
 	if !httpx.RequireMember(w, ac, recv.CareGroupID) {
@@ -64,7 +64,7 @@ func (h *Trackers) ListByReceiver(w http.ResponseWriter, r *http.Request) {
 	}
 	list, err := h.stores.Trackers.ListByReceiver(r.Context(), recv.ReceiverID)
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "list failed")
+		httpx.ServerError(w, r, err, "list failed")
 		return
 	}
 	if list == nil {
@@ -81,7 +81,7 @@ func (h *Trackers) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+		httpx.ServerError(w, r, err, "lookup failed")
 		return
 	}
 	if !httpx.RequireAdmin(w, ac, recv.CareGroupID) {
@@ -102,7 +102,7 @@ func (h *Trackers) Create(w http.ResponseWriter, r *http.Request) {
 		Fields: req.Fields, CreatedBy: ac.UserID, CreatedAt: h.now().UTC(),
 	}
 	if err := h.stores.Trackers.Put(r.Context(), tr); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "create failed")
+		httpx.ServerError(w, r, err, "create failed")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusCreated, tr)
@@ -116,7 +116,7 @@ func (h *Trackers) load(w http.ResponseWriter, r *http.Request) (domain.Tracker,
 		return domain.Tracker{}, nil, false
 	}
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+		httpx.ServerError(w, r, err, "lookup failed")
 		return domain.Tracker{}, nil, false
 	}
 	if !httpx.RequireMember(w, ac, tr.CareGroupID) {
@@ -152,7 +152,7 @@ func (h *Trackers) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	tr.Name, tr.Kind, tr.Icon, tr.Color, tr.Fields = strings.TrimSpace(req.Name), req.Kind, req.Icon, req.Color, req.Fields
 	if err := h.stores.Trackers.Update(r.Context(), tr); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "update failed")
+		httpx.ServerError(w, r, err, "update failed")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, tr)
@@ -167,7 +167,7 @@ func (h *Trackers) Archive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.stores.Trackers.Archive(r.Context(), tr.TrackerID); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "archive failed")
+		httpx.ServerError(w, r, err, "archive failed")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

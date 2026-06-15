@@ -38,7 +38,7 @@ func (h *Me) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	u, err := h.stores.Users.Get(ctx, ac.UserID)
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "user load failed")
+		httpx.ServerError(w, r, err, "user load failed")
 		return
 	}
 	ids := make([]string, 0, len(ac.Memberships))
@@ -47,7 +47,7 @@ func (h *Me) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	groups, err := h.stores.CareGroups.BatchGet(ctx, ids)
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "group load failed")
+		httpx.ServerError(w, r, err, "group load failed")
 		return
 	}
 	resp := meResponse{

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/store"
 )
 
-func newMux(cfg config.Config) (http.Handler, error) {
+func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	mux := http.NewServeMux()
 	mux.Handle("GET /health", handlers.NewHealth(cfg.Version, nil))
 
@@ -24,7 +25,7 @@ func newMux(cfg config.Config) (http.Handler, error) {
 		return nil, fmt.Errorf("APPCONFIG_APPLICATION_ID/ENVIRONMENT_ID/PROFILE_ID must all be set")
 	}
 	flagClient := flags.NewClientFromEnv(appID, envID, profileID)
-	mux.Handle("GET /flags", handlers.NewFlags(flagClient, nil))
+	mux.Handle("GET /flags", handlers.NewFlags(flagClient))
 
 	stores, err := newStores(context.Background())
 	if err != nil {
@@ -65,7 +66,7 @@ func newMux(cfg config.Config) (http.Handler, error) {
 
 	mux.Handle("GET /tracker-templates", authn.Wrap(http.HandlerFunc(tpl.List)))
 
-	return mux, nil
+	return middleware.RequestLogger(log)(mux), nil
 }
 
 func newStores(ctx context.Context) (*store.Stores, error) {
