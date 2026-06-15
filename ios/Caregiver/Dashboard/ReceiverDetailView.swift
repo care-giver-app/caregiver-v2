@@ -20,8 +20,7 @@ struct ReceiverDetailView: View {
             case .error(let m): ErrorStateView(message: m) { Task { await model.load(receiverId: receiver.receiverId, using: session) } }
             case .loaded(let trackers):
                 List(trackers, id: \.trackerId) { tracker in
-                    // TODO(I1): wrap in NavigationLink(value: Route.tracker(tracker))
-                    TrackerRow(tracker: tracker)
+                    NavigationLink(value: Route.tracker(tracker)) { TrackerRow(tracker: tracker) }
                 }.listStyle(.insetGrouped).refreshable { await model.load(receiverId: receiver.receiverId, using: session) }
             }
         }

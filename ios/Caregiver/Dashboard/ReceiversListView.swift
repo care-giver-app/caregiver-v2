@@ -52,8 +52,9 @@ struct ReceiversListView: View {
         .refreshable { await model.load(using: session) }
     }
 
-    // TODO(I1): wrap in NavigationLink(value: Route.receiver(receiver))
     private func row(_ receiver: Components.Schemas.Receiver) -> some View {
-        Text(receiver.name).font(Theme.Typography.headline).foregroundStyle(Theme.Colors.textPrimary)
+        NavigationLink(value: Route.receiver(receiver)) {
+            Text(receiver.name).font(Theme.Typography.headline).foregroundStyle(Theme.Colors.textPrimary)
+        }
     }
 }

@@ -52,9 +52,10 @@ struct TrackerDetailView: View {
         case .loaded(let events):
             List {
                 ForEach(events, id: \.eventId) { event in
-                    // TODO(I1): wrap in NavigationLink(value: Route.event(EventRef(tracker: tracker, event: event)))
-                    EventRow(event: event, fields: tracker.fields)
-                        .task { await model.loadMoreIfNeeded(current: event, trackerId: tracker.trackerId, using: session) }
+                    NavigationLink(value: Route.event(EventRef(tracker: tracker, event: event))) {
+                        EventRow(event: event, fields: tracker.fields)
+                    }
+                    .task { await model.loadMoreIfNeeded(current: event, trackerId: tracker.trackerId, using: session) }
                 }
                 if model.isLoadingMore { HStack { Spacer(); ProgressView(); Spacer() } }
             }
