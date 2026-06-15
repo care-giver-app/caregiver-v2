@@ -75,6 +75,7 @@ func NewClient(ctx context.Context, endpoint string) (*dynamodb.Client, error) {
 		if endpoint != "" {
 			o.BaseEndpoint = aws.String(endpoint)
 		}
+		o.APIOptions = append(o.APIOptions, logOps)
 	}), nil
 }
 
