@@ -27,22 +27,22 @@ on fresh data **before** any v1 data migration. Web remains in scope but is seco
 
 ## Phase map
 
-| Code | Name                           | Scope                                                                           | Depends on          | Status                    |
-| ---- | ------------------------------ | ------------------------------------------------------------------------------- | ------------------- | ------------------------- |
-| F1   | Engineering Practices Baseline | Monorepo, CI/CD, CDK, feature flags, observability                              | —                   | ✅ Done                   |
-| B1   | Data model & identity          | Entities, multi-tenant DynamoDB tables, Cognito, authz                          | F1                  | ✅ Done                   |
-| B2   | Async services & notifications | `services/` layer: notif prefs, schedules, APNs push, audit, rollups, real-time | B1                  | Planned                   |
-| B3a  | Core care domain               | Receivers + Trackers + Events: OpenAPI contract + Go handlers + CDK tables      | B1                  | ✅ Done                   |
-| B3b  | Scheduling & prefs API         | Schedules + NotificationPreferences + Audit read API                            | B1                  | Planned                   |
-| B4   | v1 → v2 migration              | Migrate the family's real data, cut over, retire v1                             | B1–B3 + iOS shipped | Planned (last)            |
-| C1   | **iOS MVP** + design language  | Native SwiftUI core flows: auth, dashboard, log/view events                     | B1, B3              | **Primary / next client** |
-| C2   | Full iOS                       | Tracker builder, schedules, notif prefs, analytics, audit, APNs push            | C1, B2, B3          | Planned                   |
-| C3   | Web client                     | Next.js + React, AWS-native SSR (CloudFront + S3 + Lambda)                      | B1, B3, B2          | Later / secondary         |
+| Code | Name                           | Scope                                                                           | Depends on          | Status            |
+| ---- | ------------------------------ | ------------------------------------------------------------------------------- | ------------------- | ----------------- |
+| F1   | Engineering Practices Baseline | Monorepo, CI/CD, CDK, feature flags, observability                              | —                   | ✅ Done           |
+| B1   | Data model & identity          | Entities, multi-tenant DynamoDB tables, Cognito, authz                          | F1                  | ✅ Done           |
+| B2   | Async services & notifications | `services/` layer: notif prefs, schedules, APNs push, audit, rollups, real-time | B1                  | Planned           |
+| B3a  | Core care domain               | Receivers + Trackers + Events: OpenAPI contract + Go handlers + CDK tables      | B1                  | ✅ Done           |
+| B3b  | Scheduling & prefs API         | Schedules + NotificationPreferences + Audit read API                            | B1                  | Planned           |
+| B4   | v1 → v2 migration              | Migrate the family's real data, cut over, retire v1                             | B1–B3 + iOS shipped | Planned (last)    |
+| C1   | **iOS MVP** + design language  | Native SwiftUI core flows: auth, dashboard, log/view events                     | B1, B3              | ✅ Done           |
+| C2   | Full iOS                       | Tracker builder, schedules, notif prefs, analytics, audit, APNs push            | C1, B2, B3          | Planned           |
+| C3   | Web client                     | Next.js + React, AWS-native SSR (CloudFront + S3 + Lambda)                      | B1, B3, B2          | Later / secondary |
 
 ## Critical path
 
 ```
-F1 ✅ → B1 ✅ → B3a ✅ → C1 (iOS MVP)     ← first usable v2, on fresh data
+F1 ✅ → B1 ✅ → B3a ✅ → C1 ✅ (iOS MVP)  ← first usable v2, on fresh data
                      → B2 + B3b + C2 (full iOS, can overlap)
                                  → C3 (web)
                                        → B4 (migrate family off v1, retire it — last)
@@ -116,11 +116,14 @@ authenticate via Cognito, view a dashboard, log an event against a tracker, and 
 consuming the generated Swift client. Works entirely on fresh data, with no dependency on v1
 migration. Push notifications are deferred to C2. **Depends on:** B1, B3.
 
-**Status: Foundation landed (Stage 1 of 2).** The XcodeGen app, design system, networking/auth
-spine (Amplify Cognito + ID-token middleware), and `Session` `/me` routing are built and
-unit-tested on a macOS CI job; the app authenticates and routes to onboarding/dashboard
-placeholders. v2 API custom domains (`api-v2-dev` / `api-v2`) are provisioned via the ApiStack.
-**Stage 2 (feature screens — receivers/trackers/events, dynamic log form, history)** is next.
+**Status: COMPLETE.** Built in two stages on a macOS CI job (unit-tested, XcodeGen).
+**Stage 1 (Foundation):** design system, networking/auth spine (Amplify Cognito + ID-token
+middleware), `Session` `/me` routing; v2 API custom domains (`api-v2-dev` / `api-v2`) provisioned
+via the ApiStack. **Stage 2 (Features):** create-group onboarding, receivers list, tracker
+create-from-template, the dynamic event-logging form (per-field-type controls + client-side
+validation), paginated history, event edit/delete, role-gated rename/archive, and NavigationStack
+routing. Deferred to **C2** per the spec: custom tracker builder, accept-invite, APNs/breach
+badge/schedules/notif prefs/analytics/audit, Sign in with Apple, offline, polish pass.
 
 ### C2 — Full iOS
 
