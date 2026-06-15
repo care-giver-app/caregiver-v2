@@ -13,7 +13,7 @@ struct RootView: View {
             case .signedOut:
                 authFlow
             case .onboarding(let me):
-                OnboardingPlaceholderView(userName: me.userName)
+                CreateGroupView(userName: me.userName)
             case .ready(let me):
                 DashboardPlaceholderView(userName: me.userName)
             }

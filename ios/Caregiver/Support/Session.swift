@@ -38,12 +38,18 @@ final class Session {
 
     private(set) var state: State = .checking
 
+    let client: Client?
     private let bootstrap: () async throws -> Me
     private let signOutHandler: () async -> Void
 
+    /// The configured client; only call from feature screens (always present at runtime).
+    var api: Client { client! }
+
     /// Testable initializer.
-    init(bootstrap: @escaping () async throws -> Me,
+    init(client: Client? = nil,
+         bootstrap: @escaping () async throws -> Me,
          signOutHandler: @escaping () async -> Void) {
+        self.client = client
         self.bootstrap = bootstrap
         self.signOutHandler = signOutHandler
     }
@@ -52,6 +58,7 @@ final class Session {
     convenience init() {
         let client = APIClient.make(tokenProvider: CognitoTokenProvider())
         self.init(
+            client: client,
             bootstrap: {
                 // Only call /me when Amplify reports a signed-in session.
                 let authSession = try await Amplify.Auth.fetchAuthSession()
