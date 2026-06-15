@@ -13,14 +13,35 @@ struct RootView: View {
             case .signedOut:
                 authFlow
             case .onboarding(let me):
-                OnboardingPlaceholderView(userName: me.userName)
+                CreateGroupView(userName: me.userName)
             case .ready(let me):
-                DashboardPlaceholderView(userName: me.userName)
+                mainStack(me)
             }
         }
         .task {
             auth.onSignedIn = { await session.refresh() }
             await session.refresh()
+        }
+    }
+
+    private func mainStack(_ me: Me) -> some View {
+        NavigationStack {
+            ReceiversListView(me: me)
+                .navigationDestination(for: Route.self) { route in
+                    switch route {
+                    case .receiver(let r): ReceiverDetailView(me: me, receiver: r)
+                    case .tracker(let t): TrackerDetailView(me: me, tracker: t)
+                    case .event(let ref): EventDetailView(tracker: ref.tracker, event: ref.event) {}
+                    }
+                }
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Menu {
+                            Text("Signed in as \(me.userName)")
+                            Button("Sign out", role: .destructive) { Task { await session.signOut() } }
+                        } label: { Image(systemName: "person.circle") }
+                    }
+                }
         }
     }
 
