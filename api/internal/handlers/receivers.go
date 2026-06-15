@@ -40,7 +40,7 @@ func (h *Receivers) List(w http.ResponseWriter, r *http.Request) {
 		}
 		rs, err := h.stores.Receivers.ListByGroup(ctx, groupID)
 		if err != nil {
-			httpx.WriteError(w, http.StatusInternalServerError, "list failed")
+			httpx.ServerError(w, r, err, "list failed")
 			return
 		}
 		out = append(out, rs...)
@@ -48,7 +48,7 @@ func (h *Receivers) List(w http.ResponseWriter, r *http.Request) {
 		for gid := range ac.Memberships {
 			rs, err := h.stores.Receivers.ListByGroup(ctx, gid)
 			if err != nil {
-				httpx.WriteError(w, http.StatusInternalServerError, "list failed")
+				httpx.ServerError(w, r, err, "list failed")
 				return
 			}
 			out = append(out, rs...)
@@ -76,7 +76,7 @@ func (h *Receivers) Create(w http.ResponseWriter, r *http.Request) {
 		DateOfBirth: strings.TrimSpace(req.DateOfBirth), CreatedBy: ac.UserID, CreatedAt: h.now().UTC(),
 	}
 	if err := h.stores.Receivers.Put(r.Context(), rec); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "create failed")
+		httpx.ServerError(w, r, err, "create failed")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusCreated, rec)
@@ -93,7 +93,7 @@ func (h *Receivers) load(w http.ResponseWriter, r *http.Request) (domain.Receive
 		return domain.Receiver{}, nil, false
 	}
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+		httpx.ServerError(w, r, err, "lookup failed")
 		return domain.Receiver{}, nil, false
 	}
 	if !httpx.RequireMember(w, ac, rec.CareGroupID) {
@@ -137,7 +137,7 @@ func (h *Receivers) Update(w http.ResponseWriter, r *http.Request) {
 		rec.DateOfBirth = strings.TrimSpace(*req.DateOfBirth)
 	}
 	if err := h.stores.Receivers.Update(r.Context(), rec); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "update failed")
+		httpx.ServerError(w, r, err, "update failed")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, rec)
@@ -152,7 +152,7 @@ func (h *Receivers) Archive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.stores.Receivers.Archive(r.Context(), rec.ReceiverID); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "archive failed")
+		httpx.ServerError(w, r, err, "archive failed")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

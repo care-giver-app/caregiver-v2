@@ -50,7 +50,7 @@ func (h *CareGroups) Create(w http.ResponseWriter, r *http.Request) {
 	g := domain.CareGroup{CareGroupID: h.newID(), Name: strings.TrimSpace(req.Name), CreatedBy: ac.UserID, CreatedAt: now}
 	m := domain.Membership{UserID: ac.UserID, CareGroupID: g.CareGroupID, Role: domain.RoleAdmin, CreatedAt: now}
 	if err := h.stores.CreateCareGroupWithAdmin(r.Context(), g, m); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "create failed")
+		httpx.ServerError(w, r, err, "create failed")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusCreated, map[string]any{
@@ -81,7 +81,7 @@ func (h *CareGroups) CreateInvitation(w http.ResponseWriter, r *http.Request) {
 
 	pending, err := h.stores.Invitations.ListPendingByEmail(ctx, email)
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+		httpx.ServerError(w, r, err, "lookup failed")
 		return
 	}
 	for _, p := range pending {
@@ -92,13 +92,13 @@ func (h *CareGroups) CreateInvitation(w http.ResponseWriter, r *http.Request) {
 	}
 	u, uErr := h.stores.Users.GetByEmail(ctx, email)
 	if uErr != nil && !errors.Is(uErr, store.ErrNotFound) {
-		httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+		httpx.ServerError(w, r, uErr, "lookup failed")
 		return
 	}
 	if uErr == nil {
 		_, mErr := h.stores.Memberships.Get(ctx, u.UserID, groupID)
 		if mErr != nil && !errors.Is(mErr, store.ErrNotFound) {
-			httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+			httpx.ServerError(w, r, mErr, "lookup failed")
 			return
 		}
 		if mErr == nil {
@@ -109,7 +109,7 @@ func (h *CareGroups) CreateInvitation(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.newToken()
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "token generation failed")
+		httpx.ServerError(w, r, err, "token generation failed")
 		return
 	}
 	expiresAt := h.now().Add(h.inviteTTL).UTC()
@@ -118,7 +118,7 @@ func (h *CareGroups) CreateInvitation(w http.ResponseWriter, r *http.Request) {
 		Status: domain.InvitePending, InvitedBy: ac.UserID, CreatedAt: h.now().UTC(), ExpiresAt: expiresAt.Unix(),
 	}
 	if err := h.stores.Invitations.Create(ctx, inv); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "create invite failed")
+		httpx.ServerError(w, r, err, "create invite failed")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusCreated, map[string]any{

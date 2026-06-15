@@ -46,7 +46,7 @@ func (h *Events) trackerForRequest(w http.ResponseWriter, r *http.Request) (doma
 		return domain.Tracker{}, nil, false
 	}
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+		httpx.ServerError(w, r, err, "lookup failed")
 		return domain.Tracker{}, nil, false
 	}
 	if !httpx.RequireMember(w, ac, tr.CareGroupID) {
@@ -78,7 +78,7 @@ func (h *Events) Create(w http.ResponseWriter, r *http.Request) {
 		Values: req.Values, Note: req.Note, OccurredAt: occurred, LoggedBy: ac.UserID, CreatedAt: h.now().UTC(),
 	}
 	if err := h.stores.Events.Put(r.Context(), e); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "log failed")
+		httpx.ServerError(w, r, err, "log failed")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusCreated, eventView{Event: e, Breaches: domain.Breaches(tr.Fields, e.Values)})
@@ -109,7 +109,7 @@ func (h *Events) List(w http.ResponseWriter, r *http.Request) {
 	}
 	events, next, err := h.stores.Events.ListByTracker(r.Context(), tr.TrackerID, limit, q.Get("cursor"), from, to)
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "list failed")
+		httpx.ServerError(w, r, err, "list failed")
 		return
 	}
 	items := make([]eventView, 0, len(events))
@@ -131,7 +131,7 @@ func (h *Events) loadEvent(w http.ResponseWriter, r *http.Request) (domain.Track
 		return domain.Tracker{}, domain.Event{}, false
 	}
 	if err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "lookup failed")
+		httpx.ServerError(w, r, err, "lookup failed")
 		return domain.Tracker{}, domain.Event{}, false
 	}
 	return tr, e, true
@@ -165,7 +165,7 @@ func (h *Events) Update(w http.ResponseWriter, r *http.Request) {
 		e.OccurredAt = req.OccurredAt.UTC()
 	}
 	if err := h.stores.Events.Update(r.Context(), e); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "update failed")
+		httpx.ServerError(w, r, err, "update failed")
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, eventView{Event: e, Breaches: domain.Breaches(tr.Fields, e.Values)})
@@ -177,7 +177,7 @@ func (h *Events) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.stores.Events.Delete(r.Context(), tr.TrackerID, e.EventID); err != nil {
-		httpx.WriteError(w, http.StatusInternalServerError, "delete failed")
+		httpx.ServerError(w, r, err, "delete failed")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
