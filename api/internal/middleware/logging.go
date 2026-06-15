@@ -57,6 +57,7 @@ func RequestLogger(base *slog.Logger) func(http.Handler) http.Handler {
 				}
 				logger.FromContext(r.Context()).Info("request",
 					"status", rec.status,
+					"bytes", rec.bytes,
 					"duration_ms", time.Since(start).Milliseconds(),
 					"route", route(r))
 			}()

@@ -54,6 +54,9 @@ func TestRequestLoggerEmitsAccessLine(t *testing.T) {
 	if _, ok := got["duration_ms"]; !ok {
 		t.Fatalf("duration_ms missing")
 	}
+	if _, ok := got["bytes"]; !ok {
+		t.Fatalf("bytes missing")
+	}
 }
 
 func TestRequestLoggerRecoversPanic(t *testing.T) {

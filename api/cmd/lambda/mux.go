@@ -25,7 +25,7 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 		return nil, fmt.Errorf("APPCONFIG_APPLICATION_ID/ENVIRONMENT_ID/PROFILE_ID must all be set")
 	}
 	flagClient := flags.NewClientFromEnv(appID, envID, profileID)
-	mux.Handle("GET /flags", handlers.NewFlags(flagClient, nil))
+	mux.Handle("GET /flags", handlers.NewFlags(flagClient))
 
 	stores, err := newStores(context.Background())
 	if err != nil {
