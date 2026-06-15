@@ -1,4 +1,5 @@
 import Foundation
+import OpenAPIRuntime
 import CaregiverAPI
 
 enum DynamicFormBuilder {
@@ -51,6 +52,50 @@ enum DynamicFormBuilder {
             }
         }
         return errors
+    }
+
+    /// Builds the EventWrite values payload from validated inputs. Optional empty
+    /// fields are omitted. datetime is encoded as an ISO8601 string (values is
+    /// free-form JSON). Call only after `validate` returns no errors.
+    static func valuesPayload(from inputs: [FieldInput]) throws -> Components.Schemas.EventWrite.ValuesPayload {
+        var dict: [String: (any Sendable)?] = [:]
+        let iso = ISO8601DateFormatter()
+        for input in inputs {
+            let trimmed = input.textValue.trimmingCharacters(in: .whitespaces)
+            switch input.kind {
+            case .number:
+                if let d = Double(trimmed) { dict[input.key] = d }
+            case .text, .enumeration:
+                if !trimmed.isEmpty { dict[input.key] = trimmed }
+            case .boolean:
+                dict[input.key] = input.boolValue
+            case .datetime:
+                dict[input.key] = iso.string(from: input.dateValue)
+            }
+        }
+        return .init(additionalProperties: try OpenAPIObjectContainer(unvalidatedValue: dict))
+    }
+
+    /// One-line history summary, e.g. "Systolic: 120 mmHg · Taken: Yes".
+    static func display(values: Components.Schemas.Event.ValuesPayload, fields: [Field]) -> String {
+        let raw = values.additionalProperties.value
+        let parts: [String] = fields.compactMap { field in
+            guard let value = raw[field.key] ?? nil else { return nil }
+            let rendered = render(value)
+            let unit = field.unit.map { " \($0)" } ?? ""
+            return "\(field.label): \(rendered)\(unit)"
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func render(_ value: any Sendable) -> String {
+        switch value {
+        case let b as Bool: return b ? "Yes" : "No"
+        case let d as Double: return d == d.rounded() ? String(Int(d)) : String(d)
+        case let i as Int: return String(i)
+        case let s as String: return s
+        default: return String(describing: value)
+        }
     }
 
     private static func kind(for type: Components.Schemas.FieldType) -> FieldInput.Kind {
