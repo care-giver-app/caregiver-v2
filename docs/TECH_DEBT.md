@@ -73,6 +73,26 @@ Surfaced during manual use of the C1-UI build; not yet fixed. Both pre-date the 
   stale-shared-state class of bug to watch for wherever a mutation isn't followed by a context
   reload._
 
+## iOS (C1-UI) — deferred enhancements
+
+- **Home tracker cards should show the most recent reading + relative timestamp.** Today each glass
+  `TrackerCard` (`ios/Caregiver/Home/HomeView.swift`) shows only name + kind. Surfacing the last
+  logged value and "how long ago" on Home directly serves the core use case (a caregiver checking
+  "when was this last done / what was the value" several times a day) and would otherwise require a
+  tap into `TrackerDetailView`. _Keep it to one compact line to avoid clutter:_ a single summary
+  string via the existing `DynamicFormBuilder.display(values:fields:)` (already used in `EventRow`) +
+  a **relative** time ("2h ago" / "Yesterday" / "Mar 3"); show a quiet "No readings yet" when empty;
+  likely **omit free-text notes** on the card (keep them in detail). _The real cost — why this is
+  bigger than a layout tweak:_ the `Tracker` schema and the `listTrackers` response carry **no**
+  latest-event data (`shared/openapi/openapi.yaml` → `Tracker`), so a data source is needed:
+  - **A (recommended):** add a `last_event` summary (occurred_at + values + note) to the tracker in
+    the list response — OpenAPI + Go handler + codegen. One request, cacheable, fits the existing
+    denormalization pattern.
+  - **B (quick):** client fetches `listEvents(limit: 1)` per tracker (N+1). No backend work; tolerable
+    at family scale but bloats `HomeModel` and adds latency — would want to retire it later.
+    _Trigger:_ when polishing Home / when the design pass reaches the tracker card. Take through
+    brainstorm → spec → plan when picked up.
+
 ## Operational
 
 - A few **orphaned care-group rows** remain in the **dev** DynamoDB tables from the B1 deploy smoke
