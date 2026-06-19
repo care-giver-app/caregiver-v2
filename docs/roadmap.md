@@ -27,23 +27,27 @@ on fresh data **before** any v1 data migration. Web remains in scope but is seco
 
 ## Phase map
 
-| Code | Name                           | Scope                                                                           | Depends on          | Status            |
-| ---- | ------------------------------ | ------------------------------------------------------------------------------- | ------------------- | ----------------- |
-| F1   | Engineering Practices Baseline | Monorepo, CI/CD, CDK, feature flags, observability                              | —                   | ✅ Done           |
-| B1   | Data model & identity          | Entities, multi-tenant DynamoDB tables, Cognito, authz                          | F1                  | ✅ Done           |
-| B2   | Async services & notifications | `services/` layer: notif prefs, schedules, APNs push, audit, rollups, real-time | B1                  | Planned           |
-| B3a  | Core care domain               | Receivers + Trackers + Events: OpenAPI contract + Go handlers + CDK tables      | B1                  | ✅ Done           |
-| B3b  | Scheduling & prefs API         | Schedules + NotificationPreferences + Audit read API                            | B1                  | Planned           |
-| B4   | v1 → v2 migration              | Migrate the family's real data, cut over, retire v1                             | B1–B3 + iOS shipped | Planned (last)    |
-| C1   | **iOS MVP** + design language  | Native SwiftUI core flows: auth, dashboard, log/view events                     | B1, B3              | ✅ Done           |
-| C2   | Full iOS                       | Tracker builder, schedules, notif prefs, analytics, audit, APNs push            | C1, B2, B3          | Planned           |
-| C3   | Web client                     | Next.js + React, AWS-native SSR (CloudFront + S3 + Lambda)                      | B1, B3, B2          | Later / secondary |
+| Code  | Name                           | Scope                                                                                    | Depends on          | Status            |
+| ----- | ------------------------------ | ---------------------------------------------------------------------------------------- | ------------------- | ----------------- |
+| F1    | Engineering Practices Baseline | Monorepo, CI/CD, CDK, feature flags, observability                                       | —                   | ✅ Done           |
+| B1    | Data model & identity          | Entities, multi-tenant DynamoDB tables, Cognito, authz                                   | F1                  | ✅ Done           |
+| B2    | Async services & notifications | `services/` layer: notif prefs, schedules, APNs push, audit, rollups, real-time          | B1                  | Planned           |
+| B3a   | Core care domain               | Receivers + Trackers + Events: OpenAPI contract + Go handlers + CDK tables               | B1                  | ✅ Done           |
+| B3b   | Scheduling & prefs API         | Schedules + NotificationPreferences + Audit read API                                     | B1                  | Planned           |
+| B4    | v1 → v2 migration              | Migrate the family's real data, cut over, retire v1                                      | B1–B3 + iOS shipped | Planned (last)    |
+| C1    | **iOS MVP** + design language  | Native SwiftUI core flows: auth, dashboard, log/view events                              | B1, B3              | ✅ Done           |
+| C1-UI | **iOS UI design pass**         | Spec + redesign every C1 screen to the earthy design language; auth done                 | C1                  | 🔨 In progress    |
+| C2    | Full iOS                       | Tracker builder, schedules, notif prefs, analytics, audit, APNs push                     | C1-UI, B2, B3       | Planned           |
+| F2    | Spec governance                | Spec lifecycle/status convention, drift-detection CI check, specs index, code↔spec links | C2 (timing)         | Planned           |
+| C3    | Web client                     | Next.js + React, AWS-native SSR (CloudFront + S3 + Lambda)                               | B1, B3, B2          | Later / secondary |
 
 ## Critical path
 
 ```
 F1 ✅ → B1 ✅ → B3a ✅ → C1 ✅ (iOS MVP)  ← first usable v2, on fresh data
+                               → C1-UI 🔨 (design pass)
                      → B2 + B3b + C2 (full iOS, can overlap)
+                                 → F2 (spec governance — after full iOS)
                                  → C3 (web)
                                        → B4 (migrate family off v1, retire it — last)
 ```
@@ -125,10 +129,38 @@ validation), paginated history, event edit/delete, role-gated rename/archive, an
 routing. Deferred to **C2** per the spec: custom tracker builder, accept-invite, APNs/breach
 badge/schedules/notif prefs/analytics/audit, Sign in with Apple, offline, polish pass.
 
+### C1-UI — iOS UI design pass _(in progress)_
+
+A spec-driven visual redesign of every C1 screen to apply the earthy design language established
+during C1 (Theme tokens, GlassField, GlassButton, PrimaryButton, `.earthBackground()`). Each screen
+goes through the same brainstorm → spec → implement loop used for auth. Screens in order:
+auth (✅ done), create-group onboarding, receivers list, receiver detail, tracker detail, event
+detail. Produces a design spec per screen in `docs/specs/`. **Depends on:** C1.
+
 ### C2 — Full iOS
 
 The complete iOS feature set: custom tracker builder, schedules, notification preferences,
 analytics, audit viewer, and APNs push. **Depends on:** C1, B2, B3.
+
+### F2 — Spec governance & drift prevention _(after full iOS)_
+
+By the time iOS is feature-complete, `docs/specs/` will hold many prose specs whose relationship to
+the code has likely drifted. OpenAPI already solves drift for the API contract (codegen + the CI
+drift check); F2 brings comparable discipline to the prose specs. Scope:
+
+- **Lifecycle/status convention** — front-matter `status` (`draft | active | implemented |
+superseded-by`) so every spec is clearly current, historical, or an immutable ADR-style snapshot.
+- **Drift-detection CI check** — the prose analog of codegen-drift: living specs declare the
+  files/symbols they govern; CI fails if those no longer exist.
+- **Specs index** (`docs/specs/README.md`) — one discoverable list (spec, status, governed area).
+- **Bidirectional code↔spec links** — code comments point at the governing spec; specs list governed
+  files.
+- **PR gate** — a "spec updated / new ADR / no spec impact" checkbox for changes to governed areas.
+- **AC-as-tests** — encode critical-path acceptance criteria (Splinter→Raphael) as real tests, the
+  only reliable guard against _behavioral_ drift (e.g. reachability) that symbol checks can't catch.
+
+Sequenced after C2 by timing, not a hard code dependency — it can move earlier if spec sprawl bites
+sooner. **Depends on:** C2 (timing).
 
 ### C3 — Web client _(secondary)_
 
