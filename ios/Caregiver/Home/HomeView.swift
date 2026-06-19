@@ -44,10 +44,16 @@ struct HomeView: View {
     @State private var model: HomeModel
     @State private var logTracker: Components.Schemas.Tracker?
     @State private var showAddReceiver = false
+    @State private var showAddTracker = false
 
     private var activeTeamName: String? {
         guard let groupID = context.activeReceiver?.careGroupId else { return nil }
         return me.teamName(forCareGroup: groupID)
+    }
+
+    private var isAdminForActive: Bool {
+        guard let groupID = context.activeReceiver?.careGroupId else { return false }
+        return me.isAdmin(inCareGroup: groupID)
     }
 
     init(me: Me) {
@@ -66,7 +72,7 @@ struct HomeView: View {
             case .loading:
                 LoadingView()
             case .empty:
-                EmptyStateView(message: "No trackers yet. Add one in Settings.")
+                emptyState
             case .error(let message):
                 ErrorStateView(message: message) { Task { await reload() } }
             case .loaded(let trackers):
@@ -102,6 +108,13 @@ struct HomeView: View {
                 Task { await context.load(using: session) }
             }
         }
+        .sheet(isPresented: $showAddTracker) {
+            if let receiver = context.activeReceiver {
+                TemplatePickerView(receiverId: receiver.receiverId) {
+                    Task { await reload() }
+                }
+            }
+        }
         .task(id: HomeTaskID(receiverID: context.activeReceiver?.receiverId, contextReady: context.isLoaded)) {
             await reload()
         }
@@ -113,6 +126,22 @@ struct HomeView: View {
             return
         }
         await model.load(receiverID: id, using: session)
+    }
+
+    // MARK: Empty state
+
+    @ViewBuilder private var emptyState: some View {
+        if isAdminForActive, context.activeReceiver != nil {
+            VStack(spacing: Theme.Spacing.md) {
+                EmptyStateView(message: "No trackers yet.")
+                PrimaryButton(title: "Add tracker") {
+                    showAddTracker = true
+                }
+                .padding(.horizontal, Theme.Spacing.lg)
+            }
+        } else {
+            EmptyStateView(message: "No trackers yet.")
+        }
     }
 
     // MARK: Receiver switcher
