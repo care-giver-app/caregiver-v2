@@ -49,6 +49,7 @@ ios/Pods/
 # Swift / SPM
 shared/types-swift/.build/
 shared/types-swift/Package.resolved
+**/.swiftpm/xcode/xcuserdata/
 
 # Lefthook
 .lefthook/

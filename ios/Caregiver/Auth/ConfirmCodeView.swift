@@ -5,20 +5,46 @@ struct ConfirmCodeView: View {
 
     var body: some View {
         VStack(spacing: Theme.Spacing.md) {
-            Text("Enter the code").font(Theme.Typography.title)
-            Text("We emailed a confirmation code to \(model.email).")
-                .font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.textSecondary)
-                .multilineTextAlignment(.center)
-            TextField("Code", text: $model.code).keyboardType(.numberPad)
-            if let error = model.error {
-                Text(error.message).font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.alert)
+                VStack(spacing: Theme.Spacing.sm) {
+                    Text("Check your email")
+                        .font(Theme.Typography.title)
+                        .foregroundStyle(Theme.Colors.ink)
+                    Text("We sent a confirmation code to \(model.email).")
+                        .font(Theme.Typography.subhead)
+                        .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, Theme.Spacing.lg)
+
+                GlassField(placeholder: "Confirmation code", icon: "number", text: $model.code)
+                    .keyboardType(.numberPad)
+
+                if let error = model.error {
+                    Text(error.message)
+                        .font(Theme.Typography.subhead)
+                        .foregroundStyle(Theme.Colors.alert)
+                }
+
+                PrimaryButton(title: "Confirm", isLoading: model.isBusy) {
+                    Task { await model.confirm() }
+                }
+
+                Spacer()
             }
-            PrimaryButton(title: "Confirm", isLoading: model.isBusy) {
-                Task { await model.confirm() }
-            }
-            Spacer()
-        }
-        .textFieldStyle(.roundedBorder)
         .padding(Theme.Spacing.lg)
+        .earthBackground()
+        .presentationDetents([.medium])
+        .presentationCornerRadius(24)
     }
+}
+
+#Preview {
+    Text("Behind the sheet")
+        .sheet(isPresented: .constant(true)) {
+            ConfirmCodeView(model: {
+                let m = AuthModel()
+                m.email = "trevor@example.com"
+                return m
+            }())
+        }
 }
