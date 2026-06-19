@@ -39,6 +39,8 @@ targets:
         product: Amplify
       - package: Amplify
         product: AWSCognitoAuthPlugin
+      - sdk: LocalAuthentication.framework
+      - sdk: Security.framework
   CaregiverTests:
     type: bundle.unit-test
     platform: iOS

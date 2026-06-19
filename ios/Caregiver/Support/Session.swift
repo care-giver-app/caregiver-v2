@@ -16,6 +16,11 @@ struct Me: Equatable {
         memberships.first { $0.careGroupID == id }?.role
     }
 
+    /// The care team (care-group) display name for a group id, if the user is a member.
+    func teamName(forCareGroup id: String) -> String? {
+        memberships.first { $0.careGroupID == id }?.name
+    }
+
     func isAdmin(inCareGroup id: String) -> Bool {
         role(inCareGroup: id) == "admin"
     }
@@ -37,6 +42,7 @@ final class Session {
     }
 
     private(set) var state: State = .checking
+    private(set) var signedOutExplicitly = false
 
     let client: Client?
     private let bootstrap: () async throws -> Me
@@ -82,6 +88,7 @@ final class Session {
         state = .checking
         do {
             let me = try await bootstrap()
+            signedOutExplicitly = false
             state = me.memberships.isEmpty ? .onboarding(me) : .ready(me)
         } catch {
             state = .signedOut
@@ -90,6 +97,7 @@ final class Session {
 
     func signOut() async {
         await signOutHandler()
+        signedOutExplicitly = true
         state = .signedOut
     }
 }
