@@ -43,6 +43,7 @@ struct HomeView: View {
 
     @State private var model: HomeModel
     @State private var logTracker: Components.Schemas.Tracker?
+    @State private var showAddReceiver = false
 
     private var activeTeamName: String? {
         guard let groupID = context.activeReceiver?.careGroupId else { return nil }
@@ -96,6 +97,11 @@ struct HomeView: View {
                 }
             }
         }
+        .sheet(isPresented: $showAddReceiver) {
+            AddReceiverView(me: me) {
+                Task { await context.load(using: session) }
+            }
+        }
         .task(id: HomeTaskID(receiverID: context.activeReceiver?.receiverId, contextReady: context.isLoaded)) {
             await reload()
         }
@@ -112,28 +118,51 @@ struct HomeView: View {
     // MARK: Receiver switcher
 
     @ViewBuilder private var receiverSwitcher: some View {
-        if context.receivers.count <= 1 {
+        let canAddReceiver = !me.adminGroups.isEmpty
+        if context.receivers.count <= 1 && !canAddReceiver {
             Text(context.activeReceiver?.name ?? "")
                 .font(Theme.Typography.headline)
                 .foregroundStyle(Theme.Colors.ink)
         } else {
             Menu {
-                ForEach(me.memberships, id: \.careGroupID) { membership in
-                    let groupReceivers = context.receivers.filter { $0.careGroupId == membership.careGroupID }
-                    if !groupReceivers.isEmpty {
-                        Section(membership.name) {
-                            ForEach(groupReceivers, id: \.receiverId) { receiver in
-                                Button {
-                                    context.setActive(receiver)
-                                } label: {
-                                    if receiver.receiverId == context.activeReceiverID {
-                                        Label(receiver.name, systemImage: "checkmark")
-                                    } else {
-                                        Text(receiver.name)
-                                    }
+                let activeGroupID = context.activeReceiver?.careGroupId
+                // Active team first (stable), then other teams. Pre-filter to groups
+                // that actually have receivers so dividers only separate rendered
+                // sections (never appear at the top).
+                let visibleGroups: [(membership: Me.Membership, receivers: [Components.Schemas.Receiver])] =
+                    me.memberships
+                        .sorted { lhs, rhs in
+                            let lhsActive = lhs.careGroupID == activeGroupID
+                            let rhsActive = rhs.careGroupID == activeGroupID
+                            if lhsActive != rhsActive { return lhsActive }
+                            return false
+                        }
+                        .compactMap { membership in
+                            let receivers = context.receivers.filter { $0.careGroupId == membership.careGroupID }
+                            return receivers.isEmpty ? nil : (membership, receivers)
+                        }
+                ForEach(Array(visibleGroups.enumerated()), id: \.element.membership.careGroupID) { index, group in
+                    if index > 0 { Divider() }
+                    Section(group.membership.name) {
+                        ForEach(group.receivers, id: \.receiverId) { receiver in
+                            Button {
+                                context.setActive(receiver)
+                            } label: {
+                                if receiver.receiverId == context.activeReceiverID {
+                                    Label(receiver.name, systemImage: "checkmark")
+                                } else {
+                                    Text(receiver.name)
                                 }
                             }
                         }
+                    }
+                }
+                if canAddReceiver {
+                    Divider()
+                    Button {
+                        showAddReceiver = true
+                    } label: {
+                        Label("Add receiver", systemImage: "plus")
                     }
                 }
             } label: {
