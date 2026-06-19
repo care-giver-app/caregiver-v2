@@ -6,7 +6,12 @@ import Amplify
 final class AuthModel {
     var email = ""
     var password = ""
+    var confirmPassword = ""
+    var firstName = ""
+    var lastName = ""
     var code = ""
+    var newPassword = ""
+    var resetCodeSent = false
     var isBusy = false
     var error: AppError?
     var needsConfirmation = false
@@ -15,8 +20,16 @@ final class AuthModel {
     var onSignedIn: () async -> Void = {}
 
     func signUp() async {
+        guard password == confirmPassword else {
+            error = AppError(message: "Passwords do not match")
+            return
+        }
         await run {
-            let attrs = [AuthUserAttribute(.email, value: self.email)]
+            let attrs = [
+                AuthUserAttribute(.email, value: self.email),
+                AuthUserAttribute(.givenName, value: self.firstName),
+                AuthUserAttribute(.familyName, value: self.lastName),
+            ]
             let result = try await Amplify.Auth.signUp(
                 username: self.email, password: self.password,
                 options: .init(userAttributes: attrs)
@@ -39,6 +52,39 @@ final class AuthModel {
             let result = try await Amplify.Auth.signIn(username: self.email, password: self.password)
             if result.isSignedIn { await self.onSignedIn() }
             else if case .confirmSignUp = result.nextStep { self.needsConfirmation = true }
+        }
+    }
+
+    func sendResetCode() async {
+        await run {
+            _ = try await Amplify.Auth.resetPassword(for: self.email)
+            self.resetCodeSent = true
+        }
+    }
+
+    func signInWithBiometrics() async {
+        guard let creds = KeychainStore.credentials() else { return }
+        email = creds.email
+        password = creds.password
+        await signIn()
+    }
+
+    func enableBiometrics() {
+        KeychainStore.save(email: email, password: password)
+    }
+
+    func disableBiometrics() {
+        KeychainStore.delete()
+    }
+
+    func confirmReset() async {
+        await run {
+            try await Amplify.Auth.confirmResetPassword(
+                for: self.email,
+                with: self.newPassword,
+                confirmationCode: self.code
+            )
+            self.resetCodeSent = false
         }
     }
 

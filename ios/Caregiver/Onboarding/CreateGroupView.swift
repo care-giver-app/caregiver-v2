@@ -29,19 +29,38 @@ struct CreateGroupView: View {
 
     var body: some View {
         VStack(spacing: Theme.Spacing.md) {
-            Text("Welcome, \(userName)").font(Theme.Typography.title)
-            Text("Create a care group to get started.")
-                .font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.textSecondary)
-            TextField("Care group name", text: $model.name)
-                .textFieldStyle(.roundedBorder)
+            Image("AppLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 160)
+            Spacer()
+            VStack(spacing: Theme.Spacing.sm) {
+                Text("Welcome, \(userName)!")
+                    .font(Theme.Typography.title)
+                    .foregroundStyle(Theme.Colors.ink)
+                Text("Create a care team to get started. A care team connects caregivers and the people they look after.")
+                    .font(Theme.Typography.subhead)
+                    .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                    .multilineTextAlignment(.center)
+            }
+            GlassField(placeholder: "Care team name", icon: "person.2", text: $model.name)
+                .textContentType(.organizationName)
+                .autocorrectionDisabled()
             if let error = model.error {
                 Text(error.message).font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.alert)
             }
-            PrimaryButton(title: "Create group", isLoading: model.isBusy) {
+            PrimaryButton(title: "Create team", isLoading: model.isBusy) {
                 Task { await model.create(using: session) }
             }
             Spacer()
         }
         .padding(Theme.Spacing.lg)
+        .earthBackground()
     }
+}
+
+#Preview {
+    let session = Session(bootstrap: { throw Session.NotSignedIn() }, signOutHandler: {})
+    CreateGroupView(userName: "Trevor")
+        .environment(session)
 }

@@ -8,12 +8,17 @@ struct CaregiverApp: App {
 
     init() {
         configureAmplify()
+        configureAppearance()
     }
 
     var body: some Scene {
         WindowGroup {
             RootView().environment(session)
         }
+    }
+
+    private func configureAppearance() {
+        UITabBar.appearance().unselectedItemTintColor = UIColor(Theme.Colors.textTertiary)
     }
 
     private func configureAmplify() {
