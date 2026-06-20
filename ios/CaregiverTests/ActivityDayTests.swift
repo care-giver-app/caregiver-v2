@@ -37,4 +37,24 @@ final class ActivityDayTests: XCTestCase {
         // 2026-06-14 is a Sunday.
         XCTAssertEqual(ActivityDay.label(for: older, relativeTo: now, calendar: cal), "Sun, Jun 14")
     }
+
+    func testIsDaytimeFalseJustBeforeSix() {
+        let d = cal.date(from: DateComponents(year: 2026, month: 6, day: 17, hour: 5, minute: 59))!
+        XCTAssertFalse(ActivityDay.isDaytime(d, calendar: cal))
+    }
+
+    func testIsDaytimeTrueAtSix() {
+        let d = cal.date(from: DateComponents(year: 2026, month: 6, day: 17, hour: 6))!
+        XCTAssertTrue(ActivityDay.isDaytime(d, calendar: cal))
+    }
+
+    func testIsDaytimeTrueJustBeforeEighteen() {
+        let d = cal.date(from: DateComponents(year: 2026, month: 6, day: 17, hour: 17, minute: 59))!
+        XCTAssertTrue(ActivityDay.isDaytime(d, calendar: cal))
+    }
+
+    func testIsDaytimeFalseAtEighteen() {
+        let d = cal.date(from: DateComponents(year: 2026, month: 6, day: 17, hour: 18))!
+        XCTAssertFalse(ActivityDay.isDaytime(d, calendar: cal))
+    }
 }

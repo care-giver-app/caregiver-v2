@@ -9,6 +9,11 @@ enum ActivityDay {
         return (start, end)
     }
 
+    /// True when `date`'s hour is in 6:00–17:59 (daytime → sun; otherwise → moon).
+    static func isDaytime(_ date: Date, calendar: Calendar = .current) -> Bool {
+        (6..<18).contains(calendar.component(.hour, from: date))
+    }
+
     /// "Today" / "Yesterday" / weekday + medium date (e.g. "Sun, Jun 14").
     static func label(for date: Date, relativeTo now: Date = Date(), calendar: Calendar = .current) -> String {
         if calendar.isDate(date, inSameDayAs: now) { return "Today" }
