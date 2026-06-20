@@ -161,3 +161,26 @@ struct ErrorStateView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
+
+extension View {
+    /// Wraps the view in the app's card-style glass: an ultra-thin material fill with a soft
+    /// top-down white highlight, rounded corners, and a subtle shadow — all from `Theme` tokens.
+    /// Content is clipped to the card's rounded corners (so full-width children like dividers and
+    /// rows stay inside the card).
+    func glassCard() -> some View {
+        self
+            .background {
+                RoundedRectangle(cornerRadius: Theme.Radius.card)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Theme.Radius.card)
+                            .fill(LinearGradient(
+                                colors: [.white.opacity(0.25), .clear],
+                                startPoint: .top, endPoint: .center
+                            ))
+                    }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+            .shadow(color: Theme.Colors.ink.opacity(0.08), radius: 8, x: 0, y: 4)
+    }
+}
