@@ -177,16 +177,48 @@ The whole row remains a `NavigationLink(value: ref)` (the chevron/affordance com
 
 ## States
 
-| State              | UI                                                                                                                                                    |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No active receiver | `EmptyStateView(message: "No receiver selected.")` (rare — a member with zero receivers); no date header is shown since there is nothing to scope to. |
-| `loading`          | `LoadingView()` below the date header.                                                                                                                |
-| `loaded`           | A `List` of `ActivityRow`s; `.refreshable { await reload() }` for pull-to-refresh.                                                                    |
-| `empty`            | `EmptyStateView(message: "No activity on \(label).")`                                                                                                 |
-| `error`            | `ErrorStateView(message:)` with a retry that calls `reload()`.                                                                                        |
+| State              | UI                                                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| No active receiver | `EmptyStateView(message: "No receiver selected.")`, full-screen (rare — a member with zero receivers); no widget card is shown.             |
+| `loading`          | `LoadingView()` inside the widget card, below the date header.                                                                              |
+| `loaded`           | A zero-spacing `VStack` of `ActivityRow`s inside the widget card (so the rail is continuous); the outer tab `ScrollView` is `.refreshable`. |
+| `empty`            | `EmptyStateView(message: "No activity on \(label).")` inside the card.                                                                      |
+| `error`            | `ErrorStateView(message:)` inside the card, retry calls `reload()`.                                                                         |
 
-The date-navigation header is **always** visible (even while loading / empty / error) so the user can
-move to another day.
+The date-navigation header is **always** visible inside the widget (even while loading / empty / error)
+so the user can move to another day.
+
+---
+
+## Widget container — glass card (added 2026-06-20)
+
+The Activity tab is structured as a **vertical stack of widget cards**, so additional widgets can be
+added later without restructuring. Today it holds one widget: the timeline.
+
+- **`ActivityView` body** (active receiver present): an outer `ScrollView` containing a
+  `VStack(spacing: Theme.Spacing.lg)` of widgets, padded (horizontal + top) so cards float on the
+  `.earthBackground()`. `.refreshable { await reload() }` lives on this outer scroll (replacing the
+  per-list refresh). Future widgets append to this `VStack`.
+- **Timeline widget:** the date-nav header + a divider + the day content (steps / state views),
+  wrapped in a `.glassCard()`. It's self-contained and confined by the tab padding so it reads as its
+  own widget. It **sizes to its content** — no internal scroll (the outer `ScrollView` handles
+  overflow); no nested scrolling.
+- The `loaded` steps are a plain `VStack(spacing: 0)` of `ActivityRow`s (not a `List`) so the rail is
+  continuous and the card sizes to content. Each row is a `NavigationLink(value: ref)` with
+  `.buttonStyle(.plain)`; the chevron affordance is drawn in `ActivityRow` (a `List` used to supply
+  it). _(This `List → ScrollView/VStack` change also fixed the broken/segmented rail and the wrapping
+  AM/PM time observed in the first cut.)_
+
+### `.glassCard()` — reusable modifier
+
+Extract the card-style glass treatment (currently inline in `TrackerCard`) into a `View` extension in
+`ios/Caregiver/DesignSystem/Components.swift`:
+
+- `.ultraThinMaterial` fill on a `RoundedRectangle(cornerRadius: Theme.Radius.card)`,
+- a soft top-down white gradient overlay (`LinearGradient([.white.opacity(0.25), .clear], .top → .center)`),
+- a subtle shadow (`Theme.Colors.ink.opacity(0.08)`, radius 8, y 4).
+
+All from `Theme` tokens. `TrackerCard` can adopt `.glassCard()` later (out of scope here).
 
 ---
 
@@ -248,3 +280,10 @@ and keeps `load` thin.
 > | `ios/Caregiver/Activity/ActivityDay.swift`    | **Modify** — add `isDaytime(_:calendar:)`.                                                                                |
 > | `ios/CaregiverTests/ActivityMergeTests.swift` | **Modify** — flip expectations to ascending.                                                                              |
 > | `ios/CaregiverTests/ActivityDayTests.swift`   | **Modify** — add `isDaytime` boundary tests.                                                                              |
+>
+> **Widget container (2026-06-20):**
+>
+> | File                                          | Change                                                                                                         |
+> | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+> | `ios/Caregiver/DesignSystem/Components.swift` | **Modify** — add the reusable `.glassCard()` `View` extension.                                                 |
+> | `ios/Caregiver/Activity/ActivityView.swift`   | **Modify** — outer `ScrollView` + `VStack` of widgets; timeline wrapped in `.glassCard()`; states inside card. |
