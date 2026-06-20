@@ -96,6 +96,22 @@ enum DynamicFormBuilder {
         }
     }
 
+    struct ValueRow: Equatable {
+        let label: String
+        let value: String
+        let unit: String?
+    }
+
+    /// One row per field that has a value, in field order. The event-detail
+    /// screen renders these as label · value · unit (replaces the single `display` string).
+    static func rows(values: Components.Schemas.Event.ValuesPayload, fields: [Field]) -> [ValueRow] {
+        let raw = values.additionalProperties.value
+        return fields.compactMap { field in
+            guard let value = raw[field.key] ?? nil else { return nil }
+            return ValueRow(label: field.label, value: render(value), unit: field.unit)
+        }
+    }
+
     /// One-line history summary, e.g. "Systolic: 120 mmHg · Taken: Yes".
     static func display(values: Components.Schemas.Event.ValuesPayload, fields: [Field]) -> String {
         let raw = values.additionalProperties.value
