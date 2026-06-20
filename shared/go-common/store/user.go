@@ -80,3 +80,30 @@ func (s *UserStore) CreateIfAbsent(ctx context.Context, u domain.User) (bool, er
 	}
 	return true, nil
 }
+
+// BatchGet returns the users for the given ids, keyed by user_id. Missing ids
+// are simply absent from the result.
+func (s *UserStore) BatchGet(ctx context.Context, ids []string) (map[string]domain.User, error) {
+	result := make(map[string]domain.User, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+	keys := make([]map[string]types.AttributeValue, 0, len(ids))
+	for _, id := range ids {
+		keys = append(keys, map[string]types.AttributeValue{"user_id": &types.AttributeValueMemberS{Value: id}})
+	}
+	out, err := s.client.BatchGetItem(ctx, &dynamodb.BatchGetItemInput{
+		RequestItems: map[string]types.KeysAndAttributes{s.table: {Keys: keys}},
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range out.Responses[s.table] {
+		var u domain.User
+		if err := attributevalue.UnmarshalMap(item, &u); err != nil {
+			return nil, err
+		}
+		result[u.UserID] = u
+	}
+	return result, nil
+}

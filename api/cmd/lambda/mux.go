@@ -33,6 +33,7 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	}
 	authn := middleware.NewAuthenticator(stores)
 	cg := handlers.NewCareGroups(stores)
+	mbr := handlers.NewMembers(stores)
 	inv := handlers.NewInvitations(stores)
 	rcv := handlers.NewReceivers(stores)
 	trk := handlers.NewTrackers(stores)
@@ -41,6 +42,7 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 
 	mux.Handle("GET /me", authn.Wrap(handlers.NewMe(stores)))
 	mux.Handle("POST /care-groups", authn.Wrap(http.HandlerFunc(cg.Create)))
+	mux.Handle("GET /care-groups/{careGroupId}/members", authn.Wrap(mbr))
 	mux.Handle("POST /care-groups/{careGroupId}/invitations", authn.Wrap(http.HandlerFunc(cg.CreateInvitation)))
 	mux.Handle("DELETE /care-groups/{careGroupId}/invitations/{token}", authn.Wrap(http.HandlerFunc(cg.RevokeInvitation)))
 	mux.Handle("GET /invitations/mine", authn.Wrap(http.HandlerFunc(inv.Mine)))

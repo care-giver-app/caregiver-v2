@@ -11,6 +11,29 @@ import (
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/store/dynamotest"
 )
 
+func TestUserStore_BatchGet(t *testing.T) {
+	s := dynamotest.Start(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Truncate(time.Second)
+
+	for _, u := range []domain.User{
+		{UserID: "u1", Email: "u1@x.com", Name: "Una", CreatedAt: now},
+		{UserID: "u2", Email: "u2@x.com", Name: "Dos", CreatedAt: now},
+	} {
+		if _, err := s.Users.CreateIfAbsent(ctx, u); err != nil {
+			t.Fatalf("seed %s: %v", u.UserID, err)
+		}
+	}
+
+	got, err := s.Users.BatchGet(ctx, []string{"u1", "u2", "missing"})
+	if err != nil {
+		t.Fatalf("batchget: %v", err)
+	}
+	if len(got) != 2 || got["u1"].Name != "Una" || got["u2"].Name != "Dos" {
+		t.Fatalf("unexpected: %+v", got)
+	}
+}
+
 func TestUserStore_GetByEmail(t *testing.T) {
 	s := dynamotest.Start(t)
 	ctx := context.Background()
