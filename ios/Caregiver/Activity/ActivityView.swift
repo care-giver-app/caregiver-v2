@@ -113,8 +113,12 @@ struct ActivityView: View {
                 ErrorStateView(message: message) { Task { await reload() } }
             case .loaded(let refs):
                 List {
-                    ForEach(refs, id: \.self) { ref in
-                        NavigationLink(value: ref) { ActivityRow(ref: ref) }
+                    ForEach(Array(refs.enumerated()), id: \.element) { index, ref in
+                        NavigationLink(value: ref) {
+                            ActivityRow(ref: ref, isFirst: index == 0, isLast: index == refs.count - 1)
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     }
                 }
                 .listStyle(.plain)
