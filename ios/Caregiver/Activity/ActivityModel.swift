@@ -13,14 +13,14 @@ final class ActivityModel {
 
     private(set) var state: State = .loading
 
-    /// Flattens per-tracker events into `EventRef`s, newest-first; ties broken by
-    /// `eventId` ascending so the order is deterministic.
+    /// Flattens per-tracker events into `EventRef`s, oldest-first (earliest event first); ties
+    /// broken by `eventId` ascending so the order is deterministic.
     nonisolated static func merge(_ perTracker: [(Components.Schemas.Tracker, [Components.Schemas.Event])]) -> [EventRef] {
         perTracker
             .flatMap { tracker, events in events.map { EventRef(tracker: tracker, event: $0) } }
             .sorted { lhs, rhs in
                 if lhs.event.occurredAt != rhs.event.occurredAt {
-                    return lhs.event.occurredAt > rhs.event.occurredAt
+                    return lhs.event.occurredAt < rhs.event.occurredAt
                 }
                 return lhs.event.eventId < rhs.event.eventId
             }

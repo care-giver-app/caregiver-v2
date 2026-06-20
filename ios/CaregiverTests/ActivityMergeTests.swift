@@ -21,14 +21,14 @@ final class ActivityMergeTests: XCTestCase {
         )
     }
 
-    func testMergeSortsNewestFirstAcrossTrackers() {
+    func testMergeSortsOldestFirstAcrossTrackers() {
         let t1 = tracker("1"); let t2 = tracker("2")
         let input: [(Components.Schemas.Tracker, [Components.Schemas.Event])] = [
             (t1, [event("a", at: 100), event("b", at: 300)]),
             (t2, [event("c", at: 200)]),
         ]
         let refs = ActivityModel.merge(input)
-        XCTAssertEqual(refs.map { $0.event.eventId }, ["b", "c", "a"])
+        XCTAssertEqual(refs.map { $0.event.eventId }, ["a", "c", "b"])
     }
 
     func testMergeEmptyInputIsEmpty() {
