@@ -9,10 +9,12 @@ applies.
 These surfaced in the B1 review; the security/correctness-critical findings were fixed in the B1 PR.
 The following were deferred (family-scale-safe today):
 
-- **`BatchGet` ignores `UnprocessedKeys` + the 100-key limit** — `shared/go-common/store/caregroup.go`
-  (`CareGroupStore.BatchGet`). Used by `GET /me` and `GET /invitations/mine`. Under DynamoDB
-  throttling or >100 ids, dropped keys silently become empty group names. _Fix:_ batch in ≤100-key
-  chunks and retry `UnprocessedKeys`. _Trigger:_ users belonging to many groups, or throttling.
+- **`BatchGet` ignores `UnprocessedKeys` + the 100-key limit** — `CareGroupStore.BatchGet`
+  (`shared/go-common/store/caregroup.go`) and `UserStore.BatchGet` (`shared/go-common/store/user.go`).
+  Used by `GET /me`, `GET /invitations/mine`, and `GET /care-groups/{id}/members`. Under DynamoDB
+  throttling or >100 ids, dropped keys silently become empty group/member names. _Fix:_ batch in
+  ≤100-key chunks and retry `UnprocessedKeys`. _Trigger:_ users belonging to many groups, large
+  care-group rosters, or throttling.
 - **`queryPending` has no pagination** — `shared/go-common/store/invitation.go`
   (`ListPendingByEmail`/`ListPendingByGroup`). `status='pending'` is a post-read `FilterExpression`,
   so pending invites past the first 1 MB Query page are missed (affects the duplicate-pending guard
