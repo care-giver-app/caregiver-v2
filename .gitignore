@@ -58,3 +58,6 @@ shared/types-swift/Package.resolved
 .aws-sam/
 
 .superpowers/
+
+# Implementation plans are disposable — generated from specs, never committed.
+docs/plans/

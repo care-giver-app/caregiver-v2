@@ -11,8 +11,8 @@ runs for the family until v2 is ready — see `docs/adr/0001-*`). AWS-native, **
 **Status:** F1 (engineering baseline), B1 (data model & identity), and **B3a** (core care domain —
 Receivers, Trackers, Events) are **done**. B3 was decomposed: **B3b** (Schedules,
 NotificationPreferences, Audit read) is still planned. Next per the roadmap is **B3b** or **C1** (iOS
-MVP — now unblocked). Each phase goes brainstorm → design spec (`docs/specs/`) → implementation plan
-(`docs/plans/`) → implementation.
+MVP — now unblocked). Each phase goes brainstorm → **spec** → **(disposable) plan** → implementation
+(see **Specs & plans** below).
 
 ## Layout & modules
 
@@ -25,11 +25,30 @@ MVP — now unblocked). Each phase goes brainstorm → design spec (`docs/specs/
 | `api/`                                    | Go Lambda HTTP API (module `…/api`, Go 1.23.7). `cmd/lambda/mux.go` wires routes; `internal/{handlers,middleware,httpx}`.               |
 | `services/`                               | Async/scheduled Lambdas (B2). Empty for now.                                                                                            |
 | `infra/`                                  | AWS CDK (TypeScript). `lib/{shared,api,observability,billing}-stack.ts`, `bin/app.ts`.                                                  |
-| `web/`, `ios/`                            | Clients (C-phases).                                                                                                                     |
-| `docs/`                                   | `roadmap.md`, `specs/`, `plans/`, `adr/`, `runbook.md`, `TECH_DEBT.md`.                                                                 |
+| `web/`, `ios/`                            | Clients (C-phases). Each module owns its **living specs** in a `specs/` subfolder (e.g. `ios/specs/`).                                  |
+| `docs/`                                   | `roadmap.md`, `spec-template.md`, `adr/`, `runbook.md`, `TECH_DEBT.md`. (`docs/specs/` holds older dated design records.)               |
 
 Go module paths are all `github.com/care-giver-app/caregiver-v2/...`. `api` has a `replace` for
 `go-common`.
+
+## Specs & plans (source of truth)
+
+**Specs are living, conceptual, and co-located per module.** One spec per feature, feature-named (no
+date prefix), in the module's `specs/` folder (`ios/specs/`, `api/specs/`, `infra/specs/`,
+`shared/go-common/specs/`). Edit them **in place** as the feature evolves — a spec always reflects the
+current intended state, so you can read it to understand a feature and where it lives in the code
+without reading the code. **Template + full conventions: `docs/spec-template.md`.** First worked
+example: `ios/specs/activity-timeline.md`.
+
+- **A spec describes one module only.** The interface _between_ modules is the OpenAPI contract
+  (`shared/openapi/openapi.yaml`) — specs reference it, never duplicate it.
+- **Decisions live in the spec**, not the plan. The "Key decisions" table is the feature's running
+  history of _why_; append to it instead of letting rationale vanish into a plan.
+- **Plans are disposable and gitignored** (`docs/plans/`). Generate a plan from the current spec when
+  it's time to write code, then discard it. Update the spec → regenerate a plan → update the code.
+- **Migration:** older specs in `docs/specs/` (dated `YYYY-MM-DD-*-design.md`) are historical records.
+  Migrate one to the living co-located format **only when you next touch that feature** — don't
+  bulk-migrate.
 
 ## Conventions & gotchas (the things that bite)
 
