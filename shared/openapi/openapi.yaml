@@ -162,6 +162,22 @@ paths:
                 items: { $ref: '#/components/schemas/Receiver' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+  /care-groups/{careGroupId}/members:
+    get:
+      operationId: listMembers
+      summary: List the members of a care group (any member)
+      parameters:
+        - { name: careGroupId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Member' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
   /care-groups/{careGroupId}/receivers:
     post:
       operationId: createReceiver
@@ -457,6 +473,13 @@ components:
       required: [care_group_id, name, role]
       properties:
         care_group_id: { type: string }
+        name: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+    Member:
+      type: object
+      required: [user_id, name, role]
+      properties:
+        user_id: { type: string }
         name: { type: string }
         role: { $ref: '#/components/schemas/Role' }
     Me:

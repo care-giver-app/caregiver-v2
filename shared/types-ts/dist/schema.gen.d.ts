@@ -159,6 +159,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    '/care-groups/{careGroupId}/members': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the members of a care group (any member) */
+        get: operations['listMembers'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     '/care-groups/{careGroupId}/receivers': {
         parameters: {
             query?: never;
@@ -320,6 +337,11 @@ export interface components {
         };
         MembershipView: {
             care_group_id: string;
+            name: string;
+            role: components['schemas']['Role'];
+        };
+        Member: {
+            user_id: string;
             name: string;
             role: components['schemas']['Role'];
         };
@@ -730,6 +752,30 @@ export interface operations {
                 };
                 content: {
                     'application/json': components['schemas']['Receiver'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+        };
+    };
+    listMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                careGroupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Member'][];
                 };
             };
             401: components['responses']['Unauthorized'];
