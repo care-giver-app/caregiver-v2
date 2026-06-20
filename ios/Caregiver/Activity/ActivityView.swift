@@ -112,17 +112,16 @@ struct ActivityView: View {
             case .error(let message):
                 ErrorStateView(message: message) { Task { await reload() } }
             case .loaded(let refs):
-                List {
-                    ForEach(Array(refs.enumerated()), id: \.element) { index, ref in
-                        NavigationLink(value: ref) {
-                            ActivityRow(ref: ref, isFirst: index == 0, isLast: index == refs.count - 1)
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(refs.enumerated()), id: \.element) { index, ref in
+                            NavigationLink(value: ref) {
+                                ActivityRow(ref: ref, isFirst: index == 0, isLast: index == refs.count - 1)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
                     }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
                 .refreshable { await reload() }
             }
         }
