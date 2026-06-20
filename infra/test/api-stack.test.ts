@@ -128,11 +128,12 @@ describe('ApiStack', () => {
     const t = Template.fromStack(apiStack);
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
-    t.resourceCountIs('AWS::ApiGatewayV2::Route', 24);
+    t.resourceCountIs('AWS::ApiGatewayV2::Route', 25);
 
     for (const routeKey of [
       'GET /me',
       'POST /care-groups',
+      'GET /care-groups/{careGroupId}/members',
       'POST /care-groups/{careGroupId}/invitations',
       'DELETE /care-groups/{careGroupId}/invitations/{token}',
       'GET /invitations/mine',
