@@ -14,11 +14,14 @@ struct ActivityView: View {
     var body: some View {
         Group {
             if let receiver = context.activeReceiver {
-                VStack(spacing: 0) {
-                    dateHeader
-                    Divider()
-                    content(receiverID: receiver.receiverId)
+                ScrollView {
+                    VStack(spacing: Theme.Spacing.lg) {
+                        timelineWidget(receiverID: receiver.receiverId)
+                    }
+                    .padding(.horizontal, Theme.Spacing.md)
+                    .padding(.top, Theme.Spacing.md)
                 }
+                .refreshable { await reload() }
             } else {
                 EmptyStateView(message: "No receiver selected.")
             }
@@ -102,31 +105,39 @@ struct ActivityView: View {
 
     // MARK: Day content
 
-    @ViewBuilder private func content(receiverID: String) -> some View {
-        Group {
-            switch model.state {
-            case .loading:
-                LoadingView()
-            case .empty:
-                EmptyStateView(message: "No activity on \(ActivityDay.label(for: selectedDate)).")
-            case .error(let message):
-                ErrorStateView(message: message) { Task { await reload() } }
-            case .loaded(let refs):
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(refs.enumerated()), id: \.element) { index, ref in
-                            NavigationLink(value: ref) {
-                                ActivityRow(ref: ref, isFirst: index == 0, isLast: index == refs.count - 1)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .refreshable { await reload() }
-            }
+    /// The timeline as a self-contained glass widget: date-nav header + the day's content.
+    @ViewBuilder private func timelineWidget(receiverID: String) -> some View {
+        VStack(spacing: 0) {
+            dateHeader
+            Divider()
+            dayContent
         }
+        .glassCard()
         .task(id: DayKey(receiverID: receiverID, dayStart: ActivityDay.bounds(for: selectedDate).start)) {
             await reload()
+        }
+    }
+
+    @ViewBuilder private var dayContent: some View {
+        switch model.state {
+        case .loading:
+            LoadingView()
+                .frame(height: 140)
+        case .empty:
+            EmptyStateView(message: "No activity on \(ActivityDay.label(for: selectedDate)).")
+                .frame(height: 140)
+        case .error(let message):
+            ErrorStateView(message: message) { Task { await reload() } }
+                .frame(height: 160)
+        case .loaded(let refs):
+            VStack(spacing: 0) {
+                ForEach(Array(refs.enumerated()), id: \.element) { index, ref in
+                    NavigationLink(value: ref) {
+                        ActivityRow(ref: ref, isFirst: index == 0, isLast: index == refs.count - 1)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 }
