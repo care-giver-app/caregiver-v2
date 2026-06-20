@@ -3,7 +3,7 @@
 - **Module:** api
 - **Status:** Current
 - **Last updated:** 2026-06-20
-- **Contract:** `GET /care-groups/{careGroupId}/members` → `MembersList` (new op + schemas in `shared/openapi/openapi.yaml`)
+- **Contract:** `GET /care-groups/{careGroupId}/members` → array of `Member` (new op + schema in `shared/openapi/openapi.yaml`)
 - **Related specs:** B1 data model & identity (`docs/specs/2026-06-11-b1-data-model-identity-design.md`); consumed by [[event-detail]] (ios)
 
 > Living, conceptual spec for one module (api). The interface to clients is owned by the OpenAPI
@@ -23,7 +23,7 @@ resolved to the member's display name:
 
 - **Authorization:** `RequireMember` — any member of the group may list its members; non-members get
   `403`. (Not admin-gated: seeing your teammates is a baseline member capability.)
-- **Response:** `MembersList` = an array of `Member { user_id, name, role }`, one per membership.
+- **Response:** an array of `Member { user_id, name, role }`, one per membership.
 - **Name resolution:** query memberships by group (`MembershipStore.ListByGroup`, backed by the
   existing `groupIndex` GSI), then batch-resolve each `user_id` to its `User.name` — the same
   membership→user pattern `me.go` already uses to resolve group names.
@@ -46,14 +46,14 @@ No new table, GSI, or write path — this is a read over data B1 already stores.
 
 ## Where it lives
 
-| Concept                                      | File                                                   |
-| -------------------------------------------- | ------------------------------------------------------ |
-| Handler: authz + resolve + JSON              | `api/internal/handlers/members.go`                     |
-| Route wiring                                 | `api/cmd/lambda/mux.go`                                |
-| Membership query (existing)                  | `shared/go-common/store/membership.go` (`ListByGroup`) |
-| User name lookup (existing)                  | `shared/go-common/store/user.go` (`Get` / batch)       |
-| Contract: operation + `Member`/`MembersList` | `shared/openapi/openapi.yaml`                          |
-| Handler tests                                | `api/internal/handlers/members_test.go`                |
+| Concept                         | File                                                   |
+| ------------------------------- | ------------------------------------------------------ |
+| Handler: authz + resolve + JSON | `api/internal/handlers/members.go`                     |
+| Route wiring                    | `api/cmd/lambda/mux.go`                                |
+| Membership query (existing)     | `shared/go-common/store/membership.go` (`ListByGroup`) |
+| User name lookup (existing)     | `shared/go-common/store/user.go` (`Get` / batch)       |
+| Contract: operation + `Member`  | `shared/openapi/openapi.yaml`                          |
+| Handler tests                   | `api/internal/handlers/members_test.go`                |
 
 ## Non-goals
 
