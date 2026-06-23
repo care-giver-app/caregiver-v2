@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Caregiver — Design System Gallery</title>
+    <link rel="stylesheet" href="gallery.css" />
+    <link rel="stylesheet" href="components.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <strong class="topbar__title">Caregiver Design System</strong>
+      <nav class="topbar__nav">
+        <a href="#tokens">Tokens</a>
+        <a href="#components">Components</a>
+        <a href="#states">States</a>
+      </nav>
+      <div class="topbar__controls">
+        <label for="palette-select">Palette</label>
+        <select id="palette-select"></select>
+        <button id="toggle-light" type="button">Light</button>
+        <button id="toggle-dark" type="button">Dark</button>
+      </div>
+    </header>
+
+    <main class="earth-bg">
+      <section id="tokens" class="section">
+        <h2 class="section__title">Tokens</h2>
+        <h3 class="section__subtitle">Colors</h3>
+        <div id="tokens-colors" class="swatch-grid"></div>
+        <h3 class="section__subtitle">Spacing</h3>
+        <div id="tokens-spacing" class="scale-list"></div>
+        <h3 class="section__subtitle">Radius</h3>
+        <div id="tokens-radius" class="scale-list"></div>
+        <h3 class="section__subtitle">Type ramp</h3>
+        <div id="tokens-type" class="type-list"></div>
+        <h3 class="section__subtitle">Gradient</h3>
+        <div id="tokens-gradient" class="gradient-list"></div>
+      </section>
+
+      <section id="components" class="section">
+        <h2 class="section__title">Components</h2>
+        <div id="components-grid" class="card-grid"></div>
+      </section>
+
+      <section id="states" class="section">
+        <h2 class="section__title">States</h2>
+        <div id="states-grid" class="card-grid"></div>
+      </section>
+    </main>
+
+    <script type="module" src="gallery.js"></script>
+  </body>
+</html>
