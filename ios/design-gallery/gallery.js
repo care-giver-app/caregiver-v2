@@ -101,10 +101,10 @@ function makeSlide(title) {
 }
 
 // Token slide: header + scrolling body. Returns the body host element.
-function addTokenSlide(title) {
+function addTokenSlide(title, bodyClass) {
   const { slide } = makeSlide(title);
   const body = document.createElement('div');
-  body.className = 'slide__body';
+  body.className = bodyClass ? `slide__body ${bodyClass}` : 'slide__body';
   slide.appendChild(body);
   document.getElementById('slides').appendChild(slide);
   return body;
@@ -277,11 +277,11 @@ function buildSlides() {
   gradientHost = null;
 
   // Token slides.
-  colorHost = addTokenSlide('Colors');
-  renderScaleRows(addTokenSlide('Spacing'), tokens.scales.spacing, 'spacing');
-  renderScaleRows(addTokenSlide('Radius'), tokens.scales.radius, 'radius');
-  renderType(addTokenSlide('Type'), tokens.scales.type);
-  gradientHost = addTokenSlide('Gradient');
+  colorHost = addTokenSlide('Colors', 'swatch-grid');
+  renderScaleRows(addTokenSlide('Spacing', 'scale-list'), tokens.scales.spacing, 'spacing');
+  renderScaleRows(addTokenSlide('Radius', 'scale-list'), tokens.scales.radius, 'radius');
+  renderType(addTokenSlide('Type', 'type-list'), tokens.scales.type);
+  gradientHost = addTokenSlide('Gradient', 'gradient-list');
 
   // Component slides.
   for (const component of COMPONENTS) addComponentSlide(component);

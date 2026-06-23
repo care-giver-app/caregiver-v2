@@ -124,6 +124,10 @@ body {
   overflow: auto;
 }
 
+.slide__stage.earth-bg {
+  min-height: 0;
+}
+
 .slide__stage > * {
   width: 100%;
   max-width: 320px;
