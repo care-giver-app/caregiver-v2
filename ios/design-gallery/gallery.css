@@ -18,8 +18,10 @@ body {
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
   color: var(--color-textPrimary);
+  background: var(--color-background);
 }
 
+/* Sticky top bar: holds the global palette control. */
 .topbar {
   position: sticky;
   top: 0;
@@ -35,21 +37,6 @@ body {
 
 .topbar__title {
   font-size: 16px;
-}
-
-.topbar__nav {
-  display: flex;
-  gap: var(--space-md);
-}
-
-.topbar__nav a {
-  color: #fff;
-  text-decoration: none;
-  opacity: 0.85;
-}
-
-.topbar__nav a:hover {
-  opacity: 1;
 }
 
 .topbar__controls {
@@ -68,31 +55,107 @@ body {
   padding: 4px 10px;
 }
 
-.section {
-  padding: var(--space-lg);
-  max-width: 980px;
+/* Vertical list of equal-dimension slides, one per row. */
+.slides {
+  max-width: 760px;
   margin: 0 auto;
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 }
 
-.section__title {
-  margin: 0 0 var(--space-md);
+.slide {
+  height: 260px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.slide__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.slide__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--color-textPrimary);
 }
 
-.section__subtitle {
-  margin: var(--space-lg) 0 var(--space-sm);
-  color: var(--color-textSecondary);
-  font-weight: 600;
+/* Segmented in-slide toggle for component variations. */
+.slide__toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
+.slide__toggle button {
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-textSecondary);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.slide__toggle button[aria-pressed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+/* Component stage: earthy background, one centered component. */
+.slide__stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  overflow: auto;
+}
+
+.slide__stage > * {
+  width: 100%;
+  max-width: 320px;
+}
+
+.slide__code {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.04);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--color-textPrimary);
+  white-space: pre-wrap;
+}
+
+/* Token slide body (no earth stage): scrolls within the fixed frame. */
+.slide__body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-md);
+}
+
+/* Token displays. */
 .swatch-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: var(--space-md);
 }
 
 .swatch__chip {
-  height: 56px;
+  height: 44px;
   border-radius: var(--radius-control);
   border: 1px solid var(--color-border);
 }
@@ -100,6 +163,7 @@ body {
 .swatch__name {
   font-weight: 600;
   margin-top: var(--space-xs);
+  font-size: 13px;
 }
 
 .swatch__hex {
@@ -145,32 +209,4 @@ body {
 .gradient-sample {
   height: 64px;
   border-radius: var(--radius-card);
-}
-
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-md);
-}
-
-.demo-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  background: var(--color-surface);
-}
-
-.demo-card__stage {
-  padding: var(--space-lg);
-}
-
-.demo-card__code {
-  margin: 0;
-  padding: var(--space-md);
-  background: rgba(0, 0, 0, 0.04);
-  border-top: 1px solid var(--color-border);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  white-space: pre-wrap;
-  color: var(--color-textPrimary);
 }
