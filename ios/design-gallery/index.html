@@ -40,7 +40,88 @@
 
       <section id="components" class="section">
         <h2 class="section__title">Components</h2>
-        <div id="components-grid" class="card-grid"></div>
+        <div id="components-grid" class="card-grid">
+  <div class="demo-card">
+    <div class="demo-card__stage earth-bg">
+      <button class="btn-primary">Save</button>
+    </div>
+    <pre class="demo-card__code">PrimaryButton(title: "Save") { }</pre>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-card__stage earth-bg">
+      <button class="btn-secondary">Cancel</button>
+    </div>
+    <pre class="demo-card__code">SecondaryButton(title: "Cancel") { }</pre>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-card__stage earth-bg">
+      <button class="glass-button">Continue</button>
+    </div>
+    <pre class="demo-card__code">GlassButton(title: "Continue") { }</pre>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-card__stage earth-bg">
+      <div class="glass-field">
+        <span class="glass-field__placeholder">Email</span>
+      </div>
+    </div>
+    <pre class="demo-card__code">GlassField(placeholder: "Email", text: $email)</pre>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-card__stage earth-bg">
+      <div class="glass-field">
+        <span class="glass-field__icon">✉</span>
+        <span class="glass-field__placeholder">Email</span>
+      </div>
+    </div>
+    <pre class="demo-card__code">GlassField(placeholder: "Email", icon: "envelope", text: $email)</pre>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-card__stage earth-bg">
+      <div class="glass-field">
+        <span class="glass-field__icon">🔒</span>
+        <span class="glass-field__placeholder">••••••••</span>
+      </div>
+    </div>
+    <pre class="demo-card__code">GlassField(placeholder: "Password", isSecure: true, text: $pw)</pre>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-card__stage earth-bg">
+      <div class="glass-card">A glass card surface.</div>
+    </div>
+    <pre class="demo-card__code">SomeView().glassCard()</pre>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-card__stage earth-bg">
+      <div class="empty-state">No activity yet.</div>
+    </div>
+    <pre class="demo-card__code">EmptyStateView(message: "No activity yet.")</pre>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-card__stage earth-bg">
+      <div class="error-state">
+        <span>Something went wrong.</span>
+        <button class="btn-secondary" style="max-width:200px">Try again</button>
+      </div>
+    </div>
+    <pre class="demo-card__code">ErrorStateView(message: "…") { retry() }</pre>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-card__stage earth-bg">
+      <div class="loading-state">Loading…</div>
+    </div>
+    <pre class="demo-card__code">LoadingView()</pre>
+  </div>
+</div>
       </section>
 
       <section id="states" class="section">

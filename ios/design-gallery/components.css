@@ -1,0 +1,143 @@
+/* Earthy background: surface + earth gradient at ~0.4 opacity (mirrors .earthBackground()). */
+.earth-bg {
+  min-height: 100vh;
+  background-color: var(--color-surface);
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-olive) 40%, transparent),
+    color-mix(in srgb, var(--color-amber) 40%, transparent)
+  );
+}
+
+/* Shared glass surface (ultra-thin material + top-down white highlight + soft shadow). */
+.glass-field,
+.glass-button,
+.btn-primary {
+  position: relative;
+  border-radius: var(--radius-control);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--color-ink) 30%, transparent);
+  overflow: hidden;
+}
+
+.glass-field::before,
+.glass-button::before,
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent 50%);
+  pointer-events: none;
+}
+
+.glass-field,
+.glass-button {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.glass-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: calc(var(--space-md) - 2px) var(--space-md);
+  color: var(--color-ink);
+  font-size: 15px;
+}
+
+.glass-field__icon {
+  width: 20px;
+  text-align: center;
+}
+
+.glass-field__placeholder {
+  color: color-mix(in srgb, var(--color-ink) 55%, transparent);
+}
+
+.glass-button {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: calc(var(--space-md) - 2px);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-ink);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: calc(var(--space-md) - 2px);
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--color-accent) 75%, transparent);
+}
+
+.btn-secondary {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: calc(var(--space-md) - 3px);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: transparent;
+  border: 1.5px solid var(--color-accent);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+/* Card glass (thin material + white rim + top highlight + soft shadow). */
+.glass-card {
+  position: relative;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--color-ink) 12%, transparent);
+  padding: var(--space-md);
+  color: var(--color-textPrimary);
+  overflow: hidden;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--color-textSecondary);
+  font-size: 13px;
+  padding: var(--space-lg);
+}
+
+.error-state {
+  text-align: center;
+  color: var(--color-textSecondary);
+  font-size: 15px;
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.loading-state {
+  text-align: center;
+  color: var(--color-textSecondary);
+  padding: var(--space-lg);
+}
+
+/* State modifiers reused by the States section. */
+.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.is-pressed {
+  filter: brightness(0.92);
+  transform: translateY(1px);
+}
