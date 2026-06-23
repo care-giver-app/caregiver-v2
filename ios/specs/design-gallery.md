@@ -41,11 +41,39 @@ component. Everything visual is driven by **CSS variables fed from the active pa
     selection. A component with a single representation shows no toggle. Covered: `PrimaryButton`
     (default / pressed / disabled / loading), `SecondaryButton` (default / disabled), `GlassButton`
     (default / pressed), `GlassField` (plain / with-icon / secure), `glassCard`, `EmptyStateView`,
-    `ErrorStateView`, `LoadingView`.
+    `ErrorStateView`, `LoadingView`, and `Timeline` (read-only / tappable / minimal).
 - **No build step, no framework.** Plain HTML/CSS/JS. `gallery.js` renders the slides data-drivenly
   from a component manifest plus the tokens; the component look (thin-material glass, top-down white
   highlight, hairline rim, soft shadow, earth gradient) is reproduced in `components.css` from the
   token CSS variables — a best-effort _visual_ match of the SwiftUI components, reviewed by eye.
+
+### Timeline component
+
+`Timeline` is a reusable list primitive: it takes an **ordered list of nodes** and renders, per node, a
+fixed-width **gutter** (icon over short text), a **continuous vertical rail** with a colored **dot**
+(trimmed above the first and below the last node so adjacent rows join into one line), and **content**
+(title + description), plus an optional trailing chevron when the node is tappable. Earliest node at top.
+
+**`TimelineNode` — every field optional:**
+
+| Field         | Role                              | When omitted                                     |
+| ------------- | --------------------------------- | ------------------------------------------------ |
+| `icon`        | gutter SF Symbol                  | no icon (gutter column still reserves its width) |
+| `iconTint`    | gutter icon color                 | defaults to `textSecondary`                      |
+| `gutterText`  | text under the icon (e.g. a time) | no text                                          |
+| `nodeColor`   | the rail dot                      | defaults to `accent` (the dot always draws)      |
+| `title`       | content headline                  | line omitted                                     |
+| `description` | content subline                   | line omitted                                     |
+| `tap`         | row action                        | not tappable, no chevron                         |
+
+The gutter and rail keep fixed-width columns regardless of which fields a node provides, so the rail
+stays vertically aligned across rows. The activity tab is the intended consumer (sun/moon icon + tint
+from `isDaytime`, formatted time as `gutterText`, tracker color/name/value summary, tap → event detail).
+
+**Phasing:** the gallery documents `Timeline` and this node model now (a component slide — no Swift). The
+reusable SwiftUI `Timeline` is **extracted from `ActivityRow` later, together with migrating the activity
+tab to consume it**, so the API is validated against a real caller. This node model is the contract for
+that extraction.
 
 ### Source of truth & drift
 
@@ -77,35 +105,41 @@ clean JSON (parseable by both JS and the future Swift test) rather than being in
 
 ## Key decisions
 
-| Decision             | Choice                                                                                       | Why                                                                                                           |
-| -------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Gallery purpose      | Both documentation _and_ design sandbox                                                      | One artifact to show what exists and to explore new palettes/dark mode before building                        |
-| Theming end goal     | Devs re-theme in one place (one shipping theme), not user-runtime                            | Matches current `Theme.swift`; keeps the Swift change to a light token-layer refactor                         |
-| Source of truth      | Shared `tokens.json` (palettes + scales)                                                     | Gallery and Swift read the same token data; palette toggle = swap a token set                                 |
-| Drift mechanism      | Approach A — Swift **parity test**, not codegen                                              | Anti-drift guard with no new build pipeline; `Theme.swift` stays idiomatic; reuses existing iOS CI            |
-| Tech                 | Plain HTML/CSS/JS, no framework, no build                                                    | Lowest friction; a design tool shouldn't carry a toolchain                                                    |
-| Component fidelity   | Hand-matched CSS, eyeballed                                                                  | SwiftUI glass can't be generated into CSS; only tokens are truly shared                                       |
-| Viewing              | Local static server (clean JSON) over double-click (inlined JS)                              | Keeps `tokens.json` parseable by the future Swift test; small one-line-server cost is acceptable              |
-| Phasing              | Gallery first; `Theme` refactor + parity test deferred to Phase 2                            | User priority: get the visual gallery up now; accept a temporary manual-snapshot drift gap                    |
-| Dark palette         | Designed in the gallery now, _not_ ported to Swift yet                                       | Lets dark mode be seen/iterated cheaply before committing Swift work                                          |
-| Layout               | Equal-dimension slides, one per row (tokens + components), not a card grid                   | User feedback: cards were too big/inconsistent; a slide-per-thing reads cleanly and scales uniformly          |
-| Component variations | One in-slide segmented toggle per component, unifying states + variants, one shown at a time | Keeps each slide self-contained and uniformly sized; "see each version" via a toggle, not side-by-side sprawl |
+| Decision             | Choice                                                                                          | Why                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Gallery purpose      | Both documentation _and_ design sandbox                                                         | One artifact to show what exists and to explore new palettes/dark mode before building                        |
+| Theming end goal     | Devs re-theme in one place (one shipping theme), not user-runtime                               | Matches current `Theme.swift`; keeps the Swift change to a light token-layer refactor                         |
+| Source of truth      | Shared `tokens.json` (palettes + scales)                                                        | Gallery and Swift read the same token data; palette toggle = swap a token set                                 |
+| Drift mechanism      | Approach A — Swift **parity test**, not codegen                                                 | Anti-drift guard with no new build pipeline; `Theme.swift` stays idiomatic; reuses existing iOS CI            |
+| Tech                 | Plain HTML/CSS/JS, no framework, no build                                                       | Lowest friction; a design tool shouldn't carry a toolchain                                                    |
+| Component fidelity   | Hand-matched CSS, eyeballed                                                                     | SwiftUI glass can't be generated into CSS; only tokens are truly shared                                       |
+| Viewing              | Local static server (clean JSON) over double-click (inlined JS)                                 | Keeps `tokens.json` parseable by the future Swift test; small one-line-server cost is acceptable              |
+| Phasing              | Gallery first; `Theme` refactor + parity test deferred to Phase 2                               | User priority: get the visual gallery up now; accept a temporary manual-snapshot drift gap                    |
+| Dark palette         | Designed in the gallery now, _not_ ported to Swift yet                                          | Lets dark mode be seen/iterated cheaply before committing Swift work                                          |
+| Layout               | Equal-dimension slides, one per row (tokens + components), not a card grid                      | User feedback: cards were too big/inconsistent; a slide-per-thing reads cleanly and scales uniformly          |
+| Component variations | One in-slide segmented toggle per component, unifying states + variants, one shown at a time    | Keeps each slide self-contained and uniformly sized; "see each version" via a toggle, not side-by-side sprawl |
+| Timeline             | Reusable `Timeline` taking an ordered `[TimelineNode]`; the activity tab becomes one consumer   | A timeline primitive instead of timeline-only inline rows — reusable wherever a node list is shown            |
+| Timeline node fields | Every field optional, graceful omission; gutter + rail keep fixed-width columns                 | Adapts to varied consumers without forcing data; fixed columns keep the rail aligned                          |
+| Timeline sequencing  | Gallery slide now (no Swift); Swift extraction + activity-tab migration deferred, done together | Keeps PR #28 gallery-only, avoids an orphan component, validates the node API against a real caller           |
 
 ## Where it lives
 
-| Concept                                                                                          | File                                          |
-| ------------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| Page shell + sticky palette bar + empty slide-list host                                          | `ios/design-gallery/index.html`               |
-| Gallery chrome: sticky bar + uniform slide frame + header/segmented-toggle                       | `ios/design-gallery/gallery.css`              |
-| Component styles mimicking SwiftUI, driven by token vars                                         | `ios/design-gallery/components.css`           |
-| Component manifest; render token + component slides; per-slide variation toggle + palette toggle | `ios/design-gallery/gallery.js`               |
-| Source of truth: palettes + scales + gradients                                                   | `ios/design-gallery/tokens.json`              |
-| How to view + add a palette/component                                                            | `ios/design-gallery/README.md`                |
-| Existing tokens mirrored by `tokens.json` (`light`)                                              | `ios/Caregiver/DesignSystem/Theme.swift`      |
-| Existing components reproduced in the gallery                                                    | `ios/Caregiver/DesignSystem/Components.swift` |
-| Phase 2: `Palette` refactor + `active` palette                                                   | `ios/Caregiver/DesignSystem/Theme.swift`      |
-| Phase 2: parity test (loads `tokens.json` from bundle)                                           | `ios/CaregiverTests/` (new test)              |
-| Phase 2: wire `tokens.json` as test-target resource                                              | `ios/project.yml`                             |
+| Concept                                                                                          | File                                                     |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| Page shell + sticky palette bar + empty slide-list host                                          | `ios/design-gallery/index.html`                          |
+| Gallery chrome: sticky bar + uniform slide frame + header/segmented-toggle                       | `ios/design-gallery/gallery.css`                         |
+| Component styles mimicking SwiftUI, driven by token vars                                         | `ios/design-gallery/components.css`                      |
+| Component manifest; render token + component slides; per-slide variation toggle + palette toggle | `ios/design-gallery/gallery.js`                          |
+| Source of truth: palettes + scales + gradients                                                   | `ios/design-gallery/tokens.json`                         |
+| How to view + add a palette/component                                                            | `ios/design-gallery/README.md`                           |
+| Existing tokens mirrored by `tokens.json` (`light`)                                              | `ios/Caregiver/DesignSystem/Theme.swift`                 |
+| Existing components reproduced in the gallery                                                    | `ios/Caregiver/DesignSystem/Components.swift`            |
+| Timeline gallery slide (manifest entry + timeline CSS)                                           | `ios/design-gallery/gallery.js`, `components.css`        |
+| Current inline gutter/rail/content (source for the later extraction)                             | `ios/Caregiver/Activity/ActivityRow.swift`               |
+| Later: reusable `Timeline` extracted + activity tab migrated to it                               | `ios/Caregiver/DesignSystem/`, `ios/Caregiver/Activity/` |
+| Phase 2: `Palette` refactor + `active` palette                                                   | `ios/Caregiver/DesignSystem/Theme.swift`                 |
+| Phase 2: parity test (loads `tokens.json` from bundle)                                           | `ios/CaregiverTests/` (new test)                         |
+| Phase 2: wire `tokens.json` as test-target resource                                              | `ios/project.yml`                                        |
 
 ## Non-goals
 
@@ -116,3 +150,5 @@ clean JSON (parseable by both JS and the future Swift test) rather than being in
 - No C2-era components yet (breach badge using the reserved `alert` color, tracker-builder controls);
   the gallery is structured so they slot in as new slides (an entry in the component manifest).
 - Phase 1 makes **no Swift changes** — the refactor and parity test are deferred to Phase 2.
+- No Swift `Timeline` extraction or activity-tab migration in this round — the gallery documents the
+  intended component + node model; the extraction lands later, together with the activity migration.
