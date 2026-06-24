@@ -9,25 +9,6 @@
   );
 }
 
-/* Shared glass surface (ultra-thin material + top-down white highlight + soft shadow). */
-.glass-button {
-  position: relative;
-  border-radius: var(--radius-control);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 4px 8px color-mix(in srgb, var(--color-foreground) 30%, transparent);
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.glass-button::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent 50%);
-  pointer-events: none;
-}
-
 .glass-field {
   display: flex;
   align-items: center;
@@ -37,7 +18,7 @@
   font-size: 15px;
   border-radius: var(--radius-control);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.25);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
@@ -48,18 +29,6 @@
 
 .glass-field__placeholder {
   color: color-mix(in srgb, var(--color-foreground) 55%, transparent);
-}
-
-.glass-button {
-  display: block;
-  width: 100%;
-  text-align: center;
-  padding: calc(var(--space-md) - 2px);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-foreground);
-  border: none;
-  cursor: pointer;
 }
 
 .btn-primary {
@@ -101,18 +70,13 @@
   cursor: pointer;
 }
 
-/* Card glass (thin material + white rim + top highlight + soft shadow). */
 .glass-card {
-  position: relative;
   border-radius: var(--radius-card);
   background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 10px color-mix(in srgb, var(--color-foreground) 12%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
   padding: var(--space-md);
   color: var(--color-textPrimary);
-  overflow: hidden;
 }
 
 .empty-state {
