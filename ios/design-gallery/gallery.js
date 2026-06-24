@@ -253,18 +253,18 @@ const COMPONENTS = [
         label: 'Read-only',
         html: `<div class="timeline">
   <div class="tl-row">
-    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-amber)">☀</span><span class="tl-gutter__text">8:15 AM</span></div>
+    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-tertiary)">☀</span><span class="tl-gutter__text">8:15 AM</span></div>
     <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-accent)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
     <div class="tl-content"><div class="tl-title">Morning meds</div><div class="tl-desc">Lisinopril 10mg</div></div>
   </div>
   <div class="tl-row">
-    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-amber)">☀</span><span class="tl-gutter__text">1:30 PM</span></div>
-    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-amber)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-tertiary)">☀</span><span class="tl-gutter__text">1:30 PM</span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-tertiary)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
     <div class="tl-content"><div class="tl-title">Blood pressure</div><div class="tl-desc">128/82</div></div>
   </div>
   <div class="tl-row">
     <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-textSecondary)">☾</span><span class="tl-gutter__text">9:45 PM</span></div>
-    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-olive)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-highlight)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
     <div class="tl-content"><div class="tl-title">Walk</div><div class="tl-desc">20 min around the block</div></div>
   </div>
 </div>`,
@@ -274,20 +274,20 @@ const COMPONENTS = [
         label: 'Tappable',
         html: `<div class="timeline">
   <div class="tl-row tl-row--tappable">
-    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-amber)">☀</span><span class="tl-gutter__text">8:15 AM</span></div>
+    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-tertiary)">☀</span><span class="tl-gutter__text">8:15 AM</span></div>
     <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-accent)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
     <div class="tl-content"><div class="tl-title">Morning meds</div><div class="tl-desc">Lisinopril 10mg</div></div>
     <span class="tl-chevron">›</span>
   </div>
   <div class="tl-row tl-row--tappable">
-    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-amber)">☀</span><span class="tl-gutter__text">1:30 PM</span></div>
-    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-amber)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-tertiary)">☀</span><span class="tl-gutter__text">1:30 PM</span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-tertiary)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
     <div class="tl-content"><div class="tl-title">Blood pressure</div><div class="tl-desc">128/82</div></div>
     <span class="tl-chevron">›</span>
   </div>
   <div class="tl-row tl-row--tappable">
     <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-textSecondary)">☾</span><span class="tl-gutter__text">9:45 PM</span></div>
-    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-olive)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-highlight)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
     <div class="tl-content"><div class="tl-title">Walk</div><div class="tl-desc">20 min around the block</div></div>
     <span class="tl-chevron">›</span>
   </div>
@@ -304,12 +304,12 @@ const COMPONENTS = [
   </div>
   <div class="tl-row">
     <div class="tl-gutter"></div>
-    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-olive)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-highlight)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
     <div class="tl-content"><div class="tl-title">Step two</div></div>
   </div>
   <div class="tl-row">
     <div class="tl-gutter"></div>
-    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-amber)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-tertiary)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
     <div class="tl-content"><div class="tl-title">Step three</div></div>
   </div>
 </div>`,
