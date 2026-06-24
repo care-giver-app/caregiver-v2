@@ -22,9 +22,10 @@ Then open http://localhost:8000.
   `ios/Caregiver/DesignSystem/Theme.swift`.
 - **Add a palette:** add a named object under `palettes` in `tokens.json`; it
   appears in the palette dropdown automatically.
-- **Add a component:** add a `.demo-card` block to `#components-grid` in
-  `index.html` and style it in `components.css` using the `--color-*` /
-  `--space-*` / `--radius-*` CSS variables so it re-themes with the palette.
+- **Add a component:** add an entry to the `COMPONENTS` array in `gallery.js`
+  (name + variations with `html` and `code` fields), and add any new CSS classes
+  to `components.css` using the `--color-*` / `--space-*` / `--radius-*`
+  variables so it re-themes with the palette.
 
 ## Scope
 
