@@ -152,87 +152,67 @@ function addComponentSlide(component) {
 
 const COMPONENTS = [
   {
-    name: 'Primary Button',
+    name: 'Button',
     variations: [
       {
-        label: 'Default',
+        label: 'Primary',
         html: `<button class="btn-primary">Save</button>`,
-        code: `PrimaryButton(title: "Save") { }`,
+        code: `StrideButton(title: "Save") { }`,
       },
       {
-        label: 'Pressed',
+        label: 'Pri · Pressed',
         html: `<button class="btn-primary is-pressed">Save</button>`,
         code: `// pressed state`,
       },
       {
-        label: 'Disabled',
+        label: 'Pri · Disabled',
         html: `<button class="btn-primary is-disabled">Save</button>`,
-        code: `PrimaryButton(title: "Save") { }.disabled(true)`,
+        code: `StrideButton(title: "Save") { }.disabled(true)`,
       },
       {
-        label: 'Loading',
+        label: 'Pri · Loading',
         html: `<button class="btn-primary">⏳ Loading…</button>`,
-        code: `PrimaryButton(title: "Save", isLoading: true) { }`,
+        code: `StrideButton(title: "Save", isLoading: true) { }`,
       },
-    ],
-  },
-  {
-    name: 'Secondary Button',
-    variations: [
       {
-        label: 'Default',
+        label: 'Secondary',
         html: `<button class="btn-secondary">Cancel</button>`,
-        code: `SecondaryButton(title: "Cancel") { }`,
+        code: `StrideButton(title: "Cancel", style: .secondary) { }`,
       },
       {
-        label: 'Disabled',
+        label: 'Sec · Disabled',
         html: `<button class="btn-secondary is-disabled">Cancel</button>`,
-        code: `SecondaryButton(title: "Cancel") { }.disabled(true)`,
+        code: `StrideButton(title: "Cancel", style: .secondary) { }.disabled(true)`,
       },
     ],
   },
   {
-    name: 'Glass Button',
-    variations: [
-      {
-        label: 'Default',
-        html: `<button class="glass-button">Continue</button>`,
-        code: `GlassButton(title: "Continue") { }`,
-      },
-      {
-        label: 'Pressed',
-        html: `<button class="glass-button is-pressed">Continue</button>`,
-        code: `// pressed state`,
-      },
-    ],
-  },
-  {
-    name: 'Glass Field',
+    name: 'Field',
     variations: [
       {
         label: 'Plain',
         html: `<div class="glass-field"><span class="glass-field__placeholder">Email</span></div>`,
-        code: `GlassField(placeholder: "Email", text: $email)`,
+        code: `StrideField(placeholder: "Email", text: $email)`,
       },
       {
         label: 'With icon',
         html: `<div class="glass-field"><span class="glass-field__icon">✉</span><span class="glass-field__placeholder">Email</span></div>`,
-        code: `GlassField(placeholder: "Email", icon: "envelope", text: $email)`,
+        code: `StrideField(placeholder: "Email", icon: "envelope", text: $email)`,
       },
       {
         label: 'Secure',
         html: `<div class="glass-field"><span class="glass-field__icon">🔒</span><span class="glass-field__placeholder">••••••••</span></div>`,
-        code: `GlassField(placeholder: "Password", isSecure: true, text: $pw)`,
+        code: `StrideField(placeholder: "Password", isSecure: true, text: $pw)`,
       },
     ],
   },
   {
-    name: 'Glass Card',
+    name: 'Card',
     variations: [
       {
         label: 'Default',
-        html: `<div class="glass-card">A glass card surface.</div>`,
-        code: `SomeView().glassCard()`,
+        html: `<div class="glass-card">A card surface.</div>`,
+        code: `SomeView().strideCard()`,
       },
     ],
   },
@@ -242,7 +222,7 @@ const COMPONENTS = [
       {
         label: 'Default',
         html: `<div class="empty-state">No activity yet.</div>`,
-        code: `EmptyStateView(message: "No activity yet.")`,
+        code: `StrideEmptyState(message: "No activity yet.")`,
       },
     ],
   },
@@ -252,7 +232,7 @@ const COMPONENTS = [
       {
         label: 'Default',
         html: `<div class="error-state"><span>Something went wrong.</span><button class="btn-secondary" style="max-width:200px">Try again</button></div>`,
-        code: `ErrorStateView(message: "…") { retry() }`,
+        code: `StrideErrorState(message: "…") { retry() }`,
       },
     ],
   },
@@ -262,7 +242,7 @@ const COMPONENTS = [
       {
         label: 'Default',
         html: `<div class="loading-state">Loading…</div>`,
-        code: `LoadingView()`,
+        code: `StrideLoadingView()`,
       },
     ],
   },

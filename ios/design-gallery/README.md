@@ -1,7 +1,8 @@
 # Design System Gallery
 
-A standalone HTML gallery that documents and previews the Caregiver iOS app's
-reusable components and design tokens. Spec: `ios/specs/design-gallery.md`.
+A standalone HTML gallery that documents and previews the **Stride** design system —
+the reusable components and design tokens for the Caregiver iOS app.
+Spec: `ios/specs/design-gallery.md`.
 
 ## Viewing
 
