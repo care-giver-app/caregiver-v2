@@ -114,7 +114,7 @@ body {
   color: #fff;
 }
 
-/* Component stage: earthy background, one centered component. */
+/* Component stage: Stride background, one centered component. */
 .slide__stage {
   flex: 1;
   display: flex;
@@ -124,7 +124,7 @@ body {
   overflow: auto;
 }
 
-.slide__stage.earth-bg {
+.slide__stage.stride-bg {
   min-height: 0;
 }
 
@@ -144,7 +144,7 @@ body {
   white-space: pre-wrap;
 }
 
-/* Token slide body (no earth stage): scrolls within the fixed frame. */
+/* Token slide body (no Stride stage): scrolls within the fixed frame. */
 .slide__body {
   flex: 1;
   overflow: auto;

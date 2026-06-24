@@ -1,5 +1,5 @@
-/* Earthy background: surface + earth gradient at ~0.4 opacity (mirrors .earthBackground()). */
-.earth-bg {
+/* Stride background: surface + Stride gradient at ~0.4 opacity (mirrors .earthBackground()). */
+.stride-bg {
   min-height: 100vh;
   background-color: var(--color-surface);
   background-image: linear-gradient(
@@ -273,3 +273,45 @@
   font-size: 16px;
   color: var(--color-textTertiary);
 }
+
+/* Badge row: arranges multiple badges in a centered wrapping flex row. */
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  justify-content: center;
+}
+
+/* Base badge: pill shape, caption-scale, icon+text inline. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Tinted style: 15% status color background, full status color text. */
+.badge--tinted.badge--failure       { background: color-mix(in srgb, var(--color-failure)       15%, transparent); color: var(--color-failure); }
+.badge--tinted.badge--warning       { background: color-mix(in srgb, var(--color-warning)       15%, transparent); color: var(--color-warning); }
+.badge--tinted.badge--informational { background: color-mix(in srgb, var(--color-informational) 15%, transparent); color: var(--color-informational); }
+.badge--tinted.badge--success       { background: color-mix(in srgb, var(--color-success)       15%, transparent); color: var(--color-success); }
+.badge--tinted.badge--muted         { background: color-mix(in srgb, var(--color-muted)         15%, transparent); color: var(--color-muted); }
+
+/* Filled style: full status color background, white text. */
+.badge--filled.badge--failure       { background: var(--color-failure);       color: #fff; }
+.badge--filled.badge--warning       { background: var(--color-warning);       color: #fff; }
+.badge--filled.badge--informational { background: var(--color-informational); color: #fff; }
+.badge--filled.badge--success       { background: var(--color-success);       color: #fff; }
+.badge--filled.badge--muted         { background: var(--color-muted);         color: #fff; }
+
+/* Outlined style: transparent background, 1.5px status color border. */
+.badge--outlined.badge--failure       { background: transparent; border: 1.5px solid var(--color-failure);       color: var(--color-failure); }
+.badge--outlined.badge--warning       { background: transparent; border: 1.5px solid var(--color-warning);       color: var(--color-warning); }
+.badge--outlined.badge--informational { background: transparent; border: 1.5px solid var(--color-informational); color: var(--color-informational); }
+.badge--outlined.badge--success       { background: transparent; border: 1.5px solid var(--color-success);       color: var(--color-success); }
+.badge--outlined.badge--muted         { background: transparent; border: 1.5px solid var(--color-muted);         color: var(--color-muted); }
