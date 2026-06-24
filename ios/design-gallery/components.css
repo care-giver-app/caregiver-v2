@@ -4,8 +4,8 @@
   background-color: var(--color-surface);
   background-image: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--color-highlight) 40%, transparent),
-    color-mix(in srgb, var(--color-tertiary) 40%, transparent)
+    color-mix(in srgb, var(--color-highlight) 65%, transparent),
+    color-mix(in srgb, var(--color-tertiary) 65%, transparent)
   );
 }
 
