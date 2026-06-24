@@ -357,7 +357,7 @@ async function init() {
   applyScales(tokens.scales);
   buildSlides();
   populatePaletteSelect();
-  applyPalette('light');
+  applyPalette('arctic');
 }
 
 init();
