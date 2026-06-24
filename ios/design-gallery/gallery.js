@@ -78,7 +78,7 @@ function renderType(host, type) {
 
 function renderGradient(host, palette) {
   host.innerHTML = '';
-  const [from, to] = tokens.gradients.earth;
+  const [from, to] = tokens.gradients.stride;
   const sample = document.createElement('div');
   sample.className = 'gradient-sample';
   sample.style.background = `linear-gradient(to bottom, ${palette[from]}, ${palette[to]})`;
@@ -110,11 +110,11 @@ function addTokenSlide(title, bodyClass) {
   return body;
 }
 
-// Component slide: header (+ toggle if >1 variation), earthy stage, code line.
+// Component slide: header (+ toggle if >1 variation), Stride stage, code line.
 function addComponentSlide(component) {
   const { slide, header } = makeSlide(component.name);
   const stage = document.createElement('div');
-  stage.className = 'slide__stage earth-bg';
+  stage.className = 'slide__stage stride-bg';
   const code = document.createElement('pre');
   code.className = 'slide__code';
 
@@ -317,6 +317,44 @@ const COMPONENTS = [
       },
     ],
   },
+  {
+    name: 'Badge',
+    variations: [
+      {
+        label: 'Tinted',
+        html: `<div class="badge-row">
+  <span class="badge badge--tinted badge--failure">✕ Failure</span>
+  <span class="badge badge--tinted badge--warning">⚠ Warning</span>
+  <span class="badge badge--tinted badge--informational">ℹ Info</span>
+  <span class="badge badge--tinted badge--success">✓ Success</span>
+  <span class="badge badge--tinted badge--muted">— Muted</span>
+</div>`,
+        code: `StrideBadge(status: .failure, style: .tinted, icon: "xmark", label: "Failure")`,
+      },
+      {
+        label: 'Filled',
+        html: `<div class="badge-row">
+  <span class="badge badge--filled badge--failure">✕ Failure</span>
+  <span class="badge badge--filled badge--warning">⚠ Warning</span>
+  <span class="badge badge--filled badge--informational">ℹ Info</span>
+  <span class="badge badge--filled badge--success">✓ Success</span>
+  <span class="badge badge--filled badge--muted">— Muted</span>
+</div>`,
+        code: `StrideBadge(status: .failure, style: .filled, icon: "xmark", label: "Failure")`,
+      },
+      {
+        label: 'Outlined',
+        html: `<div class="badge-row">
+  <span class="badge badge--outlined badge--failure">✕ Failure</span>
+  <span class="badge badge--outlined badge--warning">⚠ Warning</span>
+  <span class="badge badge--outlined badge--informational">ℹ Info</span>
+  <span class="badge badge--outlined badge--success">✓ Success</span>
+  <span class="badge badge--outlined badge--muted">— Muted</span>
+</div>`,
+        code: `StrideBadge(status: .failure, style: .outlined, icon: "xmark", label: "Failure")`,
+      },
+    ],
+  },
 ];
 
 // ---- build ----
@@ -357,7 +395,7 @@ async function init() {
   applyScales(tokens.scales);
   buildSlides();
   populatePaletteSelect();
-  applyPalette('arctic');
+  applyPalette('light');
 }
 
 init();
