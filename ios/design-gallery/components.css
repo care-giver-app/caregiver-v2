@@ -11,8 +11,7 @@
 
 /* Shared glass surface (ultra-thin material + top-down white highlight + soft shadow). */
 .glass-field,
-.glass-button,
-.btn-primary {
+.glass-button {
   position: relative;
   border-radius: var(--radius-control);
   backdrop-filter: blur(20px);
@@ -22,8 +21,7 @@
 }
 
 .glass-field::before,
-.glass-button::before,
-.btn-primary::before {
+.glass-button::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -67,6 +65,7 @@
 }
 
 .btn-primary {
+  position: relative;
   display: block;
   width: 100%;
   text-align: center;
@@ -75,8 +74,19 @@
   font-weight: 600;
   color: #fff;
   border: none;
+  border-radius: var(--radius-control);
   cursor: pointer;
-  background: color-mix(in srgb, var(--color-accent) 75%, transparent);
+  background: var(--color-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent 55%);
+  pointer-events: none;
 }
 
 .btn-secondary {
