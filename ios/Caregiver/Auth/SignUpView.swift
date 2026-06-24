@@ -12,22 +12,22 @@ struct SignUpView: View {
                     .scaledToFit()
                     .frame(height: 200)
                 HStack(spacing: Theme.Spacing.sm) {
-                    GlassField(placeholder: "First name", text: $model.firstName)
+                    StrideField(placeholder: "First name", text: $model.firstName)
                         .textContentType(.givenName)
-                    GlassField(placeholder: "Last name", text: $model.lastName)
+                    StrideField(placeholder: "Last name", text: $model.lastName)
                         .textContentType(.familyName)
                 }
-                GlassField(placeholder: "Email", icon: "person.crop.circle", text: $model.email)
+                StrideField(placeholder: "Email", icon: "person.crop.circle", text: $model.email)
                     .textContentType(.emailAddress).keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
-                GlassField(placeholder: "Password (8+ chars)", icon: "lock", isSecure: true, text: $model.password)
+                StrideField(placeholder: "Password (8+ chars)", icon: "lock", isSecure: true, text: $model.password)
                     .textContentType(.newPassword)
-                GlassField(placeholder: "Confirm password", icon: "lock", isSecure: true, text: $model.confirmPassword)
+                StrideField(placeholder: "Confirm password", icon: "lock", isSecure: true, text: $model.confirmPassword)
                     .textContentType(.newPassword)
                 if let error = model.error {
                     Text(error.message).font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.alert)
                 }
-                PrimaryButton(title: "Create Account", isLoading: model.isBusy) {
+                StrideButton(title: "Create Account", isLoading: model.isBusy) {
                     Task { await model.signUp() }
                 }
                 Button("Back", action: onBack)

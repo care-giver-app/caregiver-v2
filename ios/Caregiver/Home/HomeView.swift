@@ -70,11 +70,11 @@ struct HomeView: View {
         Group {
             switch model.state {
             case .loading:
-                LoadingView()
+                StrideLoadingView()
             case .empty:
                 emptyState
             case .error(let message):
-                ErrorStateView(message: message) { Task { await reload() } }
+                StrideErrorState(message: message) { Task { await reload() } }
             case .loaded(let trackers):
                 trackerList(trackers)
             }
@@ -133,14 +133,14 @@ struct HomeView: View {
     @ViewBuilder private var emptyState: some View {
         if isAdminForActive, context.activeReceiver != nil {
             VStack(spacing: Theme.Spacing.md) {
-                EmptyStateView(message: "No trackers yet.")
-                PrimaryButton(title: "Add tracker") {
+                StrideEmptyState(message: "No trackers yet.")
+                StrideButton(title: "Add tracker") {
                     showAddTracker = true
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
             }
         } else {
-            EmptyStateView(message: "No trackers yet.")
+            StrideEmptyState(message: "No trackers yet.")
         }
     }
 

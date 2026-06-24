@@ -11,11 +11,11 @@ struct ReceiversListView: View {
         Group {
             switch model.state {
             case .loading:
-                LoadingView()
+                StrideLoadingView()
             case .empty:
-                EmptyStateView(message: "No receivers yet. Add the person you're caring for.")
+                StrideEmptyState(message: "No receivers yet. Add the person you're caring for.")
             case .error(let message):
-                ErrorStateView(message: message) { Task { await model.load(using: session) } }
+                StrideErrorState(message: message) { Task { await model.load(using: session) } }
             case .loaded(let receivers):
                 list(receivers)
             }

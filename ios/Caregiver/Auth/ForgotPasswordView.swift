@@ -20,12 +20,12 @@ struct ForgotPasswordView: View {
                 .padding(.top, Theme.Spacing.lg)
 
                 if model.resetCodeSent {
-                    GlassField(placeholder: "Reset code", icon: "number", text: $model.code)
+                    StrideField(placeholder: "Reset code", icon: "number", text: $model.code)
                         .keyboardType(.numberPad)
-                    GlassField(placeholder: "New password", icon: "lock", isSecure: true, text: $model.newPassword)
+                    StrideField(placeholder: "New password", icon: "lock", isSecure: true, text: $model.newPassword)
                         .textContentType(.newPassword)
                 } else {
-                    GlassField(placeholder: "Email", icon: "envelope", text: $model.email)
+                    StrideField(placeholder: "Email", icon: "envelope", text: $model.email)
                         .textContentType(.emailAddress).keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
@@ -36,7 +36,7 @@ struct ForgotPasswordView: View {
                         .foregroundStyle(Theme.Colors.alert)
                 }
 
-                PrimaryButton(
+                StrideButton(
                     title: model.resetCodeSent ? "Set new password" : "Send reset code",
                     isLoading: model.isBusy
                 ) {

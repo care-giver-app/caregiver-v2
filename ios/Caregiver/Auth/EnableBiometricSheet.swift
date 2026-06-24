@@ -23,7 +23,7 @@ struct EnableBiometricSheet: View {
                     .multilineTextAlignment(.center)
             }
             Spacer()
-            PrimaryButton(title: "Enable \(biometryName)") {
+            StrideButton(title: "Enable \(biometryName)") {
                 onEnable()
                 dismiss()
             }

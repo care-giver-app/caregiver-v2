@@ -23,7 +23,7 @@ struct ActivityView: View {
                 }
                 .refreshable { await reload() }
             } else {
-                EmptyStateView(message: "No receiver selected.")
+                StrideEmptyState(message: "No receiver selected.")
             }
         }
         .navigationTitle("Activity")
@@ -112,7 +112,7 @@ struct ActivityView: View {
             Divider()
             dayContent
         }
-        .glassCard()
+        .strideCard()
         .task(id: DayKey(receiverID: receiverID, dayStart: ActivityDay.bounds(for: selectedDate).start)) {
             await reload()
         }
@@ -121,13 +121,13 @@ struct ActivityView: View {
     @ViewBuilder private var dayContent: some View {
         switch model.state {
         case .loading:
-            LoadingView()
+            StrideLoadingView()
                 .frame(height: 140)
         case .empty:
-            EmptyStateView(message: "No activity on \(ActivityDay.label(for: selectedDate)).")
+            StrideEmptyState(message: "No activity on \(ActivityDay.label(for: selectedDate)).")
                 .frame(height: 140)
         case .error(let message):
-            ErrorStateView(message: message) { Task { await reload() } }
+            StrideErrorState(message: message) { Task { await reload() } }
                 .frame(height: 160)
         case .loaded(let refs):
             VStack(spacing: 0) {

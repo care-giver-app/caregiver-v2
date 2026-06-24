@@ -43,13 +43,13 @@ struct CreateGroupView: View {
                     .foregroundStyle(Theme.Colors.ink.opacity(0.6))
                     .multilineTextAlignment(.center)
             }
-            GlassField(placeholder: "Care team name", icon: "person.2", text: $model.name)
+            StrideField(placeholder: "Care team name", icon: "person.2", text: $model.name)
                 .textContentType(.organizationName)
                 .autocorrectionDisabled()
             if let error = model.error {
                 Text(error.message).font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.alert)
             }
-            PrimaryButton(title: "Create team", isLoading: model.isBusy) {
+            StrideButton(title: "Create team", isLoading: model.isBusy) {
                 Task { await model.create(using: session) }
             }
             Spacer()

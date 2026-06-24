@@ -49,8 +49,8 @@ struct TemplatePickerView: View {
         NavigationStack {
             Group {
                 switch model.state {
-                case .loading: LoadingView()
-                case .error(let m): ErrorStateView(message: m) { Task { await model.load(using: session) } }
+                case .loading: StrideLoadingView()
+                case .error(let m): StrideErrorState(message: m) { Task { await model.load(using: session) } }
                 case .loaded(let templates):
                     List(templates, id: \.templateId) { template in
                         Button {

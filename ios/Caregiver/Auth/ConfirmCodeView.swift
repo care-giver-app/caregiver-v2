@@ -16,7 +16,7 @@ struct ConfirmCodeView: View {
                 }
                 .padding(.top, Theme.Spacing.lg)
 
-                GlassField(placeholder: "Confirmation code", icon: "number", text: $model.code)
+                StrideField(placeholder: "Confirmation code", icon: "number", text: $model.code)
                     .keyboardType(.numberPad)
 
                 if let error = model.error {
@@ -25,7 +25,7 @@ struct ConfirmCodeView: View {
                         .foregroundStyle(Theme.Colors.alert)
                 }
 
-                PrimaryButton(title: "Confirm", isLoading: model.isBusy) {
+                StrideButton(title: "Confirm", isLoading: model.isBusy) {
                     Task { await model.confirm() }
                 }
 

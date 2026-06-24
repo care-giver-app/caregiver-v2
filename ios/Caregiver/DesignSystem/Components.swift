@@ -1,6 +1,65 @@
 import SwiftUI
 
-struct GlassField: View {
+enum StrideButtonStyle { case primary, secondary }
+
+struct StrideButton: View {
+    let title: String
+    var style: StrideButtonStyle = .primary
+    var isLoading: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        switch style {
+        case .primary: primaryBody
+        case .secondary: secondaryBody
+        }
+    }
+
+    private var primaryBody: some View {
+        Button(action: action) {
+            ZStack {
+                if isLoading { ProgressView().tint(.white) }
+                else { Text(title).font(Theme.Typography.headline) }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Theme.Spacing.md - 2)
+            .foregroundStyle(.white)
+            .background {
+                RoundedRectangle(cornerRadius: Theme.Radius.control)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Theme.Radius.control)
+                            .fill(Theme.Colors.accent.opacity(0.75))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Theme.Radius.control)
+                            .fill(LinearGradient(
+                                colors: [.white.opacity(0.25), .clear],
+                                startPoint: .top, endPoint: .center
+                            ))
+                    }
+            }
+            .shadow(color: Theme.Colors.ink.opacity(0.3), radius: 8, x: 0, y: 4)
+        }
+        .disabled(isLoading)
+    }
+
+    private var secondaryBody: some View {
+        Button(action: action) {
+            Text(title)
+                .font(Theme.Typography.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Theme.Spacing.md - 3)
+                .foregroundStyle(Theme.Colors.accent)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control)
+                        .stroke(Theme.Colors.accent, lineWidth: 1.5)
+                )
+        }
+    }
+}
+
+struct StrideField: View {
     let placeholder: String
     var icon: String? = nil
     var isSecure: Bool = false
@@ -38,102 +97,13 @@ struct GlassField: View {
     }
 }
 
-struct GlassButton: View {
-    let title: String
-    var icon: String? = nil
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Group {
-                if let icon {
-                    Label(title, systemImage: icon)
-                } else {
-                    Text(title)
-                }
-            }
-            .font(Theme.Typography.headline)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Theme.Spacing.md - 2)
-            .foregroundStyle(Theme.Colors.ink)
-            .background {
-                RoundedRectangle(cornerRadius: Theme.Radius.control)
-                    .fill(.ultraThinMaterial)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Theme.Radius.control)
-                            .fill(LinearGradient(
-                                colors: [.white.opacity(0.25), .clear],
-                                startPoint: .top, endPoint: .center
-                            ))
-                    }
-            }
-        }
-        .shadow(color: Theme.Colors.ink.opacity(0.3), radius: 8, x: 0, y: 4)
-        .buttonStyle(.plain)
-    }
-}
-
-struct PrimaryButton: View {
-    let title: String
-    var isLoading: Bool = false
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                if isLoading { ProgressView().tint(.white) }
-                else { Text(title).font(Theme.Typography.headline) }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Theme.Spacing.md - 2)
-            .foregroundStyle(.white)
-            .background {
-                RoundedRectangle(cornerRadius: Theme.Radius.control)
-                    .fill(.ultraThinMaterial)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Theme.Radius.control)
-                            .fill(Theme.Colors.accent.opacity(0.75))
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Theme.Radius.control)
-                            .fill(LinearGradient(
-                                colors: [.white.opacity(0.25), .clear],
-                                startPoint: .top, endPoint: .center
-                            ))
-                    }
-            }
-            .shadow(color: Theme.Colors.ink.opacity(0.3), radius: 8, x: 0, y: 4)
-        }
-        .disabled(isLoading)
-    }
-}
-
-struct SecondaryButton: View {
-    let title: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(Theme.Typography.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Theme.Spacing.md - 3)
-                .foregroundStyle(Theme.Colors.accent)
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Radius.control)
-                        .stroke(Theme.Colors.accent, lineWidth: 1.5)
-                )
-        }
-    }
-}
-
-struct LoadingView: View {
+struct StrideLoadingView: View {
     var body: some View {
         ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-struct EmptyStateView: View {
+struct StrideEmptyState: View {
     let message: String
     var body: some View {
         Text(message)
@@ -145,7 +115,7 @@ struct EmptyStateView: View {
     }
 }
 
-struct ErrorStateView: View {
+struct StrideErrorState: View {
     let message: String
     let retry: () -> Void
     var body: some View {
@@ -154,7 +124,7 @@ struct ErrorStateView: View {
                 .font(Theme.Typography.body)
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
-            SecondaryButton(title: "Try again", action: retry)
+            StrideButton(title: "Try again", style: .secondary, action: retry)
                 .frame(maxWidth: 200)
         }
         .padding(Theme.Spacing.lg)
@@ -163,11 +133,7 @@ struct ErrorStateView: View {
 }
 
 extension View {
-    /// Wraps the view in the app's card-style glass: an ultra-thin material fill with a soft
-    /// top-down white highlight, rounded corners, and a subtle shadow — all from `Theme` tokens.
-    /// Content is clipped to the card's rounded corners (so full-width children like dividers and
-    /// rows stay inside the card).
-    func glassCard() -> some View {
+    func strideCard() -> some View {
         self
             .background {
                 RoundedRectangle(cornerRadius: Theme.Radius.card)

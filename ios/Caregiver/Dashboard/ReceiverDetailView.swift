@@ -15,9 +15,9 @@ struct ReceiverDetailView: View {
     var body: some View {
         Group {
             switch model.state {
-            case .loading: LoadingView()
-            case .empty: EmptyStateView(message: "No trackers yet. Add one from a template.")
-            case .error(let m): ErrorStateView(message: m) { Task { await model.load(receiverId: receiver.receiverId, using: session) } }
+            case .loading: StrideLoadingView()
+            case .empty: StrideEmptyState(message: "No trackers yet. Add one from a template.")
+            case .error(let m): StrideErrorState(message: m) { Task { await model.load(receiverId: receiver.receiverId, using: session) } }
             case .loaded(let trackers):
                 List(trackers, id: \.trackerId) { tracker in
                     NavigationLink(value: Route.tracker(tracker)) { TrackerRow(tracker: tracker) }

@@ -16,10 +16,10 @@ struct SignInView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(height: 200)
-                GlassField(placeholder: "Email", icon: "person.crop.circle", text: $model.email)
+                StrideField(placeholder: "Email", icon: "person.crop.circle", text: $model.email)
                     .textContentType(.emailAddress).keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
-                GlassField(placeholder: "Password", icon: "lock", isSecure: true, text: $model.password)
+                StrideField(placeholder: "Password", icon: "lock", isSecure: true, text: $model.password)
                     .textContentType(.password)
                 HStack {
                     Text("Remember me")
@@ -39,12 +39,12 @@ struct SignInView: View {
                 if let error = model.error {
                     Text(error.message).font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.alert)
                 }
-                PrimaryButton(title: "Sign In", isLoading: model.isBusy) {
+                StrideButton(title: "Sign In", isLoading: model.isBusy) {
                     savedEmail = rememberEmail ? model.email : ""
                     Task { await model.signIn() }
                 }
                 if faceIDEnabled {
-                    GlassButton(title: "Sign in with \(BiometricAuth.biometryName)", icon: "faceid") {
+                    StrideButton(title: "Sign in with \(BiometricAuth.biometryName)", style: .secondary) {
                         Task {
                             let granted = await BiometricAuth.authenticate(reason: "Sign in to Caregiver")
                             if granted { await model.signInWithBiometrics() }
