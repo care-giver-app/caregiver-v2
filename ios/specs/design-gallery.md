@@ -1,29 +1,51 @@
-# Design System Gallery
+# Design System Gallery (Stride)
 
 - **Module:** ios
 - **Status:** Current
-- **Last updated:** 2026-06-23
+- **Last updated:** 2026-06-24
 - **Contract:** none (no backend interaction)
 - **Related specs:** [[activity-timeline]], C1-UI navigation; design system in `ios/Caregiver/DesignSystem/`
 
 > Living, conceptual spec for the iOS design-system gallery — a standalone HTML page that documents
-> and previews the app's reusable components and theme. It does not touch the backend, so it
+> and previews the app's reusable components and design tokens. It does not touch the backend, so it
 > references no OpenAPI contract.
 
 ## Purpose
 
 A browser-based gallery that shows every reusable component and design token in one place, with a
-live **palette toggle**, so the team can (a) document the earthy design language as it exists in
+live **palette toggle**, so the team can (a) document the **Stride** design language as it exists in
 Swift and (b) explore new palettes — notably a not-yet-built **dark mode** — before implementing them.
 It serves designers/developers, not end users; it ships nothing into the app bundle.
+
+## Stride naming conventions
+
+The design system is named **Stride**. All reusable components carry the `Stride` prefix. Component
+names describe their **role**, not their visual style, so the name stays stable as the aesthetic
+evolves.
+
+Components with meaningfully different variants expose a `style` parameter rather than separate types:
+
+```swift
+enum StrideButtonStyle { case primary, secondary }
+
+StrideButton(title:style:isLoading:action:)   // collapses PrimaryButton, SecondaryButton
+StrideField(placeholder:icon:isSecure:text:)
+// .strideCard() — View modifier
+StrideLoadingView
+StrideEmptyState(message:)
+StrideErrorState(message:retry:)
+```
+
+The `isLoading` param on `StrideButton` only has a visual effect on `.primary`. There is no
+third button style at present; the former `GlassButton` has been removed.
 
 ## Behavior
 
 A single static HTML page (`ios/design-gallery/index.html`), viewed via a local static server. A
-**sticky top bar** holds the global **palette control** (the only page-level toggle). The page body is
-a **vertical list of equal-dimension slides** — one per row — each documenting a single token group or
-component. Everything visual is driven by **CSS variables fed from the active palette in
-`tokens.json`**, so switching palettes re-themes every slide live.
+**sticky top bar** ("Stride") holds the global **palette control** (the only page-level toggle). The
+page body is a **vertical list of equal-dimension slides** — one per row — each documenting a single
+token group or component. Everything visual is driven by **CSS variables fed from the active palette
+in `tokens.json`**, so switching palettes re-themes every slide live.
 
 - **Palette control (sticky top):**
   - **Palette** dropdown — every named set in `tokens.json` (`light`, `dark`, any experiments).
@@ -38,14 +60,15 @@ component. Everything visual is driven by **CSS variables fed from the active pa
   - **Component slides** (one component, with a toggle): a segmented toggle in the header switches
     between that component's **unified states and variants** — exactly one shown at a time, centered
     over the `earthBackground`, with a small SwiftUI usage line beneath it that updates with the
-    selection. A component with a single representation shows no toggle. Covered: `PrimaryButton`
-    (default / pressed / disabled / loading), `SecondaryButton` (default / disabled), `GlassButton`
-    (default / pressed), `GlassField` (plain / with-icon / secure), `glassCard`, `EmptyStateView`,
-    `ErrorStateView`, `LoadingView`, and `Timeline` (read-only / tappable / minimal).
+    selection. A component with a single representation shows no toggle. Covered: `StrideButton`
+    (primary-default / primary-pressed / primary-disabled / primary-loading / secondary-default /
+    secondary-disabled), `StrideField` (plain / with-icon / secure), `strideCard`,
+    `StrideEmptyState`, `StrideErrorState`, `StrideLoadingView`, and `Timeline`
+    (read-only / tappable / minimal).
 - **No build step, no framework.** Plain HTML/CSS/JS. `gallery.js` renders the slides data-drivenly
-  from a component manifest plus the tokens; the component look (thin-material glass, top-down white
-  highlight, hairline rim, soft shadow, earth gradient) is reproduced in `components.css` from the
-  token CSS variables — a best-effort _visual_ match of the SwiftUI components, reviewed by eye.
+  from a component manifest plus the tokens; the component look is reproduced in `components.css`
+  from the token CSS variables — a best-effort _visual_ match of the SwiftUI components, reviewed
+  by eye.
 
 ### Timeline component
 
@@ -120,20 +143,22 @@ clean JSON (parseable by both JS and the future Swift test) rather than being in
 | Component variations | One in-slide segmented toggle per component, unifying states + variants, one shown at a time    | Keeps each slide self-contained and uniformly sized; "see each version" via a toggle, not side-by-side sprawl |
 | Timeline             | Reusable `Timeline` taking an ordered `[TimelineNode]`; the activity tab becomes one consumer   | A timeline primitive instead of timeline-only inline rows — reusable wherever a node list is shown            |
 | Timeline node fields | Every field optional, graceful omission; gutter + rail keep fixed-width columns                 | Adapts to varied consumers without forcing data; fixed columns keep the rail aligned                          |
-| Timeline sequencing  | Gallery slide now (no Swift); Swift extraction + activity-tab migration deferred, done together | Keeps PR #28 gallery-only, avoids an orphan component, validates the node API against a real caller           |
+| Timeline sequencing  | Gallery slide now (no Swift); Swift extraction + activity-tab migration deferred, done together | Keeps the gallery-only PR clean; avoids an orphan component; validates the node API against a real caller     |
+| Design system name   | **Stride** — all components prefixed `Stride`                                                   | Role-based names decouple component identity from visual style; name stays stable as aesthetic evolves        |
+| Button consolidation | Single `StrideButton(style:)` replacing `PrimaryButton`, `SecondaryButton`, `GlassButton`       | Three types for one component was a design smell; `GlassButton` removed, its call sites → `.secondary`        |
 
 ## Where it lives
 
 | Concept                                                                                          | File                                                     |
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
-| Page shell + sticky palette bar + empty slide-list host                                          | `ios/design-gallery/index.html`                          |
+| Page shell + sticky "Stride" bar + empty slide-list host                                         | `ios/design-gallery/index.html`                          |
 | Gallery chrome: sticky bar + uniform slide frame + header/segmented-toggle                       | `ios/design-gallery/gallery.css`                         |
 | Component styles mimicking SwiftUI, driven by token vars                                         | `ios/design-gallery/components.css`                      |
 | Component manifest; render token + component slides; per-slide variation toggle + palette toggle | `ios/design-gallery/gallery.js`                          |
 | Source of truth: palettes + scales + gradients                                                   | `ios/design-gallery/tokens.json`                         |
 | How to view + add a palette/component                                                            | `ios/design-gallery/README.md`                           |
+| Stride component types (`StrideButton`, `StrideField`, `.strideCard()`, state views)             | `ios/Caregiver/DesignSystem/Components.swift`            |
 | Existing tokens mirrored by `tokens.json` (`light`)                                              | `ios/Caregiver/DesignSystem/Theme.swift`                 |
-| Existing components reproduced in the gallery                                                    | `ios/Caregiver/DesignSystem/Components.swift`            |
 | Timeline gallery slide (manifest entry + timeline CSS)                                           | `ios/design-gallery/gallery.js`, `components.css`        |
 | Current inline gutter/rail/content (source for the later extraction)                             | `ios/Caregiver/Activity/ActivityRow.swift`               |
 | Later: reusable `Timeline` extracted + activity tab migrated to it                               | `ios/Caregiver/DesignSystem/`, `ios/Caregiver/Activity/` |
