@@ -241,7 +241,7 @@ const COMPONENTS = [
     variations: [
       {
         label: 'Default',
-        html: `<div class="loading-state">Loading…</div>`,
+        html: `<div class="loading-state"><div class="loading-spinner"></div></div>`,
         code: `StrideLoadingView()`,
       },
     ],
