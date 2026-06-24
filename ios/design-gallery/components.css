@@ -135,6 +135,20 @@
   align-items: center;
 }
 
+/* Spinner inside a primary button: sized to text height, inverted to white. */
+.btn-primary .loading-spinner {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-primary .loading-track {
+  stroke: rgba(255, 255, 255, 0.3);
+}
+
+.btn-primary .loading-arc {
+  stroke: #fff;
+}
+
 .loading-state {
   display: flex;
   align-items: center;

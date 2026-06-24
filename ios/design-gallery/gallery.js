@@ -171,7 +171,7 @@ const COMPONENTS = [
       },
       {
         label: 'Pri · Loading',
-        html: `<button class="btn-primary">⏳ Loading…</button>`,
+        html: `<button class="btn-primary" disabled><svg class="loading-spinner" viewBox="0 0 40 40"><circle class="loading-track" cx="20" cy="20" r="16"/><circle class="loading-arc" cx="20" cy="20" r="16"/></svg></button>`,
         code: `StrideButton(title: "Save", isLoading: true) { }`,
       },
       {
