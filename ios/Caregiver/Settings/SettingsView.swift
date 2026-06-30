@@ -48,7 +48,7 @@ struct SettingsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .earthBackground()
+        .strideBackground()
         .navigationTitle("Settings")
         .sheet(isPresented: $showAddReceiver) {
             AddReceiverView(me: me) {

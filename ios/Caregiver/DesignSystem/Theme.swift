@@ -3,26 +3,28 @@ import UIKit
 
 enum Theme {
   enum Colors {
-    static let accent = dynamic(light: "397234")
-    static let olive = dynamic(light: "ACBD5E")
-    static let amber = dynamic(light: "B78449")
-    static let ink = dynamic(light: "0B0F08")
-    static let textPrimary = dynamic(light: "16324F")
-    static let textSecondary = dynamic(light: "5B7088")
-    static let textTertiary = dynamic(light: "9AA7B5")
-    static let surface = dynamic(light: "FFFFFF")
-    static let background = dynamic(light: "F4F6F8")
-    static let border = dynamic(light: "E6EAEF")
-    static let alert = dynamic(light: "E5484D")  // reserved: C2 breach badge
-    static let success = dynamic(light: "30A46C")
+    static let accent        = dynamic(light: "27a8f7")
+    static let highlight     = dynamic(light: "98d4ff")
+    static let tertiary      = dynamic(light: "bac3e0")
+    static let ink           = dynamic(light: "0B0F08")  // shadow-only; not for text
+    static let textPrimary   = dynamic(light: "d1e1ff")
+    static let textSecondary = dynamic(light: "bac3e0")
+    static let textTertiary  = dynamic(light: "6b7ea0")
+    static let surface       = dynamic(light: "071540")
+    static let background    = dynamic(light: "010c30")
+    static let border        = dynamic(light: "1a2d5c")
+    static let muted         = dynamic(light: "5A6E9E")
+    static let alert         = dynamic(light: "ff4d6a")  // reserved: C2 breach badge
+    static let success       = dynamic(light: "3dd68c")
+    static let warning       = dynamic(light: "FCD34D")
+    static let informational = dynamic(light: "93C5FD")
 
-    /// A dynamic color. `dark` defaults to `light` until a dark theme is designed;
-    /// because everything references these tokens, adding dark values is additive.
+    /// A dynamic color. `dark` defaults to `light` until a dark palette variant is designed;
+    /// because everything references these tokens, adding dark values is purely additive.
     private static func dynamic(light: String, dark: String? = nil) -> Color {
       Color(
         UIColor { traits in
-          let hex =
-            (traits.userInterfaceStyle == .dark ? (dark ?? light) : light)
+          let hex = traits.userInterfaceStyle == .dark ? (dark ?? light) : light
           return UIColor(Color(hex: hex))
         }
       )
@@ -42,8 +44,11 @@ enum Theme {
   }
 
   enum Gradients {
-    static let earth = LinearGradient(
-      colors: [Colors.olive, Colors.amber],
+    static let stride = LinearGradient(
+      colors: [
+        Colors.highlight.opacity(0.55),
+        Colors.accent.opacity(0.55),
+      ],
       startPoint: .top,
       endPoint: .bottom
     )
@@ -51,21 +56,20 @@ enum Theme {
 
   enum Typography {
     static let largeTitle = Font.system(size: 28, weight: .bold)
-    static let title = Font.system(size: 20, weight: .semibold)
-    static let headline = Font.system(size: 16, weight: .semibold)
-    static let body = Font.system(size: 15, weight: .regular)
-    static let subhead = Font.system(size: 13, weight: .regular)
-    static let caption = Font.system(size: 12, weight: .regular)
+    static let title      = Font.system(size: 20, weight: .semibold)
+    static let headline   = Font.system(size: 16, weight: .semibold)
+    static let body       = Font.system(size: 15, weight: .regular)
+    static let subhead    = Font.system(size: 13, weight: .regular)
+    static let caption    = Font.system(size: 12, weight: .regular)
   }
 }
 
-private struct EarthBackgroundModifier: ViewModifier {
+private struct StrideBackgroundModifier: ViewModifier {
   func body(content: Content) -> some View {
     ZStack {
-      Theme.Colors.surface
+      Theme.Colors.background
         .ignoresSafeArea()
-      Theme.Gradients.earth
-        .opacity(0.4)
+      Theme.Gradients.stride
         .ignoresSafeArea()
       content
     }
@@ -73,7 +77,7 @@ private struct EarthBackgroundModifier: ViewModifier {
 }
 
 extension View {
-  func earthBackground() -> some View {
-    modifier(EarthBackgroundModifier())
+  func strideBackground() -> some View {
+    modifier(StrideBackgroundModifier())
   }
 }

@@ -37,10 +37,10 @@ struct CreateGroupView: View {
             VStack(spacing: Theme.Spacing.sm) {
                 Text("Welcome, \(userName)!")
                     .font(Theme.Typography.title)
-                    .foregroundStyle(Theme.Colors.ink)
+                    .foregroundStyle(Theme.Colors.textPrimary)
                 Text("Create a care team to get started. A care team connects caregivers and the people they look after.")
                     .font(Theme.Typography.subhead)
-                    .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                    .foregroundStyle(Theme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
             StrideField(placeholder: "Care team name", icon: "person.2", text: $model.name)
@@ -55,7 +55,7 @@ struct CreateGroupView: View {
             Spacer()
         }
         .padding(Theme.Spacing.lg)
-        .earthBackground()
+        .strideBackground()
     }
 }
 

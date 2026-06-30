@@ -24,7 +24,7 @@ struct SignInView: View {
                 HStack {
                     Text("Remember me")
                         .font(Theme.Typography.subhead)
-                        .foregroundStyle(Theme.Colors.ink)
+                        .foregroundStyle(Theme.Colors.textPrimary)
                     Spacer()
                     Toggle("", isOn: $rememberEmail)
                         .tint(Theme.Colors.accent)
@@ -34,7 +34,7 @@ struct SignInView: View {
                     Spacer()
                     Button("Forgot password?") { showForgotPassword = true }
                         .font(Theme.Typography.subhead)
-                        .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                        .foregroundStyle(Theme.Colors.textSecondary)
                 }
                 if let error = model.error {
                     Text(error.message).font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.alert)
@@ -53,14 +53,14 @@ struct SignInView: View {
                 }
                 Button("Back", action: onBack)
                     .font(Theme.Typography.subhead)
-                    .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                    .foregroundStyle(Theme.Colors.textSecondary)
                 Link("Need help? Contact support", destination: URL(string: "mailto:support@caregiver.app")!)
                     .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.ink.opacity(0.5))
+                    .foregroundStyle(Theme.Colors.textSecondary)
                 Spacer()
             }
         .padding(Theme.Spacing.lg)
-        .earthBackground()
+        .strideBackground()
         .onAppear { if !savedEmail.isEmpty { model.email = savedEmail } }
         .sheet(isPresented: $model.needsConfirmation) { ConfirmCodeView(model: model) }
         .sheet(isPresented: $showForgotPassword) { ForgotPasswordView(model: model) }

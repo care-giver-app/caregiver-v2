@@ -301,3 +301,65 @@
 .badge--outlined.badge--informational { background: transparent; border: 1.5px solid var(--color-informational); color: var(--color-informational); }
 .badge--outlined.badge--success       { background: transparent; border: 1.5px solid var(--color-success);       color: var(--color-success); }
 .badge--outlined.badge--muted         { background: transparent; border: 1.5px solid var(--color-muted);         color: var(--color-muted); }
+
+/* Dialog: scrim + glass panel with optional icon, title, message, and CTA stack. */
+.dialog-scrim {
+  position: absolute;
+  inset: 0;
+  max-width: none; /* override .slide__stage > * constraint */
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 280px;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dialog__body {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+.dialog__icon {
+  font-size: 32px;
+  line-height: 1;
+  margin-bottom: var(--space-xs);
+}
+
+.dialog__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-textPrimary);
+}
+
+.dialog__message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-textSecondary);
+}
+
+.dialog__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-lg) var(--space-lg);
+}

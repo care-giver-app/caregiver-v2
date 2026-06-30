@@ -66,7 +66,7 @@ body {
 }
 
 .slide {
-  height: 260px;
+  height: 400px;
   display: flex;
   flex-direction: column;
   background: var(--color-surface);
@@ -78,7 +78,6 @@ body {
 .slide__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--color-border);
@@ -89,6 +88,7 @@ body {
   font-size: 16px;
   font-weight: 600;
   color: var(--color-textPrimary);
+  flex: 1;
 }
 
 /* Segmented in-slide toggle for component variations. */
@@ -116,6 +116,7 @@ body {
 
 /* Component stage: Stride background, one centered component. */
 .slide__stage {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
@@ -213,4 +214,15 @@ body {
 .gradient-sample {
   height: 64px;
   border-radius: var(--radius-card);
+}
+
+/* Code snippet hidden by default; toggled via .slide--code on the slide. */
+.slide__code { display: none; }
+
+.slide--code .slide__stage { display: none; }
+.slide--code .slide__code {
+  display: block;
+  flex: 1;
+  overflow: auto;
+  border-top: none;
 }

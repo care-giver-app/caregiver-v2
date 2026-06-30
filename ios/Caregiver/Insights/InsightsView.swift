@@ -11,17 +11,17 @@ struct InsightsView: View {
                 .foregroundStyle(Theme.Colors.accent)
             Text("Insights coming soon")
                 .font(Theme.Typography.title)
-                .foregroundStyle(Theme.Colors.ink)
+                .foregroundStyle(Theme.Colors.textPrimary)
             if let receiver = context.activeReceiver {
                 Text("Trends and analytics for \(receiver.name) will appear here.")
                     .font(Theme.Typography.subhead)
-                    .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                    .foregroundStyle(Theme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
             Spacer()
         }
         .padding(Theme.Spacing.lg)
         .navigationTitle("Insights")
-        .earthBackground()
+        .strideBackground()
     }
 }

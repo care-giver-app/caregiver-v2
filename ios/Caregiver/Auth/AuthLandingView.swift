@@ -16,10 +16,10 @@ struct AuthLandingView: View {
             StrideButton(title: "Create Account", style: .secondary, action: onSignUp)
             Link("Need help? Contact support", destination: URL(string: "mailto:support@caregiver.app")!)
                 .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.ink.opacity(0.5))
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
         .padding(Theme.Spacing.lg)
-        .earthBackground()
+        .strideBackground()
     }
 }
 

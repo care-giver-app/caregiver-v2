@@ -32,21 +32,21 @@ struct SignUpView: View {
                 }
                 Button("Back", action: onBack)
                     .font(Theme.Typography.subhead)
-                    .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                    .foregroundStyle(Theme.Colors.textSecondary)
                 Link("Need help? Contact support", destination: URL(string: "mailto:support@caregiver.app")!)
                     .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.ink.opacity(0.5))
+                    .foregroundStyle(Theme.Colors.textSecondary)
                 HStack(spacing: Theme.Spacing.xs) {
                     Link("Terms of Service", destination: URL(string: "https://caregiver.app/terms")!)
-                    Text("·").foregroundStyle(Theme.Colors.ink.opacity(0.4))
+                    Text("·").foregroundStyle(Theme.Colors.textTertiary)
                     Link("Privacy Policy", destination: URL(string: "https://caregiver.app/privacy")!)
                 }
                 .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.ink.opacity(0.5))
+                .foregroundStyle(Theme.Colors.textSecondary)
                 Spacer()
             }
         .padding(Theme.Spacing.lg)
-        .earthBackground()
+        .strideBackground()
         .sheet(isPresented: $model.needsConfirmation) { ConfirmCodeView(model: model) }
     }
 }

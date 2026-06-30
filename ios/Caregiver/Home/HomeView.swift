@@ -79,7 +79,7 @@ struct HomeView: View {
                 trackerList(trackers)
             }
         }
-        .earthBackground()
+        .strideBackground()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -88,7 +88,7 @@ struct HomeView: View {
                     if let team = activeTeamName {
                         Text(team)
                             .font(Theme.Typography.caption)
-                            .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                            .foregroundStyle(Theme.Colors.textSecondary)
                     }
                 }
             }
@@ -151,7 +151,7 @@ struct HomeView: View {
         if context.receivers.count <= 1 && !canAddReceiver {
             Text(context.activeReceiver?.name ?? "")
                 .font(Theme.Typography.headline)
-                .foregroundStyle(Theme.Colors.ink)
+                .foregroundStyle(Theme.Colors.textPrimary)
         } else {
             Menu {
                 let activeGroupID = context.activeReceiver?.careGroupId
@@ -198,10 +198,10 @@ struct HomeView: View {
                 HStack(spacing: 4) {
                     Text(context.activeReceiver?.name ?? "")
                         .font(Theme.Typography.headline)
-                        .foregroundStyle(Theme.Colors.ink)
+                        .foregroundStyle(Theme.Colors.textPrimary)
                     Image(systemName: "chevron.down")
                         .font(.caption.bold())
-                        .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                        .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
         }
@@ -244,10 +244,10 @@ struct TrackerCard: View {
                     VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                         Text(tracker.name)
                             .font(Theme.Typography.headline)
-                            .foregroundStyle(Theme.Colors.ink)
+                            .foregroundStyle(Theme.Colors.textPrimary)
                         Text(tracker.kind.rawValue.capitalized)
                             .font(Theme.Typography.caption)
-                            .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                            .foregroundStyle(Theme.Colors.textSecondary)
                     }
                     Spacer()
                 }
@@ -258,7 +258,7 @@ struct TrackerCard: View {
             .buttonStyle(.plain)
 
             Rectangle()
-                .fill(Theme.Colors.ink.opacity(0.08))
+                .fill(Theme.Colors.border)
                 .frame(width: 1, height: 40)
 
             Button(action: onLog) {

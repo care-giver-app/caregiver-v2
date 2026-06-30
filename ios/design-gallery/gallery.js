@@ -123,6 +123,37 @@ function addComponentSlide(component) {
     code.textContent = variation.code;
   }
 
+  // Preview / Code view-mode tabs (prepended so they sit left of the title).
+  const viewToggle = document.createElement('div');
+  viewToggle.className = 'slide__toggle';
+  viewToggle.setAttribute('role', 'group');
+  viewToggle.setAttribute('aria-label', 'View mode');
+
+  const previewBtn = document.createElement('button');
+  previewBtn.type = 'button';
+  previewBtn.textContent = 'Preview';
+  previewBtn.setAttribute('aria-pressed', 'true');
+
+  const codeBtn = document.createElement('button');
+  codeBtn.type = 'button';
+  codeBtn.textContent = 'Code';
+  codeBtn.setAttribute('aria-pressed', 'false');
+
+  previewBtn.addEventListener('click', () => {
+    slide.classList.remove('slide--code');
+    previewBtn.setAttribute('aria-pressed', 'true');
+    codeBtn.setAttribute('aria-pressed', 'false');
+  });
+  codeBtn.addEventListener('click', () => {
+    slide.classList.add('slide--code');
+    previewBtn.setAttribute('aria-pressed', 'false');
+    codeBtn.setAttribute('aria-pressed', 'true');
+  });
+
+  viewToggle.appendChild(previewBtn);
+  viewToggle.appendChild(codeBtn);
+  header.prepend(viewToggle);
+
   if (component.variations.length > 1) {
     const toggle = document.createElement('div');
     toggle.className = 'slide__toggle';
@@ -352,6 +383,80 @@ const COMPONENTS = [
   <span class="badge badge--outlined badge--muted">— Muted</span>
 </div>`,
         code: `StrideBadge(status: .failure, style: .outlined, icon: "xmark", label: "Failure")`,
+      },
+    ],
+  },
+  {
+    name: 'Dialog',
+    variations: [
+      {
+        label: 'Icon + 2 CTAs',
+        html: `<div class="dialog-scrim">
+  <div class="dialog">
+    <div class="dialog__body">
+      <span class="dialog__icon">📦</span>
+      <p class="dialog__title">Archive Receiver?</p>
+      <p class="dialog__message">This will hide them from your dashboard. You can restore them later from Settings.</p>
+    </div>
+    <div class="dialog__actions">
+      <button class="btn-primary">Archive</button>
+      <button class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>`,
+        code: `StrideDialog(
+  icon: "archivebox",
+  title: "Archive Receiver?",
+  message: "This will hide them from your dashboard.",
+  actions: [
+    .init(title: "Archive") { archive() },
+    .init(title: "Cancel", style: .secondary) { dismiss() },
+  ]
+)`,
+      },
+      {
+        label: 'No icon + 1 CTA',
+        html: `<div class="dialog-scrim">
+  <div class="dialog">
+    <div class="dialog__body">
+      <p class="dialog__title">Changes Saved</p>
+      <p class="dialog__message">Your tracker settings have been updated successfully.</p>
+    </div>
+    <div class="dialog__actions">
+      <button class="btn-primary">OK</button>
+    </div>
+  </div>
+</div>`,
+        code: `StrideDialog(
+  title: "Changes Saved",
+  message: "Your tracker settings have been updated successfully.",
+  actions: [.init(title: "OK") { dismiss() }]
+)`,
+      },
+      {
+        label: 'Warning + 2 CTAs',
+        html: `<div class="dialog-scrim">
+  <div class="dialog">
+    <div class="dialog__body">
+      <span class="dialog__icon">🗑</span>
+      <p class="dialog__title">Delete Event?</p>
+      <p class="dialog__message">This cannot be undone.</p>
+    </div>
+    <div class="dialog__actions">
+      <button class="btn-primary">Delete</button>
+      <button class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>`,
+        code: `StrideDialog(
+  icon: "trash",
+  title: "Delete Event?",
+  message: "This cannot be undone.",
+  actions: [
+    .init(title: "Delete") { delete() },
+    .init(title: "Cancel", style: .secondary) { dismiss() },
+  ]
+)`,
       },
     ],
   },
