@@ -15,7 +15,7 @@ struct TrackerDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             history
-            PrimaryButton(title: "Log reading") { showLog = true }
+            StrideButton(title: "Log reading") { showLog = true }
                 .padding(Theme.Spacing.md)
         }
         .navigationTitle(tracker.name)
@@ -46,9 +46,9 @@ struct TrackerDetailView: View {
 
     @ViewBuilder private var history: some View {
         switch model.state {
-        case .loading: LoadingView()
-        case .empty: EmptyStateView(message: "No readings yet. Tap \u{201C}Log reading\u{201D}.")
-        case .error(let m): ErrorStateView(message: m) { Task { await model.load(trackerId: tracker.trackerId, using: session) } }
+        case .loading: StrideLoadingView()
+        case .empty: StrideEmptyState(message: "No readings yet. Tap \u{201C}Log reading\u{201D}.")
+        case .error(let m): StrideErrorState(message: m) { Task { await model.load(trackerId: tracker.trackerId, using: session) } }
         case .loaded(let events):
             List {
                 ForEach(events, id: \.eventId) { event in

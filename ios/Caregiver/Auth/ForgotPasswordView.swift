@@ -9,23 +9,23 @@ struct ForgotPasswordView: View {
                 VStack(spacing: Theme.Spacing.sm) {
                     Text(model.resetCodeSent ? "Check your email" : "Reset password")
                         .font(Theme.Typography.title)
-                        .foregroundStyle(Theme.Colors.ink)
+                        .foregroundStyle(Theme.Colors.textPrimary)
                     Text(model.resetCodeSent
                          ? "Enter the code we sent to \(model.email) and choose a new password."
                          : "Enter your email and we'll send you a reset code.")
                         .font(Theme.Typography.subhead)
-                        .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                        .foregroundStyle(Theme.Colors.textSecondary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, Theme.Spacing.lg)
 
                 if model.resetCodeSent {
-                    GlassField(placeholder: "Reset code", icon: "number", text: $model.code)
+                    StrideField(placeholder: "Reset code", icon: "number", text: $model.code)
                         .keyboardType(.numberPad)
-                    GlassField(placeholder: "New password", icon: "lock", isSecure: true, text: $model.newPassword)
+                    StrideField(placeholder: "New password", icon: "lock", isSecure: true, text: $model.newPassword)
                         .textContentType(.newPassword)
                 } else {
-                    GlassField(placeholder: "Email", icon: "envelope", text: $model.email)
+                    StrideField(placeholder: "Email", icon: "envelope", text: $model.email)
                         .textContentType(.emailAddress).keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
@@ -36,7 +36,7 @@ struct ForgotPasswordView: View {
                         .foregroundStyle(Theme.Colors.alert)
                 }
 
-                PrimaryButton(
+                StrideButton(
                     title: model.resetCodeSent ? "Set new password" : "Send reset code",
                     isLoading: model.isBusy
                 ) {
@@ -52,12 +52,12 @@ struct ForgotPasswordView: View {
 
                 Button("Cancel") { dismiss() }
                     .font(Theme.Typography.subhead)
-                    .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                    .foregroundStyle(Theme.Colors.textSecondary)
 
                 Spacer()
             }
         .padding(Theme.Spacing.lg)
-        .earthBackground()
+        .strideBackground()
         .presentationDetents([.medium, .large])
         .presentationCornerRadius(24)
         .onAppear {

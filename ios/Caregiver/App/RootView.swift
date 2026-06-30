@@ -14,7 +14,7 @@ struct RootView: View {
         Group {
             switch session.state {
             case .checking:
-                LoadingView()
+                StrideLoadingView()
             case .signedOut:
                 authFlow
             case .onboarding(let me):

@@ -8,6 +8,11 @@ struct ActivityView: View {
     @State private var model = ActivityModel()
     @State private var selectedDate = Date()
     @State private var showDatePicker = false
+    @State private var selectedRef: EventRef?
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateStyle = .none; f.timeStyle = .short; return f
+    }()
 
     private var isToday: Bool { Calendar.current.isDateInToday(selectedDate) }
 
@@ -23,12 +28,12 @@ struct ActivityView: View {
                 }
                 .refreshable { await reload() }
             } else {
-                EmptyStateView(message: "No receiver selected.")
+                StrideEmptyState(message: "No receiver selected.")
             }
         }
         .navigationTitle("Activity")
-        .earthBackground()
-        .navigationDestination(for: EventRef.self) { ref in
+        .strideBackground()
+        .navigationDestination(item: $selectedRef) { ref in
             EventDetailView(tracker: ref.tracker, event: ref.event) {
                 Task { await reload() }
             }
@@ -55,7 +60,7 @@ struct ActivityView: View {
             Button { showDatePicker = true } label: {
                 Text(ActivityDay.label(for: selectedDate))
                     .font(Theme.Typography.headline)
-                    .foregroundStyle(Theme.Colors.ink)
+                    .foregroundStyle(Theme.Colors.textPrimary)
             }
             .buttonStyle(.plain)
             Spacer()
@@ -112,7 +117,7 @@ struct ActivityView: View {
             Divider()
             dayContent
         }
-        .glassCard()
+        .strideCard()
         .task(id: DayKey(receiverID: receiverID, dayStart: ActivityDay.bounds(for: selectedDate).start)) {
             await reload()
         }
@@ -121,23 +126,30 @@ struct ActivityView: View {
     @ViewBuilder private var dayContent: some View {
         switch model.state {
         case .loading:
-            LoadingView()
+            StrideLoadingView()
                 .frame(height: 140)
         case .empty:
-            EmptyStateView(message: "No activity on \(ActivityDay.label(for: selectedDate)).")
+            StrideEmptyState(message: "No activity on \(ActivityDay.label(for: selectedDate)).")
                 .frame(height: 140)
         case .error(let message):
-            ErrorStateView(message: message) { Task { await reload() } }
+            StrideErrorState(message: message) { Task { await reload() } }
                 .frame(height: 160)
         case .loaded(let refs):
-            VStack(spacing: 0) {
-                ForEach(Array(refs.enumerated()), id: \.element) { index, ref in
-                    NavigationLink(value: ref) {
-                        ActivityRow(ref: ref, isFirst: index == 0, isLast: index == refs.count - 1)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            StrideTimeline(nodes: refs.map { ref in
+                let isDaytime = ActivityDay.isDaytime(ref.event.occurredAt)
+                return StrideTimelineNode(
+                    icon: isDaytime ? "sun.max.fill" : "moon.fill",
+                    iconColor: isDaytime ? Theme.Colors.warning : Theme.Colors.textSecondary,
+                    time: Self.timeFormatter.string(from: ref.event.occurredAt),
+                    title: ref.tracker.name,
+                    description: DynamicFormBuilder.display(
+                        values: ref.event.values, fields: ref.tracker.fields
+                    ),
+                    dotColor: ref.tracker.color.map { Color(hex: $0) } ?? Theme.Colors.accent,
+                    action: { selectedRef = ref }
+                )
+            })
+            .padding(.horizontal, Theme.Spacing.md)
         }
     }
 }

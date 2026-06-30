@@ -16,23 +16,23 @@ struct EnableBiometricSheet: View {
             VStack(spacing: Theme.Spacing.sm) {
                 Text("Sign in faster with \(biometryName)")
                     .font(Theme.Typography.title)
-                    .foregroundStyle(Theme.Colors.ink)
+                    .foregroundStyle(Theme.Colors.textPrimary)
                 Text("Skip the password next time — use \(biometryName) to sign in instantly.")
                     .font(Theme.Typography.subhead)
-                    .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                    .foregroundStyle(Theme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
             Spacer()
-            PrimaryButton(title: "Enable \(biometryName)") {
+            StrideButton(title: "Enable \(biometryName)") {
                 onEnable()
                 dismiss()
             }
             Button("Not now") { dismiss() }
                 .font(Theme.Typography.subhead)
-                .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
         .padding(Theme.Spacing.lg)
-        .earthBackground()
+        .strideBackground()
         .presentationDetents([.medium, .large])
         .presentationCornerRadius(24)
     }

@@ -1,0 +1,506 @@
+const root = document.documentElement;
+let tokens = null;
+
+// Palette-dependent token hosts that render literal hex (re-rendered on palette change).
+let colorHost = null;
+let gradientHost = null;
+
+async function loadTokens() {
+  const res = await fetch('tokens.json');
+  if (!res.ok) throw new Error(`Failed to load tokens.json: ${res.status}`);
+  return res.json();
+}
+
+function applyScales(scales) {
+  for (const [key, px] of Object.entries(scales.spacing)) {
+    root.style.setProperty(`--space-${key}`, `${px}px`);
+  }
+  for (const [key, px] of Object.entries(scales.radius)) {
+    root.style.setProperty(`--radius-${key}`, `${px}px`);
+  }
+}
+
+function applyPalette(name) {
+  const palette = tokens.palettes[name];
+  if (!palette) return;
+  for (const [key, hex] of Object.entries(palette)) {
+    root.style.setProperty(`--color-${key}`, hex);
+  }
+  root.dataset.palette = name;
+  const select = document.getElementById('palette-select');
+  if (select.value !== name) select.value = name;
+  // CSS-variable-driven content re-themes automatically; only literal-hex token
+  // displays need an explicit re-render.
+  if (colorHost) renderColors(colorHost, palette);
+  if (gradientHost) renderGradient(gradientHost, palette);
+}
+
+// ---- token renderers (write into a passed host element) ----
+
+function renderColors(host, palette) {
+  host.innerHTML = '';
+  for (const [key, hex] of Object.entries(palette)) {
+    const cell = document.createElement('div');
+    cell.className = 'swatch';
+    cell.innerHTML =
+      `<div class="swatch__chip" style="background:${hex}"></div>` +
+      `<div class="swatch__name">${key}</div>` +
+      `<div class="swatch__hex">${hex}</div>`;
+    host.appendChild(cell);
+  }
+}
+
+function renderScaleRows(host, scale, unit) {
+  host.innerHTML = '';
+  for (const [key, px] of Object.entries(scale)) {
+    const row = document.createElement('div');
+    row.className = 'scale-row';
+    const bar =
+      unit === 'radius'
+        ? `<span class="radius-sample" style="border-radius:${px}px"></span>`
+        : `<span class="scale-row__bar" style="width:${px}px"></span>`;
+    row.innerHTML = `${bar}<span class="scale-row__label">${key} — ${px}px</span>`;
+    host.appendChild(row);
+  }
+}
+
+function renderType(host, type) {
+  host.innerHTML = '';
+  for (const [key, spec] of Object.entries(type)) {
+    const row = document.createElement('div');
+    row.style.fontSize = `${spec.size}px`;
+    row.style.fontWeight = String(spec.weight);
+    row.style.color = 'var(--color-textPrimary)';
+    row.textContent = `${key} — ${spec.size}px / ${spec.weight}`;
+    host.appendChild(row);
+  }
+}
+
+function renderGradient(host, palette) {
+  host.innerHTML = '';
+  const [from, to] = tokens.gradients.stride;
+  const sample = document.createElement('div');
+  sample.className = 'gradient-sample';
+  sample.style.background = `linear-gradient(to bottom, ${palette[from]}, ${palette[to]})`;
+  host.appendChild(sample);
+}
+
+// ---- slide builders ----
+
+function makeSlide(title) {
+  const slide = document.createElement('section');
+  slide.className = 'slide';
+  const header = document.createElement('header');
+  header.className = 'slide__header';
+  const h = document.createElement('h2');
+  h.className = 'slide__title';
+  h.textContent = title;
+  header.appendChild(h);
+  slide.appendChild(header);
+  return { slide, header };
+}
+
+// Token slide: header + scrolling body. Returns the body host element.
+function addTokenSlide(title, bodyClass) {
+  const { slide } = makeSlide(title);
+  const body = document.createElement('div');
+  body.className = bodyClass ? `slide__body ${bodyClass}` : 'slide__body';
+  slide.appendChild(body);
+  document.getElementById('slides').appendChild(slide);
+  return body;
+}
+
+// Component slide: header (+ toggle if >1 variation), Stride stage, code line.
+function addComponentSlide(component) {
+  const { slide, header } = makeSlide(component.name);
+  const stage = document.createElement('div');
+  stage.className = 'slide__stage stride-bg';
+  const code = document.createElement('pre');
+  code.className = 'slide__code';
+
+  function show(variation) {
+    stage.innerHTML = variation.html;
+    code.textContent = variation.code;
+  }
+
+  // Preview / Code view-mode tabs (prepended so they sit left of the title).
+  const viewToggle = document.createElement('div');
+  viewToggle.className = 'slide__toggle';
+  viewToggle.setAttribute('role', 'group');
+  viewToggle.setAttribute('aria-label', 'View mode');
+
+  const previewBtn = document.createElement('button');
+  previewBtn.type = 'button';
+  previewBtn.textContent = 'Preview';
+  previewBtn.setAttribute('aria-pressed', 'true');
+
+  const codeBtn = document.createElement('button');
+  codeBtn.type = 'button';
+  codeBtn.textContent = 'Code';
+  codeBtn.setAttribute('aria-pressed', 'false');
+
+  previewBtn.addEventListener('click', () => {
+    slide.classList.remove('slide--code');
+    previewBtn.setAttribute('aria-pressed', 'true');
+    codeBtn.setAttribute('aria-pressed', 'false');
+  });
+  codeBtn.addEventListener('click', () => {
+    slide.classList.add('slide--code');
+    previewBtn.setAttribute('aria-pressed', 'false');
+    codeBtn.setAttribute('aria-pressed', 'true');
+  });
+
+  viewToggle.appendChild(previewBtn);
+  viewToggle.appendChild(codeBtn);
+  header.prepend(viewToggle);
+
+  if (component.variations.length > 1) {
+    const toggle = document.createElement('div');
+    toggle.className = 'slide__toggle';
+    toggle.setAttribute('role', 'group');
+    component.variations.forEach((variation, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = variation.label;
+      btn.setAttribute('aria-pressed', i === 0 ? 'true' : 'false');
+      btn.addEventListener('click', () => {
+        toggle.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+        btn.setAttribute('aria-pressed', 'true');
+        show(variation);
+      });
+      toggle.appendChild(btn);
+    });
+    header.appendChild(toggle);
+  }
+
+  slide.appendChild(stage);
+  slide.appendChild(code);
+  document.getElementById('slides').appendChild(slide);
+  show(component.variations[0]);
+}
+
+// ---- component manifest ----
+
+const COMPONENTS = [
+  {
+    name: 'Button',
+    variations: [
+      {
+        label: 'Primary',
+        html: `<button class="btn-primary">Save</button>`,
+        code: `StrideButton(title: "Save") { }`,
+      },
+      {
+        label: 'Pri · Pressed',
+        html: `<button class="btn-primary is-pressed">Save</button>`,
+        code: `// pressed state`,
+      },
+      {
+        label: 'Pri · Disabled',
+        html: `<button class="btn-primary is-disabled">Save</button>`,
+        code: `StrideButton(title: "Save") { }.disabled(true)`,
+      },
+      {
+        label: 'Pri · Loading',
+        html: `<button class="btn-primary" disabled><svg class="loading-spinner" viewBox="0 0 40 40"><circle class="loading-track" cx="20" cy="20" r="16"/><circle class="loading-arc" cx="20" cy="20" r="16"/></svg></button>`,
+        code: `StrideButton(title: "Save", isLoading: true) { }`,
+      },
+      {
+        label: 'Secondary',
+        html: `<button class="btn-secondary">Cancel</button>`,
+        code: `StrideButton(title: "Cancel", style: .secondary) { }`,
+      },
+      {
+        label: 'Sec · Disabled',
+        html: `<button class="btn-secondary is-disabled">Cancel</button>`,
+        code: `StrideButton(title: "Cancel", style: .secondary) { }.disabled(true)`,
+      },
+    ],
+  },
+  {
+    name: 'Field',
+    variations: [
+      {
+        label: 'Plain',
+        html: `<div class="glass-field"><span class="glass-field__placeholder">Email</span></div>`,
+        code: `StrideField(placeholder: "Email", text: $email)`,
+      },
+      {
+        label: 'With icon',
+        html: `<div class="glass-field"><span class="glass-field__icon">✉</span><span class="glass-field__placeholder">Email</span></div>`,
+        code: `StrideField(placeholder: "Email", icon: "envelope", text: $email)`,
+      },
+      {
+        label: 'Secure',
+        html: `<div class="glass-field"><span class="glass-field__icon">🔒</span><span class="glass-field__placeholder">••••••••</span></div>`,
+        code: `StrideField(placeholder: "Password", isSecure: true, text: $pw)`,
+      },
+    ],
+  },
+  {
+    name: 'Card',
+    variations: [
+      {
+        label: 'Default',
+        html: `<div class="glass-card">A card surface.</div>`,
+        code: `SomeView().strideCard()`,
+      },
+    ],
+  },
+  {
+    name: 'Empty State',
+    variations: [
+      {
+        label: 'Default',
+        html: `<div class="empty-state">No activity yet.</div>`,
+        code: `StrideEmptyState(message: "No activity yet.")`,
+      },
+    ],
+  },
+  {
+    name: 'Error State',
+    variations: [
+      {
+        label: 'Default',
+        html: `<div class="error-state"><span>Something went wrong.</span><button class="btn-secondary" style="max-width:200px">Try again</button></div>`,
+        code: `StrideErrorState(message: "…") { retry() }`,
+      },
+    ],
+  },
+  {
+    name: 'Loading',
+    variations: [
+      {
+        label: 'Default',
+        html: `<div class="loading-state"><svg class="loading-spinner" viewBox="0 0 40 40"><circle class="loading-track" cx="20" cy="20" r="16"/><circle class="loading-arc" cx="20" cy="20" r="16"/></svg></div>`,
+        code: `StrideLoadingView()`,
+      },
+    ],
+  },
+  {
+    name: 'Timeline',
+    variations: [
+      {
+        label: 'Read-only',
+        html: `<div class="timeline">
+  <div class="tl-row">
+    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-tertiary)">☀</span><span class="tl-gutter__text">8:15 AM</span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-accent)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-content"><div class="tl-title">Morning meds</div><div class="tl-desc">Lisinopril 10mg</div></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-tertiary)">☀</span><span class="tl-gutter__text">1:30 PM</span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-tertiary)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-content"><div class="tl-title">Blood pressure</div><div class="tl-desc">128/82</div></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-textSecondary)">☾</span><span class="tl-gutter__text">9:45 PM</span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-highlight)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-content"><div class="tl-title">Walk</div><div class="tl-desc">20 min around the block</div></div>
+  </div>
+</div>`,
+        code: `Timeline(nodes: nodes)`,
+      },
+      {
+        label: 'Tappable',
+        html: `<div class="timeline">
+  <div class="tl-row tl-row--tappable">
+    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-tertiary)">☀</span><span class="tl-gutter__text">8:15 AM</span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-accent)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-content"><div class="tl-title">Morning meds</div><div class="tl-desc">Lisinopril 10mg</div></div>
+    <span class="tl-chevron">›</span>
+  </div>
+  <div class="tl-row tl-row--tappable">
+    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-tertiary)">☀</span><span class="tl-gutter__text">1:30 PM</span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-tertiary)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-content"><div class="tl-title">Blood pressure</div><div class="tl-desc">128/82</div></div>
+    <span class="tl-chevron">›</span>
+  </div>
+  <div class="tl-row tl-row--tappable">
+    <div class="tl-gutter"><span class="tl-gutter__icon" style="color: var(--color-textSecondary)">☾</span><span class="tl-gutter__text">9:45 PM</span></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-highlight)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-content"><div class="tl-title">Walk</div><div class="tl-desc">20 min around the block</div></div>
+    <span class="tl-chevron">›</span>
+  </div>
+</div>`,
+        code: `Timeline(nodes: nodes) // each node carries a tap action`,
+      },
+      {
+        label: 'Minimal',
+        html: `<div class="timeline">
+  <div class="tl-row">
+    <div class="tl-gutter"></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-accent)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-content"><div class="tl-title">Step one</div></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-gutter"></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-highlight)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-content"><div class="tl-title">Step two</div></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl-gutter"></div>
+    <div class="tl-rail"><span class="tl-rail__line tl-rail__top"></span><span class="tl-dot" style="background: var(--color-tertiary)"></span><span class="tl-rail__line tl-rail__bottom"></span></div>
+    <div class="tl-content"><div class="tl-title">Step three</div></div>
+  </div>
+</div>`,
+        code: `Timeline(nodes: [.init(title: "Step one"), .init(title: "Step two")])`,
+      },
+    ],
+  },
+  {
+    name: 'Badge',
+    variations: [
+      {
+        label: 'Tinted',
+        html: `<div class="badge-row">
+  <span class="badge badge--tinted badge--failure">✕ Failure</span>
+  <span class="badge badge--tinted badge--warning">⚠ Warning</span>
+  <span class="badge badge--tinted badge--informational">ℹ Info</span>
+  <span class="badge badge--tinted badge--success">✓ Success</span>
+  <span class="badge badge--tinted badge--muted">— Muted</span>
+</div>`,
+        code: `StrideBadge(status: .failure, style: .tinted, icon: "xmark", label: "Failure")`,
+      },
+      {
+        label: 'Filled',
+        html: `<div class="badge-row">
+  <span class="badge badge--filled badge--failure">✕ Failure</span>
+  <span class="badge badge--filled badge--warning">⚠ Warning</span>
+  <span class="badge badge--filled badge--informational">ℹ Info</span>
+  <span class="badge badge--filled badge--success">✓ Success</span>
+  <span class="badge badge--filled badge--muted">— Muted</span>
+</div>`,
+        code: `StrideBadge(status: .failure, style: .filled, icon: "xmark", label: "Failure")`,
+      },
+      {
+        label: 'Outlined',
+        html: `<div class="badge-row">
+  <span class="badge badge--outlined badge--failure">✕ Failure</span>
+  <span class="badge badge--outlined badge--warning">⚠ Warning</span>
+  <span class="badge badge--outlined badge--informational">ℹ Info</span>
+  <span class="badge badge--outlined badge--success">✓ Success</span>
+  <span class="badge badge--outlined badge--muted">— Muted</span>
+</div>`,
+        code: `StrideBadge(status: .failure, style: .outlined, icon: "xmark", label: "Failure")`,
+      },
+    ],
+  },
+  {
+    name: 'Dialog',
+    variations: [
+      {
+        label: 'Icon + 2 CTAs',
+        html: `<div class="dialog-scrim">
+  <div class="dialog">
+    <div class="dialog__body">
+      <span class="dialog__icon">📦</span>
+      <p class="dialog__title">Archive Receiver?</p>
+      <p class="dialog__message">This will hide them from your dashboard. You can restore them later from Settings.</p>
+    </div>
+    <div class="dialog__actions">
+      <button class="btn-primary">Archive</button>
+      <button class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>`,
+        code: `StrideDialog(
+  icon: "archivebox",
+  title: "Archive Receiver?",
+  message: "This will hide them from your dashboard.",
+  actions: [
+    .init(title: "Archive") { archive() },
+    .init(title: "Cancel", style: .secondary) { dismiss() },
+  ]
+)`,
+      },
+      {
+        label: 'No icon + 1 CTA',
+        html: `<div class="dialog-scrim">
+  <div class="dialog">
+    <div class="dialog__body">
+      <p class="dialog__title">Changes Saved</p>
+      <p class="dialog__message">Your tracker settings have been updated successfully.</p>
+    </div>
+    <div class="dialog__actions">
+      <button class="btn-primary">OK</button>
+    </div>
+  </div>
+</div>`,
+        code: `StrideDialog(
+  title: "Changes Saved",
+  message: "Your tracker settings have been updated successfully.",
+  actions: [.init(title: "OK") { dismiss() }]
+)`,
+      },
+      {
+        label: 'Warning + 2 CTAs',
+        html: `<div class="dialog-scrim">
+  <div class="dialog">
+    <div class="dialog__body">
+      <span class="dialog__icon">🗑</span>
+      <p class="dialog__title">Delete Event?</p>
+      <p class="dialog__message">This cannot be undone.</p>
+    </div>
+    <div class="dialog__actions">
+      <button class="btn-primary">Delete</button>
+      <button class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>`,
+        code: `StrideDialog(
+  icon: "trash",
+  title: "Delete Event?",
+  message: "This cannot be undone.",
+  actions: [
+    .init(title: "Delete") { delete() },
+    .init(title: "Cancel", style: .secondary) { dismiss() },
+  ]
+)`,
+      },
+    ],
+  },
+];
+
+// ---- build ----
+
+function buildSlides() {
+  const host = document.getElementById('slides');
+  host.innerHTML = '';
+  colorHost = null;
+  gradientHost = null;
+
+  // Token slides.
+  colorHost = addTokenSlide('Colors', 'swatch-grid');
+  renderScaleRows(addTokenSlide('Spacing', 'scale-list'), tokens.scales.spacing, 'spacing');
+  renderScaleRows(addTokenSlide('Radius', 'scale-list'), tokens.scales.radius, 'radius');
+  renderType(addTokenSlide('Type', 'type-list'), tokens.scales.type);
+  gradientHost = addTokenSlide('Gradient', 'gradient-list');
+
+  // Component slides.
+  for (const component of COMPONENTS) addComponentSlide(component);
+}
+
+function populatePaletteSelect() {
+  const select = document.getElementById('palette-select');
+  select.innerHTML = '';
+  for (const name of Object.keys(tokens.palettes)) {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  }
+  select.addEventListener('change', () => applyPalette(select.value));
+  document.getElementById('toggle-light').addEventListener('click', () => applyPalette('light'));
+  document.getElementById('toggle-dark').addEventListener('click', () => applyPalette('dark'));
+}
+
+async function init() {
+  tokens = await loadTokens();
+  applyScales(tokens.scales);
+  buildSlides();
+  populatePaletteSelect();
+  applyPalette('light');
+}
+
+init();

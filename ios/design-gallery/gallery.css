@@ -1,0 +1,228 @@
+/* Gallery chrome only — NOT the component styles (those live in components.css). */
+:root {
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --radius-card: 12px;
+  --radius-control: 11px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  color: var(--color-textPrimary);
+  background: var(--color-background);
+}
+
+/* Sticky top bar: holds the global palette control. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-md);
+  background: rgba(20, 22, 15, 0.85);
+  backdrop-filter: blur(12px);
+  color: #fff;
+}
+
+.topbar__title {
+  font-size: 16px;
+}
+
+.topbar__controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.topbar__controls button {
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+
+/* Vertical list of equal-dimension slides, one per row. */
+.slides {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.slide {
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.slide__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.slide__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-textPrimary);
+  flex: 1;
+}
+
+/* Segmented in-slide toggle for component variations. */
+.slide__toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.slide__toggle button {
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-textSecondary);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.slide__toggle button[aria-pressed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+/* Component stage: Stride background, one centered component. */
+.slide__stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  overflow: auto;
+}
+
+.slide__stage.stride-bg {
+  min-height: 0;
+}
+
+.slide__stage > * {
+  width: 100%;
+  max-width: 320px;
+}
+
+.slide__code {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.04);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--color-textPrimary);
+  white-space: pre-wrap;
+}
+
+/* Token slide body (no Stride stage): scrolls within the fixed frame. */
+.slide__body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-md);
+}
+
+/* Token displays. */
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-md);
+}
+
+.swatch__chip {
+  height: 44px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-border);
+}
+
+.swatch__name {
+  font-weight: 600;
+  margin-top: var(--space-xs);
+  font-size: 13px;
+}
+
+.swatch__hex {
+  color: var(--color-textSecondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.scale-list,
+.type-list,
+.gradient-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.scale-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.scale-row__bar {
+  height: 16px;
+  background: var(--color-accent);
+  border-radius: 4px;
+}
+
+.scale-row__label {
+  color: var(--color-textSecondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.radius-sample {
+  width: 80px;
+  height: 48px;
+  background: var(--color-accent);
+  display: inline-block;
+  margin-right: var(--space-md);
+}
+
+.gradient-sample {
+  height: 64px;
+  border-radius: var(--radius-card);
+}
+
+/* Code snippet hidden by default; toggled via .slide--code on the slide. */
+.slide__code { display: none; }
+
+.slide--code .slide__stage { display: none; }
+.slide--code .slide__code {
+  display: block;
+  flex: 1;
+  overflow: auto;
+  border-top: none;
+}

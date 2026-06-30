@@ -12,14 +12,14 @@ struct AuthLandingView: View {
                 .scaledToFit()
                 .padding(.horizontal, Theme.Spacing.lg)
             Spacer()
-            PrimaryButton(title: "Sign In", action: onSignIn)
-            GlassButton(title: "Create Account", action: onSignUp)
+            StrideButton(title: "Sign In", action: onSignIn)
+            StrideButton(title: "Create Account", style: .secondary, action: onSignUp)
             Link("Need help? Contact support", destination: URL(string: "mailto:support@caregiver.app")!)
                 .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.ink.opacity(0.5))
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
         .padding(Theme.Spacing.lg)
-        .earthBackground()
+        .strideBackground()
     }
 }
 

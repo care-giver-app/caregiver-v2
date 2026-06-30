@@ -8,15 +8,15 @@ struct ConfirmCodeView: View {
                 VStack(spacing: Theme.Spacing.sm) {
                     Text("Check your email")
                         .font(Theme.Typography.title)
-                        .foregroundStyle(Theme.Colors.ink)
+                        .foregroundStyle(Theme.Colors.textPrimary)
                     Text("We sent a confirmation code to \(model.email).")
                         .font(Theme.Typography.subhead)
-                        .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                        .foregroundStyle(Theme.Colors.textSecondary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, Theme.Spacing.lg)
 
-                GlassField(placeholder: "Confirmation code", icon: "number", text: $model.code)
+                StrideField(placeholder: "Confirmation code", icon: "number", text: $model.code)
                     .keyboardType(.numberPad)
 
                 if let error = model.error {
@@ -25,14 +25,14 @@ struct ConfirmCodeView: View {
                         .foregroundStyle(Theme.Colors.alert)
                 }
 
-                PrimaryButton(title: "Confirm", isLoading: model.isBusy) {
+                StrideButton(title: "Confirm", isLoading: model.isBusy) {
                     Task { await model.confirm() }
                 }
 
                 Spacer()
             }
         .padding(Theme.Spacing.lg)
-        .earthBackground()
+        .strideBackground()
         .presentationDetents([.medium])
         .presentationCornerRadius(24)
     }
