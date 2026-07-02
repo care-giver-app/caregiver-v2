@@ -4,7 +4,7 @@
 - **Status:** Figma design pass **done** (switch sheet + add sheet + Receiver Row component + Calendar icon) — next is the SwiftUI build.
 - **Last updated:** 2026-07-01
 - **Contract:** `listReceivers(careGroupId)` → `Receiver{receiver_id,name,date_of_birth?,archived,…}`; `createReceiver(careGroupId,{name,date_of_birth?})` **admin-only**; `getReceiver` / `updateReceiver` / `archiveReceiver` exist (`shared/openapi/openapi.yaml`). **Active receiver is a client-side selection** (no endpoint).
-- **Related specs:** [[settings]] (same switch+create pattern for care groups), [[team]], [[insights]], [[design-gallery]] (Stride design system), [[caretosher-post-login-ia]] (post-login IA)
+- **Related specs:** [[settings]] (same switch+create pattern for care groups), [[team]], [[insights]], [[design-system]] (Stride design system), [[caretosher-post-login-ia]] (post-login IA)
 
 > **Read this before building.** It captures the two connected pieces (switch + add), the contract reality, resolved
 > decisions, and the built Figma node IDs. The **switcher trigger already exists** on Home (`ReceiverSwitcher` header
@@ -41,7 +41,9 @@ Insights, Activity, and logging.
 ### Scope of the first Figma pass
 
 - **Two frames, both over a dimmed Home** (where the switcher lives): the **Switch** sheet and the **Add** sheet.
-- **Sample data:** Eleanor (72, active, cyan) · Harold (78, teal) · Rosa (69, violet) · group "Mom's Care Team".
+- **Sample data (canonical — see [[sample-data]]):** Eleanor (72, active, cyan) · Harold (78, teal) · Rosa (69, violet)
+  · group **The Riverside Group**. ⚠️ The current Figma frames say "Mom's Care Team" — a 2026-07-01 coherence review
+  found this contradicts the active ✓ group on [[settings]]; standardize on **The Riverside Group** across Home/Receivers.
 
 ## Design substrate — reuse, do not re-derive
 
@@ -88,7 +90,7 @@ icon), tab bar (Home-active, already on the dimmed bg).
 | Design (lead)                                     | Figma `qoiOteGuzktJPB6WKRbGHt` → **App Flow** page → `Receivers` section `168:750`; components → `Components` section `84:4` |
 | Switcher trigger (exists)                         | Home frame `53:3` → `ReceiverSwitcher` `54:4`                                                                                |
 | iOS screen (placeholder today)                    | `ios/Caregiver/Home/…` (switcher) + a receivers model                                                                        |
-| Tokens (pending Theme.swift sync to cyan palette) | `ios/Caregiver/DesignSystem/Theme.swift` — still the **old blue** (see [[design-gallery]])                                   |
+| Tokens (pending Theme.swift sync to cyan palette) | `ios/Caregiver/DesignSystem/Theme.swift` — still the **old blue** (see [[design-system]])                                    |
 
 ## Non-goals
 

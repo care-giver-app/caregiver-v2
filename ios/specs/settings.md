@@ -4,7 +4,7 @@
 - **Status:** Figma design pass **done** (main frame + create-care-group sheet + Settings Row / Toggle / Icon components + Tab Bar Settings-active variant) — next is the SwiftUI build.
 - **Last updated:** 2026-07-01
 - **Contract:** `GET /me` → `user{name,email}` + `memberships[]{care_group_id,name,role}`; `createCareGroup({name})` (`shared/openapi/openapi.yaml`). **Sign out is client-side** (Amplify/Cognito), not an API call.
-- **Related specs:** [[team]] (sibling tab, same clone-the-frame + sheet build pattern), [[insights]], [[design-gallery]] (Stride design system), [[caretosher-post-login-ia]] (post-login IA + component library)
+- **Related specs:** [[team]] (sibling tab, same clone-the-frame + sheet build pattern), [[insights]], [[design-system]] (Stride design system), [[caretosher-post-login-ia]] (post-login IA + component library)
 
 > **Read this before building Settings.** It captures the scope, the **contract reality** (what's wired vs designed-ahead), the resolved decisions, and the built Figma node IDs. The current `ios/Caregiver/Settings/…` screen is a placeholder. Design happened first in the **CareToSher Figma file**, then leads the SwiftUI build.
 
@@ -28,19 +28,22 @@ groups), notification preferences, app/legal info, and sign-out. It's the 4th ta
   as a checkmark on the active row.
 - **No notification-preferences endpoint** (B3b not built) → the **NOTIFICATIONS section is designed ahead of the
   contract**, flagged. Justified by the app's 2-week appointment-reminder requirement. Toggles are visual-only until a
-  `notificationPreferences` endpoint exists (deferred backend item).
+  `notificationPreferences` endpoint exists (deferred backend item). The **Appointment reminders** toggle pairs with the
+  Home "Coming up" banner — **both are B3b appointment/schedule design-ahead** (no `Appointment`/`Schedule` entity exists
+  in the contract yet); see [[home]] for the appointments gap.
 - **Sign out is client-side** Amplify `signOut()`.
 
 ## Resolved decisions (brainstorm 2026-07-01)
 
-| #   | Decision                              | Choice                                                                                                                  | Why                                                                                  |
-| --- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| 1   | Tab scope                             | **Core + notifications**: profile · care groups (switch/create) · notifications (design-ahead) · about/legal · sign out | Covers what users expect; only notifications is ahead of contract.                   |
-| 2   | Care-group switching home             | **In Settings**, as a checkmarked list of memberships + a Create row                                                    | `memberships[]` had no home; Home owns the _receiver_ switcher, not the _group_ one. |
-| 3   | Notifications section                 | Include, **flagged design-ahead** (no prefs endpoint) — toggle rows                                                     | Real product need (appointment reminders); honest about the gap.                     |
-| 4   | Profile edit / delete account / theme | **Omit v1** (no endpoints)                                                                                              | YAGNI; don't fake actions with no backend. See Non-goals.                            |
-| 5   | Tab Bar Settings active-state         | Added `Active=Settings` variant to `Stride/Tab Bar`                                                                     | Set previously had Home/Insights/Team only.                                          |
-| 6   | Create-care-group flow                | **Bottom sheet** (name field + Create button) over dimmed Settings                                                      | Mirrors [[team]]'s invite sheet; the one real action flow here.                      |
+| #   | Decision                              | Choice                                                                                                                                                                                         | Why                                                                                                             |
+| --- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 1   | Tab scope                             | **Core + notifications**: profile · care groups (switch/create) · notifications (design-ahead) · about/legal · sign out                                                                        | Covers what users expect; only notifications is ahead of contract.                                              |
+| 2   | Care-group switching home             | **In Settings**, as a checkmarked list of memberships + a Create row                                                                                                                           | `memberships[]` had no home; Home owns the _receiver_ switcher, not the _group_ one.                            |
+| 3   | Notifications section                 | Include, **flagged design-ahead** (no prefs endpoint) — toggle rows                                                                                                                            | Real product need (appointment reminders); honest about the gap.                                                |
+| 4   | Profile edit / delete account / theme | **Omit v1** (no endpoints)                                                                                                                                                                     | YAGNI; don't fake actions with no backend. See Non-goals.                                                       |
+| 5   | Tab Bar Settings active-state         | Added `Active=Settings` variant to `Stride/Tab Bar`                                                                                                                                            | Set previously had Home/Insights/Team only.                                                                     |
+| 6   | Create-care-group flow                | **Bottom sheet** (name field + Create button) over dimmed Settings                                                                                                                             | Mirrors [[team]]'s invite sheet; the one real action flow here.                                                 |
+| 7   | Sample data + active-group name       | Bind to **[[sample-data]]** — active group **The Riverside Group** (✓) + Johnson Family; profile Trevor. The **Home header subtitle must name the same active group** (was "Mom's Care Team"). | Coherence review 2026-07-01: the Settings active ✓ group and the Home subtitle named the same slot differently. |
 
 ### Scope of the first Figma pass
 
@@ -94,11 +97,11 @@ rebuilt as a hugging list and the frame resized into a scroll artboard.
 | `Stride/Toggle` — variant set (`State=On`/`Off`)                                                                                                                             | `156:572` |
 | `Stride/Icon` — variant set (CareGroup `157:572` · Plus `157:575` · Bell `157:579` · Shield `157:582` · Doc `157:586` · Help `157:591` · Info `157:595` · SignOut `157:599`) | `157:600` |
 
-| Concept                                           | Location                                                                                                                                      |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Design (lead)                                     | Figma `qoiOteGuzktJPB6WKRbGHt` → **App Flow** page → `Settings` section `159:584`; components → `Components` section `84:4`                   |
-| iOS screen (placeholder today)                    | `ios/Caregiver/Settings/…`                                                                                                                    |
-| Tokens (pending Theme.swift sync to cyan palette) | `ios/Caregiver/DesignSystem/Theme.swift` — still the **old blue**; adopting the Aurora palette is a known divergence (see [[design-gallery]]) |
+| Concept                                           | Location                                                                                                                                     |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design (lead)                                     | Figma `qoiOteGuzktJPB6WKRbGHt` → **App Flow** page → `Settings` section `159:584`; components → `Components` section `84:4`                  |
+| iOS screen (placeholder today)                    | `ios/Caregiver/Settings/…`                                                                                                                   |
+| Tokens (pending Theme.swift sync to cyan palette) | `ios/Caregiver/DesignSystem/Theme.swift` — still the **old blue**; adopting the Aurora palette is a known divergence (see [[design-system]]) |
 
 ## Non-goals
 

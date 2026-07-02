@@ -4,7 +4,7 @@
 - **Status:** Figma design pass **done** (overview + invite-sheet frames + Member Row / Invite Card components + Tab Bar Team-active variant) — next is the SwiftUI build.
 - **Last updated:** 2026-07-01
 - **Contract:** `listMembers(careGroupId)` → `Member{user_id,name,role}`; `createInvitation(careGroupId,{email,role})` → `Invitation{token,role,expires_at}`; `revokeInvitation(careGroupId,token)`; invitee side is `listMyInvitations` (`shared/openapi/openapi.yaml`). **No group-level "list pending invitations" endpoint exists** — only create + revoke-by-token.
-- **Related specs:** [[insights]] (sibling tab, same clone-the-overview build pattern), [[design-gallery]] (Stride design system), [[caretosher-post-login-ia]] (post-login IA + Figma component library), [[activity-timeline]]
+- **Related specs:** [[insights]] (sibling tab, same clone-the-overview build pattern), [[design-system]] (Stride design system), [[caretosher-post-login-ia]] (post-login IA + Figma component library), [[activity-timeline]]
 
 > **Read this before building Team.** It captures the requirements, the **contract reality that shapes the whole tab** (invites are token-first, no email is ever sent), the resolved design decisions, and the built Figma node IDs. The current `ios/Caregiver/Team/…` screen is a placeholder. Design happened first in the **CareToSher Figma file**, then leads the SwiftUI build.
 
@@ -30,18 +30,25 @@ one place invites are created. Scoped to the caller's active `CareGroup`.
   data exists" rule [[insights]] followed for analytics.
 - **No group-level pending-invite read endpoint.** The **PENDING section is designed ahead of the contract** — flag it;
   a `listInvitations(careGroupId)` endpoint (or reusing the created-invite response) is a **deferred backend item**.
+- **⚠️ Contract conflict — invite email is "optional" in the design but REQUIRED in the contract.** The invite sheet
+  (`150:484`) and decision #2 mark email optional (to support token-first / Apple "Hide My Email" caregiver invites), but
+  `CreateInvitationRequest.required = [email, role]` in `shared/openapi/openapi.yaml`. As drawn, the build cannot submit
+  the invite. **Resolution is a backend/product decision (Bucket C):** relax the contract to make `email` optional for
+  caregiver-role invites (and flag it), or drop "optional" from the UI. Not yet flagged as design-ahead — surfaced by the
+  2026-07-01 coherence review.
 - Roles are fixed `admin | caregiver`; **no remove-member or change-role endpoint** → those are out of scope (Non-goals).
 
 ## Resolved decisions (brainstorm 2026-07-01)
 
-| #   | Decision                    | Choice                                                                                                                                   | Why                                                                                               |
-| --- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| 1   | Tab scope                   | **Roster + invite + pending section**                                                                                                    | Everything but pending has a real endpoint; pending is design-ahead, flagged.                     |
-| 2   | Invite flow form            | **Bottom sheet → invite card** (role toggle + optional email → Generate → revealed shareable code card + Share)                          | Matches the existing quick-log sheet pattern; shows the whole token-share story in one artboard.  |
-| 3   | Member identity viz         | Monogram initials (no photos); **admin = accent, caregiver = quiet secondary**; the current user gets a cyan avatar **ring + "You" tag** | Honest to the payload; spends the accent "boldness" once on role/identity, not on faked presence. |
-| 4   | Pending section             | Include, **flagged design-ahead** (no read endpoint) — email + `Invited · expires 7d` + revoke ✕                                         | Users expect to see/cancel outstanding invites; note the backend gap.                             |
-| 5   | Tab Bar Team active-state   | Added `Active=Team` variant to `Stride/Tab Bar` before reuse                                                                             | Set previously baked only Home/Insights.                                                          |
-| 6   | Remove member / change role | **Defer** — no endpoint                                                                                                                  | YAGNI; see Non-goals.                                                                             |
+| #   | Decision                    | Choice                                                                                                                                                                                  | Why                                                                                               |
+| --- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1   | Tab scope                   | **Roster + invite + pending section**                                                                                                                                                   | Everything but pending has a real endpoint; pending is design-ahead, flagged.                     |
+| 2   | Invite flow form            | **Bottom sheet → invite card** (role toggle + optional email → Generate → revealed shareable code card + Share)                                                                         | Matches the existing quick-log sheet pattern; shows the whole token-share story in one artboard.  |
+| 3   | Member identity viz         | Monogram initials (no photos); **admin = accent, caregiver = quiet secondary**; the current user gets a cyan avatar **ring + "You" tag**                                                | Honest to the payload; spends the accent "boldness" once on role/identity, not on faked presence. |
+| 4   | Pending section             | Include, **flagged design-ahead** (no read endpoint) — email + `Invited · expires 7d` + revoke ✕                                                                                        | Users expect to see/cancel outstanding invites; note the backend gap.                             |
+| 5   | Tab Bar Team active-state   | Added `Active=Team` variant to `Stride/Tab Bar` before reuse                                                                                                                            | Set previously baked only Home/Insights.                                                          |
+| 6   | Remove member / change role | **Defer** — no endpoint                                                                                                                                                                 | YAGNI; see Non-goals.                                                                             |
+| 7   | Sample data                 | Bind to **[[sample-data]]** — roster Trevor/Dana/Marcus (+ `jordan` pending) in **The Riverside Group**; the Home face-pile must mirror this exactly (**T · D · M**, no "+N" overflow). | Coherence review 2026-07-01: Home showed `D · S · +2` against this 3-person roster.               |
 
 ### Scope of the first Figma pass
 
@@ -95,11 +102,11 @@ labels) · `Stride/Chip` `90:85` (role toggle Caregiver/Admin) · `Stride/Field`
 | `Stride/Member Row` — variant set (`State=Active` `143:413` · `State=Pending` `144:413`) | `144:427` |
 | `Stride/Invite Card`                                                                     | `145:421` |
 
-| Concept                                           | Location                                                                                                                                      |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Design (lead)                                     | Figma `qoiOteGuzktJPB6WKRbGHt` → **App Flow** page → `Team` section `146:414`; components → `Components` section `84:4`                       |
-| iOS screen (placeholder today)                    | `ios/Caregiver/Team/…`                                                                                                                        |
-| Tokens (pending Theme.swift sync to cyan palette) | `ios/Caregiver/DesignSystem/Theme.swift` — still the **old blue**; adopting the Aurora palette is a known divergence (see [[design-gallery]]) |
+| Concept                                           | Location                                                                                                                                     |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design (lead)                                     | Figma `qoiOteGuzktJPB6WKRbGHt` → **App Flow** page → `Team` section `146:414`; components → `Components` section `84:4`                      |
+| iOS screen (placeholder today)                    | `ios/Caregiver/Team/…`                                                                                                                       |
+| Tokens (pending Theme.swift sync to cyan palette) | `ios/Caregiver/DesignSystem/Theme.swift` — still the **old blue**; adopting the Aurora palette is a known divergence (see [[design-system]]) |
 
 ## Non-goals
 
