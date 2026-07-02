@@ -61,3 +61,6 @@ shared/types-swift/Package.resolved
 
 # Implementation plans are disposable — generated from specs, never committed.
 docs/plans/
+
+# Personal working scratch — requirements captured in ios/specs/*, not tracked.
+/WORKING.md
