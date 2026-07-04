@@ -27,6 +27,7 @@ StrideButton(title:style:isLoading:action:)   // collapses the former PrimaryBut
 StrideField(placeholder:icon:isSecure:text:)
 StrideBadge(status:style:icon:label:)
 StrideTimeline(nodes:)                         // ordered [TimelineNode]
+StrideTabBar(selection:onQuickLog:)            // selection: Binding<StrideTab>; ⊕ FAB action
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -49,6 +50,7 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 | `StrideBadge`    | `StrideBadge.swift`    | status × style matrix — see below                           |
 | `StrideTimeline` | `StrideTimeline.swift` | ordered `[TimelineNode]` — see below                        |
 | `StrideDialog`   | `StrideDialog.swift`   | confirm/alert dialog                                        |
+| `StrideTabBar`   | `StrideTabBar.swift`   | 4 tabs + raised ⊕ quick-log FAB — see below                 |
 
 ### StrideBadge
 
@@ -88,27 +90,48 @@ an optional trailing chevron when tappable.
 The [[activity-timeline]] "Today" widget is the intended consumer (sun/moon icon + tint from
 `isDaytime`, time as `gutterText`, tracker color/name/value, tap → event detail).
 
+### StrideTabBar
+
+The post-login spine (Figma `Stride/Tab Bar`, set `112:196`): **Home · Insights · ⊕ · Team ·
+Settings**. A **custom bar, not `TabView`** — the design deviates from the system bar (Aurora navy
+surface, hairline top border, and a raised 58pt cyan quick-log FAB overhanging the bar by 14pt with
+an accent glow), which a system `TabView` can't host.
+
+- `StrideTab` — `home | insights | team | settings` (`CaseIterable`, tab-bar order). Owns each tab's
+  title + icon asset name.
+- `StrideTabBar(selection: Binding<StrideTab>, onQuickLog:)` — active tab = accent + semibold label;
+  inactive = text-tertiary + medium. The ⊕ FAB fires `onQuickLog` ([[logging]] quick-log wizard).
+- **Icons are the Figma `Stride/Icon/*` glyphs**, shipped as template SVG imagesets in
+  `Assets.xcassets` (`TabBarHome/Insights/Team/Settings`, `QuickLogPlus`) and tinted at runtime —
+  active/inactive variants in Figma are the same path, color-only.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
   substrate table (accent `#4dd6e6`, bg `#050b2e → #0a1640`, tracker hues cyan/teal/violet, status
   success/warning/alert). [[sample-data]] owns the per-tracker hue map.
-- **⚠️ `Theme.swift` still carries the old blue** (the "arctic" `accent #27a8f7` values, and the `alert`
-  token name). **Adopting the Aurora palette in Swift is the known, tracked divergence** — every screen
-  spec's "Tokens (pending Aurora sync)" row points here. Deferred design-system work, not per-screen.
-- When the Swift sync happens: move `Theme.Colors` to the Aurora values, add the tracker-hue + status
-  tokens, and (optionally) rename `alert → failure` for clarity. The old `tokens.json` parity-test idea
-  is retired with the gallery — Figma is the source of truth now.
+- **Core `Theme.Colors` values are synced to Aurora** (2026-07-04, with the first Aurora component,
+  `StrideTabBar`): `accent/textPrimary/textSecondary/textTertiary/surface/background/border` now hold
+  the Aurora values, plus new `textOnAccent` (`#04121a`, ink on cyan fills). `border` = **`#294272`**
+  per the live `color/auth/border` variable (the [[insights]] table's `~#1a2d5c` was stale).
+- **Still pending from the sync:** tracker-hue + status token additions, the `alert → failure` rename,
+  and the non-token treatments — `highlight`/`Gradients.stride` (the old overlay gradient; Aurora
+  screens use a plain `#050b2e → #0a1640` vertical + glow ellipses) and the `.strideCard()` fill
+  (`tertiary`-based; Aurora cards are `surface` + 1px `border`). Migrate these as components need them.
+  The old `tokens.json` parity-test idea is retired with the gallery — Figma is the source of truth now.
 
 ## Key decisions
 
-| Decision               | Choice                                                                            | Why                                                                                          |
-| ---------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Design source of truth | **Figma** (Aurora system) leads; this spec documents the Swift mirror             | 2026-07-01: the browser gallery + `tokens.json` were removed once Figma took over.           |
-| Naming                 | **Stride** prefix, role-based names; `style:` param over separate types           | Decouples component identity from visual style; name survives aesthetic changes.             |
-| Button consolidation   | Single `StrideButton(style:)` (replaced Primary/Secondary/GlassButton)            | Three types for one component was a smell.                                                   |
-| Badge / Timeline       | `StrideBadge(status:style:)` + `StrideTimeline([TimelineNode])`, both implemented | Reusable primitives; Timeline node model adapts to varied consumers with graceful omission.  |
-| Palette history        | earthy → single arctic `light` → **Aurora** (current)                             | Arctic was an interim; Aurora (Figma) is the real direction. `Theme.swift` sync is deferred. |
+| Decision               | Choice                                                                            | Why                                                                                           |
+| ---------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Design source of truth | **Figma** (Aurora system) leads; this spec documents the Swift mirror             | 2026-07-01: the browser gallery + `tokens.json` were removed once Figma took over.            |
+| Naming                 | **Stride** prefix, role-based names; `style:` param over separate types           | Decouples component identity from visual style; name survives aesthetic changes.              |
+| Button consolidation   | Single `StrideButton(style:)` (replaced Primary/Secondary/GlassButton)            | Three types for one component was a smell.                                                    |
+| Badge / Timeline       | `StrideBadge(status:style:)` + `StrideTimeline([TimelineNode])`, both implemented | Reusable primitives; Timeline node model adapts to varied consumers with graceful omission.   |
+| Palette history        | earthy → single arctic `light` → **Aurora** (current)                             | Arctic was an interim; Aurora (Figma) is the real direction. `Theme.swift` sync is deferred.  |
+| Aurora token sync      | Core `Theme.Colors` values flipped to Aurora with the first Aurora component      | 2026-07-04: components bind to tokens; shipping `StrideTabBar` on old-blue would ship wrong.  |
+| Tab bar                | Custom `StrideTabBar`, not system `TabView`                                       | The raised glowing ⊕ FAB + navy surface deviate from the system bar; `TabView` can't host it. |
+| Tab bar icons          | Figma `Stride/Icon/*` SVGs as tinted template imagesets, not SF Symbols           | Fidelity to the designed glyph set; one asset per glyph (variants differ by color only).      |
 
 ## Where it lives
 
@@ -118,7 +141,9 @@ The [[activity-timeline]] "Today" widget is the intended consumer (sun/moon icon
 | `StrideBadge`                                               | `ios/Caregiver/DesignSystem/StrideBadge.swift`    |
 | `StrideTimeline` + `TimelineNode`                           | `ios/Caregiver/DesignSystem/StrideTimeline.swift` |
 | `StrideDialog`                                              | `ios/Caregiver/DesignSystem/StrideDialog.swift`   |
-| Tokens (pending Aurora sync)                                | `ios/Caregiver/DesignSystem/Theme.swift`          |
+| `StrideTabBar` + `StrideTab`                                | `ios/Caregiver/DesignSystem/StrideTabBar.swift`   |
+| Tab bar / FAB icon assets                                   | `ios/Caregiver/Resources/Assets.xcassets`         |
+| Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`          |
 | Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)    |
 
 ## Non-goals

@@ -3,16 +3,18 @@ import UIKit
 
 enum Theme {
   enum Colors {
-    static let accent        = dynamic(light: "27a8f7")
+    // Aurora palette (Figma `aurora/*` + `color/auth/*` variables — see ios/specs/design-system.md)
+    static let accent        = dynamic(light: "4dd6e6")
     static let highlight     = dynamic(light: "98d4ff")
     static let tertiary      = dynamic(light: "bac3e0")
     static let ink           = dynamic(light: "0B0F08")  // shadow-only; not for text
-    static let textPrimary   = dynamic(light: "d1e1ff")
-    static let textSecondary = dynamic(light: "bac3e0")
-    static let textTertiary  = dynamic(light: "6b7ea0")
-    static let surface       = dynamic(light: "071540")
-    static let background    = dynamic(light: "010c30")
-    static let border        = dynamic(light: "1a2d5c")
+    static let textPrimary   = dynamic(light: "e8f0ff")
+    static let textSecondary = dynamic(light: "9db0d6")
+    static let textTertiary  = dynamic(light: "5e709c")
+    static let textOnAccent  = dynamic(light: "04121a")  // ink on cyan fills (FAB glyph, primary buttons)
+    static let surface       = dynamic(light: "0e1c4a")
+    static let background    = dynamic(light: "050b2e")
+    static let border        = dynamic(light: "294272")
     static let muted         = dynamic(light: "5A6E9E")
     static let alert         = dynamic(light: "ff4d6a")  // reserved: C2 breach badge
     static let success       = dynamic(light: "3dd68c")
