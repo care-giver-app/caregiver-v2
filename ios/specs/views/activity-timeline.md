@@ -9,6 +9,18 @@
 > Living, conceptual spec for the iOS Activity tab. The interface to the backend is owned by the
 > OpenAPI contract; this spec references it but does not duplicate it.
 
+> **⚠️ Design-drift flags (2026-07-01 coherence review).**
+>
+> 1. **IA:** the post-login IA is now four tabs (Home / Insights / Team / Settings); this "Activity"
+>    surface is a **widget on [[home]]** (the "Today" timeline), **not a standalone tab** — read "Activity
+>    tab" below as "the Today timeline widget".
+> 2. **Design language:** this spec + [[event-detail]] predate the **Aurora** cyan-on-navy pass and still
+>    describe the old earthy C1-UI (`.glassCard()` over `earthBackground`); the Aurora Home already renders a
+>    Today timeline, so this screen needs an **Aurora migration** (or an explicit "pending" flag). Bind
+>    fixtures to [[sample-data]] (receiver **Eleanor**).
+> 3. **States:** loading / empty / error are specced here but have **no Aurora Figma frame** — carry them
+>    into the Aurora build (empty/loading/error are broadly missing across the design pass).
+
 ## Purpose
 
 The Activity tab gives a caregiver a single, scannable answer to "what happened for this person on

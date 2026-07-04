@@ -38,7 +38,8 @@ date prefix), in the module's `specs/` folder (`ios/specs/`, `api/specs/`, `infr
 `shared/go-common/specs/`). Edit them **in place** as the feature evolves — a spec always reflects the
 current intended state, so you can read it to understand a feature and where it lives in the code
 without reading the code. **Template + full conventions: `docs/spec-template.md`.** First worked
-example: `ios/specs/activity-timeline.md`.
+example: `ios/specs/views/activity-timeline.md`. (See `ios/specs/README.md` for that module's layout
+and the "when do I write a spec?" rule.)
 
 - **A spec describes one module only.** The interface _between_ modules is the OpenAPI contract
   (`shared/openapi/openapi.yaml`) — specs reference it, never duplicate it.

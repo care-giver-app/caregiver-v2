@@ -9,6 +9,13 @@
 > Living, conceptual spec for the iOS event-detail screen. The interface to the backend is owned by
 > the OpenAPI contract; this spec references it but does not duplicate it.
 
+> **⚠️ Design-drift flag (2026-07-01 coherence review).** This screen (reqs 16–17: see-all-event-data /
+> edit / delete) is fully contract-backed (`getEvent` / `updateEvent` / `deleteEvent`) and already
+> implemented — but in the **old earthy C1-UI** (`earthBackground` + earth/glass tokens), with **no Aurora
+> frame**. Tapping an event on the Aurora Home "Today" timeline currently lands here, off-system. Needs an
+> **Aurora redesign** (Bucket B): the requirement is "met in stale code", not designed in the current
+> system. Bind fixtures to [[sample-data]]; see [[home]].
+
 ## Purpose
 
 The screen a caregiver lands on when they tap a single logged event (from Home history or the
