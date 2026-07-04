@@ -28,7 +28,7 @@ StrideField(placeholder:icon:isSecure:text:)
 StrideBadge(status:style:icon:label:)
 StrideTimeline(nodes:)                         // ordered [TimelineNode]
 StrideTabBar(selection:onQuickLog:)            // selection: Binding<StrideTab>; ⊕ FAB action
-StrideTrackerTile(name:subtitle:hue:recency:)  // recency: .fresh | .normal | .overdue
+StrideTrackerTile(name:subtitle:hue:recency:badge:) // recency: .fresh | .normal | .overdue; badge: StrideBadge?
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -56,8 +56,10 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 
 ### StrideBadge
 
-A small pill communicating status. Every field is optional at the call site, but provide at least one of
-`icon`/`label`.
+A small pill communicating status (Figma `Stride/Status Badge`, `90:78` — restyled to Aurora
+2026-07-04: 11pt semibold, radius-8 rounded rect instead of a capsule). Every field is optional at the
+call site, but provide at least one of `icon`/`label`. Figma only draws `.tinted` so far; `.filled`/
+`.outlined` are kept as consistent treatments.
 
 **Status variants** (one per semantic status token): `.failure` · `.warning` · `.informational` ·
 `.success` · `.muted`.
@@ -116,9 +118,14 @@ dot** + tracker name + last-logged line on a surface card (radius 14, 1px border
 by its container — Home lays it in a 2-column grid.
 
 **`StrideTrackerRecency`** carries the _recency-as-luminance_ signature: `.fresh` = the dot glows
-(hue shadow, radius 3 @ 95%); `.normal` = plain hue dot; `.overdue` = dot **and** subtitle flip to
-`warning` amber (status is a layer over the identity hue, never a hue itself — see [[sample-data]]).
-The subtitle string is caller-supplied ("2h ago" / "Due"); the component only styles it.
+(hue shadow, radius 3 @ 95%); `.normal` = plain hue dot; `.overdue` = the dot flips to `warning`
+amber (status is a layer over the identity hue, never a hue itself — see [[sample-data]]).
+
+**Status text is a `StrideBadge`**, not styled subtitle text (decided 2026-07-04, so status isn't
+limited to "Due" — e.g. `.failure` "Missed"): the second line composes optional `subtitle` ("2h ago",
+always text-tertiary) beside the optional `badge`, and is fixed at badge height so badged and plain
+tiles grid-align. _Code leads Figma here_ — the Figma tile still draws "Due" as amber subtitle text;
+fold the badge into the `Stride/Tracker Tile` variants on the next Figma pass.
 
 ## Tokens & the Aurora migration
 

@@ -8,19 +8,23 @@ enum StrideTrackerRecency {
 
 /// A compact tracker snapshot cell (Figma `Stride/Tracker Tile`): hue dot + name +
 /// last-logged line, laid out for the Home snapshot's two-column grid. The dot carries
-/// the tracker's identity hue; `.overdue` swaps dot and subtitle to the warning amber
-/// (status is a layer over the hue, never a hue itself).
+/// the tracker's identity hue; `.overdue` swaps it to the warning amber (status is a
+/// layer over the hue, never a hue itself). Status text ("Due", "Missed", …) is a
+/// `StrideBadge` in the second line, beside or in place of the subtitle.
 struct StrideTrackerTile: View {
     let name: String
-    let subtitle: String
+    var subtitle: String? = nil
     let hue: Color
     var recency: StrideTrackerRecency = .normal
+    var badge: StrideBadge? = nil
 
     private enum Metrics {
         static let dotSize: CGFloat = 10
         static let glowRadius: CGFloat = 3
         static let padding: CGFloat = 12
         static let radius: CGFloat = 14
+        // Badge height; fixed for the whole line so badged and plain tiles grid-align.
+        static let secondLineHeight: CGFloat = 19
     }
 
     private var dotColor: Color {
@@ -40,9 +44,15 @@ struct StrideTrackerTile: View {
                 Text(name)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.Colors.textPrimary)
-                Text(subtitle)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(recency == .overdue ? Theme.Colors.warning : Theme.Colors.textTertiary)
+                HStack(spacing: 6) {
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Theme.Colors.textTertiary)
+                    }
+                    badge
+                }
+                .frame(minHeight: Metrics.secondLineHeight)
             }
             .lineLimit(1)
         }
@@ -64,7 +74,14 @@ struct StrideTrackerTile: View {
     VStack(spacing: Theme.Spacing.sm) {
         StrideTrackerTile(name: "Tracker", subtitle: "2h ago", hue: Theme.Colors.trackerCyan, recency: .fresh)
         StrideTrackerTile(name: "Tracker", subtitle: "2h ago", hue: Theme.Colors.trackerCyan)
-        StrideTrackerTile(name: "Tracker", subtitle: "Due", hue: Theme.Colors.trackerCyan, recency: .overdue)
+        StrideTrackerTile(
+            name: "Tracker", hue: Theme.Colors.trackerCyan, recency: .overdue,
+            badge: StrideBadge(status: .warning, label: "Due")
+        )
+        StrideTrackerTile(
+            name: "Tracker", subtitle: "3d ago", hue: Theme.Colors.trackerCyan, recency: .overdue,
+            badge: StrideBadge(status: .failure, label: "Missed")
+        )
     }
     .frame(width: 168)
     .padding(Theme.Spacing.md)
@@ -78,7 +95,10 @@ struct StrideTrackerTile: View {
         StrideTrackerTile(name: "Medication", subtitle: "4h ago", hue: Theme.Colors.trackerViolet)
         StrideTrackerTile(name: "Weight", subtitle: "Yesterday", hue: Theme.Colors.trackerTeal)
         StrideTrackerTile(name: "Pain level", subtitle: "3h ago", hue: Theme.Colors.informational)
-        StrideTrackerTile(name: "Meals", subtitle: "Due", hue: Theme.Colors.trackerCyan, recency: .overdue)
+        StrideTrackerTile(
+            name: "Meals", hue: Theme.Colors.trackerCyan, recency: .overdue,
+            badge: StrideBadge(status: .warning, label: "Due")
+        )
         StrideTrackerTile(name: "Hydration", subtitle: "1h ago", hue: Theme.Colors.trackerTeal, recency: .fresh)
     }
     .padding(Theme.Spacing.md)
