@@ -28,6 +28,7 @@ StrideField(placeholder:icon:isSecure:text:)
 StrideBadge(status:style:icon:label:)
 StrideTimeline(nodes:)                         // ordered [TimelineNode]
 StrideTabBar(selection:onQuickLog:)            // selection: Binding<StrideTab>; ⊕ FAB action
+StrideTrackerTile(name:subtitle:hue:recency:)  // recency: .fresh | .normal | .overdue
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -41,16 +42,17 @@ you next touch a component.
 Reusable components live in `ios/Caregiver/DesignSystem/` and are consumed app-wide (Home, Auth,
 Settings, Insights, Activity, Trackers, Dashboard, …):
 
-| Component        | File                   | Notes                                                       |
-| ---------------- | ---------------------- | ----------------------------------------------------------- |
-| `StrideButton`   | `Components.swift`     | `style: .primary \| .secondary`, `isLoading` (primary only) |
-| `StrideField`    | `Components.swift`     | `icon` (optional), `isSecure`                               |
-| `.strideCard()`  | `Components.swift`     | glass card modifier                                         |
-| state views      | `Components.swift`     | `StrideLoadingView`, `StrideEmptyState`, `StrideErrorState` |
-| `StrideBadge`    | `StrideBadge.swift`    | status × style matrix — see below                           |
-| `StrideTimeline` | `StrideTimeline.swift` | ordered `[TimelineNode]` — see below                        |
-| `StrideDialog`   | `StrideDialog.swift`   | confirm/alert dialog                                        |
-| `StrideTabBar`   | `StrideTabBar.swift`   | 4 tabs + raised ⊕ quick-log FAB — see below                 |
+| Component           | File                      | Notes                                                       |
+| ------------------- | ------------------------- | ----------------------------------------------------------- |
+| `StrideButton`      | `Components.swift`        | `style: .primary \| .secondary`, `isLoading` (primary only) |
+| `StrideField`       | `Components.swift`        | `icon` (optional), `isSecure`                               |
+| `.strideCard()`     | `Components.swift`        | glass card modifier                                         |
+| state views         | `Components.swift`        | `StrideLoadingView`, `StrideEmptyState`, `StrideErrorState` |
+| `StrideBadge`       | `StrideBadge.swift`       | status × style matrix — see below                           |
+| `StrideTimeline`    | `StrideTimeline.swift`    | ordered `[TimelineNode]` — see below                        |
+| `StrideDialog`      | `StrideDialog.swift`      | confirm/alert dialog                                        |
+| `StrideTabBar`      | `StrideTabBar.swift`      | 4 tabs + raised ⊕ quick-log FAB — see below                 |
+| `StrideTrackerTile` | `StrideTrackerTile.swift` | hue dot + name + last-logged; recency states — see below    |
 
 ### StrideBadge
 
@@ -107,6 +109,17 @@ an accent glow), which a system `TabView` can't host.
   Figma Insights glyph is three stroke lines; eventual cleanup is redrawing the Figma icons on the
   SF shapes so design and code re-converge.
 
+### StrideTrackerTile
+
+The Home snapshot's compact tracker cell (Figma `Stride/Tracker Tile`, set `86:20`): a 10pt **hue
+dot** + tracker name + last-logged line on a surface card (radius 14, 1px border, padding 12). Sized
+by its container — Home lays it in a 2-column grid.
+
+**`StrideTrackerRecency`** carries the _recency-as-luminance_ signature: `.fresh` = the dot glows
+(hue shadow, radius 3 @ 95%); `.normal` = plain hue dot; `.overdue` = dot **and** subtitle flip to
+`warning` amber (status is a layer over the identity hue, never a hue itself — see [[sample-data]]).
+The subtitle string is caller-supplied ("2h ago" / "Due"); the component only styles it.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
@@ -116,7 +129,9 @@ an accent glow), which a system `TabView` can't host.
   `StrideTabBar`): `accent/textPrimary/textSecondary/textTertiary/surface/background/border` now hold
   the Aurora values, plus new `textOnAccent` (`#04121a`, ink on cyan fills). `border` = **`#294272`**
   per the live `color/auth/border` variable (the [[insights]] table's `~#1a2d5c` was stale).
-- **Still pending from the sync:** tracker-hue + status token additions, the `alert → failure` rename,
+- **Tracker hues are in** (2026-07-04, with `StrideTrackerTile`): `trackerCyan #4dd6e6` ·
+  `trackerTeal #3db8c4` · `trackerViolet #7c6ff0`; info-blue trackers reuse `informational`.
+- **Still pending from the sync:** status-token review, the `alert → failure` rename,
   and the non-token treatments — `highlight`/`Gradients.stride` (the old overlay gradient; Aurora
   screens use a plain `#050b2e → #0a1640` vertical + glow ellipses) and the `.strideCard()` fill
   (`tertiary`-based; Aurora cards are `surface` + 1px `border`). Migrate these as components need them.
@@ -137,15 +152,16 @@ an accent glow), which a system `TabView` can't host.
 
 ## Where it lives
 
-| Concept                                                     | File                                              |
-| ----------------------------------------------------------- | ------------------------------------------------- |
-| `StrideButton`, `StrideField`, `.strideCard()`, state views | `ios/Caregiver/DesignSystem/Components.swift`     |
-| `StrideBadge`                                               | `ios/Caregiver/DesignSystem/StrideBadge.swift`    |
-| `StrideTimeline` + `TimelineNode`                           | `ios/Caregiver/DesignSystem/StrideTimeline.swift` |
-| `StrideDialog`                                              | `ios/Caregiver/DesignSystem/StrideDialog.swift`   |
-| `StrideTabBar` + `StrideTab`                                | `ios/Caregiver/DesignSystem/StrideTabBar.swift`   |
-| Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`          |
-| Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)    |
+| Concept                                                     | File                                                 |
+| ----------------------------------------------------------- | ---------------------------------------------------- |
+| `StrideButton`, `StrideField`, `.strideCard()`, state views | `ios/Caregiver/DesignSystem/Components.swift`        |
+| `StrideBadge`                                               | `ios/Caregiver/DesignSystem/StrideBadge.swift`       |
+| `StrideTimeline` + `TimelineNode`                           | `ios/Caregiver/DesignSystem/StrideTimeline.swift`    |
+| `StrideDialog`                                              | `ios/Caregiver/DesignSystem/StrideDialog.swift`      |
+| `StrideTabBar` + `StrideTab`                                | `ios/Caregiver/DesignSystem/StrideTabBar.swift`      |
+| `StrideTrackerTile` + `StrideTrackerRecency`                | `ios/Caregiver/DesignSystem/StrideTrackerTile.swift` |
+| Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`             |
+| Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)       |
 
 ## Non-goals
 
