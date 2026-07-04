@@ -10,13 +10,13 @@ enum StrideTab: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String { rawValue }
 
-    /// Template imageset in Assets.xcassets (the Figma `Stride/Icon/*` glyphs; tinted at runtime).
-    var iconAsset: String {
+    /// SF Symbol counterpart of the Figma `Stride/Icon/*` glyph.
+    var systemImage: String {
         switch self {
-        case .home: "TabBarHome"
-        case .insights: "TabBarInsights"
-        case .team: "TabBarTeam"
-        case .settings: "TabBarSettings"
+        case .home: "house"
+        case .insights: "chart.bar"
+        case .team: "person.2"
+        case .settings: "gearshape"
         }
     }
 }
@@ -34,7 +34,6 @@ struct StrideTabBar: View {
         static let fabSlotWidth: CGFloat = 10
         static let fabSize: CGFloat = 58
         static let fabOverhang: CGFloat = 14
-        static let fabGlyphSize: CGFloat = 26
     }
 
     var body: some View {
@@ -66,10 +65,9 @@ struct StrideTabBar: View {
             selection = tab
         } label: {
             VStack(spacing: Theme.Spacing.xs) {
-                Image(tab.iconAsset)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: Metrics.iconSize, height: Metrics.iconSize)
+                Image(systemName: tab.systemImage)
+                    .font(.system(size: 20, weight: .medium))
+                    .frame(height: Metrics.iconSize)
                 Text(tab.title)
                     .font(.system(size: 10, weight: isActive ? .semibold : .medium))
             }
@@ -88,10 +86,8 @@ struct StrideTabBar: View {
                 Circle()
                     .fill(Theme.Colors.accent)
                     .shadow(color: Theme.Colors.accent.opacity(0.5), radius: 7, x: 0, y: 4)
-                Image("QuickLogPlus")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: Metrics.fabGlyphSize, height: Metrics.fabGlyphSize)
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Theme.Colors.textOnAccent)
             }
             .frame(width: Metrics.fabSize, height: Metrics.fabSize)

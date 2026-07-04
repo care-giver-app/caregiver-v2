@@ -2,7 +2,7 @@
 
 - **Module:** ios
 - **Status:** Current — the app's reusable SwiftUI components + tokens. (Superseded the standalone browser **design-gallery** tool, removed 2026-07-01 now that Figma is the design source of truth.)
-- **Last updated:** 2026-07-01
+- **Last updated:** 2026-07-04
 - **Contract:** none (no backend interaction).
 - **Related specs:** every ios screen spec consumes these components; [[sample-data]] (canonical fixtures + tracker hue map), [[insights]] (Aurora palette substrate table), [[activity-timeline]] (the `StrideTimeline` consumer)
 
@@ -98,12 +98,14 @@ surface, hairline top border, and a raised 58pt cyan quick-log FAB overhanging t
 an accent glow), which a system `TabView` can't host.
 
 - `StrideTab` — `home | insights | team | settings` (`CaseIterable`, tab-bar order). Owns each tab's
-  title + icon asset name.
+  title + SF Symbol name.
 - `StrideTabBar(selection: Binding<StrideTab>, onQuickLog:)` — active tab = accent + semibold label;
   inactive = text-tertiary + medium. The ⊕ FAB fires `onQuickLog` ([[logging]] quick-log wizard).
-- **Icons are the Figma `Stride/Icon/*` glyphs**, shipped as template SVG imagesets in
-  `Assets.xcassets` (`TabBarHome/Insights/Team/Settings`, `QuickLogPlus`) and tinted at runtime —
-  active/inactive variants in Figma are the same path, color-only.
+- **Icons are SF Symbols** (`house` · `chart.bar` · `person.2` · `gearshape`; FAB = bold `plus`) —
+  near-identical to the Figma `Stride/Icon/*` glyphs, chosen over bundled SVGs for Dynamic Type,
+  weight control, and zero asset upkeep. Known visual drift: SF's `chart.bar` is filled where the
+  Figma Insights glyph is three stroke lines; eventual cleanup is redrawing the Figma icons on the
+  SF shapes so design and code re-converge.
 
 ## Tokens & the Aurora migration
 
@@ -122,16 +124,16 @@ an accent glow), which a system `TabView` can't host.
 
 ## Key decisions
 
-| Decision               | Choice                                                                            | Why                                                                                           |
-| ---------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Design source of truth | **Figma** (Aurora system) leads; this spec documents the Swift mirror             | 2026-07-01: the browser gallery + `tokens.json` were removed once Figma took over.            |
-| Naming                 | **Stride** prefix, role-based names; `style:` param over separate types           | Decouples component identity from visual style; name survives aesthetic changes.              |
-| Button consolidation   | Single `StrideButton(style:)` (replaced Primary/Secondary/GlassButton)            | Three types for one component was a smell.                                                    |
-| Badge / Timeline       | `StrideBadge(status:style:)` + `StrideTimeline([TimelineNode])`, both implemented | Reusable primitives; Timeline node model adapts to varied consumers with graceful omission.   |
-| Palette history        | earthy → single arctic `light` → **Aurora** (current)                             | Arctic was an interim; Aurora (Figma) is the real direction. `Theme.swift` sync is deferred.  |
-| Aurora token sync      | Core `Theme.Colors` values flipped to Aurora with the first Aurora component      | 2026-07-04: components bind to tokens; shipping `StrideTabBar` on old-blue would ship wrong.  |
-| Tab bar                | Custom `StrideTabBar`, not system `TabView`                                       | The raised glowing ⊕ FAB + navy surface deviate from the system bar; `TabView` can't host it. |
-| Tab bar icons          | Figma `Stride/Icon/*` SVGs as tinted template imagesets, not SF Symbols           | Fidelity to the designed glyph set; one asset per glyph (variants differ by color only).      |
+| Decision               | Choice                                                                             | Why                                                                                           |
+| ---------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Design source of truth | **Figma** (Aurora system) leads; this spec documents the Swift mirror              | 2026-07-01: the browser gallery + `tokens.json` were removed once Figma took over.            |
+| Naming                 | **Stride** prefix, role-based names; `style:` param over separate types            | Decouples component identity from visual style; name survives aesthetic changes.              |
+| Button consolidation   | Single `StrideButton(style:)` (replaced Primary/Secondary/GlassButton)             | Three types for one component was a smell.                                                    |
+| Badge / Timeline       | `StrideBadge(status:style:)` + `StrideTimeline([TimelineNode])`, both implemented  | Reusable primitives; Timeline node model adapts to varied consumers with graceful omission.   |
+| Palette history        | earthy → single arctic `light` → **Aurora** (current)                              | Arctic was an interim; Aurora (Figma) is the real direction. `Theme.swift` sync is deferred.  |
+| Aurora token sync      | Core `Theme.Colors` values flipped to Aurora with the first Aurora component       | 2026-07-04: components bind to tokens; shipping `StrideTabBar` on old-blue would ship wrong.  |
+| Tab bar                | Custom `StrideTabBar`, not system `TabView`                                        | The raised glowing ⊕ FAB + navy surface deviate from the system bar; `TabView` can't host it. |
+| Tab bar icons          | SF Symbols (`house`, `chart.bar`, `person.2`, `gearshape`, `plus`), not SVG assets | 2026-07-04 (Trevor): near-identical glyphs + Dynamic Type/weight for free, no assets to keep. |
 
 ## Where it lives
 
@@ -142,7 +144,6 @@ an accent glow), which a system `TabView` can't host.
 | `StrideTimeline` + `TimelineNode`                           | `ios/Caregiver/DesignSystem/StrideTimeline.swift` |
 | `StrideDialog`                                              | `ios/Caregiver/DesignSystem/StrideDialog.swift`   |
 | `StrideTabBar` + `StrideTab`                                | `ios/Caregiver/DesignSystem/StrideTabBar.swift`   |
-| Tab bar / FAB icon assets                                   | `ios/Caregiver/Resources/Assets.xcassets`         |
 | Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`          |
 | Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)    |
 
