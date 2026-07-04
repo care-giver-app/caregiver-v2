@@ -31,7 +31,7 @@ struct StrideTabBar: View {
     private enum Metrics {
         static let barHeight: CGFloat = 60
         static let iconSize: CGFloat = 24
-        static let fabSlotWidth: CGFloat = 10
+        static let fabSlotWidth: CGFloat = 40
         static let fabSize: CGFloat = 58
         static let fabOverhang: CGFloat = 14
     }
