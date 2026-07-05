@@ -21,6 +21,12 @@ enum Theme {
     static let warning       = dynamic(light: "FCD34D")
     static let informational = dynamic(light: "93C5FD")
 
+    // Tracker hues (per-entity recognition; amber/red is the status layer, never a base hue).
+    // info-blue trackers reuse `informational`. Hue map per receiver: ios/specs/sample-data.md.
+    static let trackerCyan   = dynamic(light: "4dd6e6")
+    static let trackerTeal   = dynamic(light: "3db8c4")
+    static let trackerViolet = dynamic(light: "7c6ff0")
+
     /// A dynamic color. `dark` defaults to `light` until a dark palette variant is designed;
     /// because everything references these tokens, adding dark values is purely additive.
     private static func dynamic(light: String, dark: String? = nil) -> Color {
