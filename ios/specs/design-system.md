@@ -46,6 +46,8 @@ StrideInviteCard(code:expiry:onShare:)         // glowing accent invite-code car
 StrideReceiverRow(name:detail:initial:hue:isActive:) // switch-sheet row: hue monogram + ✓ when active
 StrideSettingsRow(icon:label:trailing:)        // trailing: .none | .chevron | .check | .value(String) | .toggle(Binding)
 StrideTemplateCard(style:)                     // style: .template(name:kind:icon:hue:) | .custom (dashed ⊕)
+StrideBrand()                                  // fixed CareToSher logo plaque (auth screens' top anchor)
+StrideCodeInput(code:length:)                  // 6-cell one-time-code entry; one hidden field drives it
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -84,6 +86,8 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 | `StrideReceiverRow`       | `StrideReceiverRow.swift`       | receiver switch-sheet row — see below                               |
 | `StrideSettingsRow`       | `StrideSettingsRow.swift`       | settings row, 5 trailing accessories — see below                    |
 | `StrideTemplateCard`      | `StrideTemplateCard.swift`      | add-tracker template card + dashed custom — see below               |
+| `StrideBrand`             | `StrideBrand.swift`             | CareToSher logo on a light ice-chip plaque — see below              |
+| `StrideCodeInput`         | `StrideCodeInput.swift`         | segmented one-time-code entry — see below                           |
 
 ### StrideBadge
 
@@ -343,6 +347,46 @@ hue @ 18% icon square (radius 12) with the hue glyph, 15pt semibold name, kind b
 Templates come from `GET /tracker-templates`; the icon is an SF Symbol name per the icon mapping
 above.
 
+### StrideBrand
+
+The CareToSher brand plaque (Figma `Stride/Brand`, `46:34`; the top anchor of all five auth
+screens): the existing `AppLogo` asset (dark navy mark, 200×82) on a near-white "ice chip" slab —
+`#f1f6ff` @ 96%, radius 20, 1px white @ 70% hairline — with a cyan glow + deep drop shadow so it
+reads as lit ice on the navy background. The plaque colors are deliberate one-offs (a light chip on
+a dark system; they match no surface token). No parameters. User-facing brand = **CareToSher**,
+never "Stride".
+
+### StrideCodeInput
+
+The segmented one-time-code entry (Figma `Stride/Code Input` `48:39`, cells `Stride/Code Digit`
+`47:39`; the confirm-code auth screen): `length` (default 6) 50×60 cells — radius 14, `surface`
+fill, 1px `textSecondary` @ 40% frost hairline, 22pt semibold digit — at a 9pt gap. The focus ring
+(1.5pt `accent` + cyan glow, Figma's `Focused` boolean) sits on the next empty cell.
+
+**Interactive, unlike most Stride components:** one hidden `TextField` (`.numberPad`,
+`.textContentType(.oneTimeCode)`) drives the whole row, so the system keyboard and SMS/email code
+autofill work while the cells stay purely visual — per-cell fields fight iOS autofill. The consumer
+owns `code: Binding<String>`; every edit passes through `StrideCodeInput.sanitized(_:length:)`
+(digits only, capped at `length` — unit-tested), so paste/autofill with separators lands clean.
+
+### StrideButton + StrideField — Aurora reconcile (2026-07-05)
+
+The two oldest components (C1-foundation era, pre-Aurora) restyled to their Figma sets
+(`Stride/Button` `24:6`, `Stride/Field` `34:9`) with **APIs unchanged**, so every existing call
+site (auth, onboarding, Home, tracker detail) picks the restyle up for free:
+
+- **Button** — 54pt min height, radius 16. Primary: `accent` fill + top sheen, **`textOnAccent`
+  ink label** (was white — the headline fix), cyan glow shadow; the `isLoading` spinner is ink
+  too. Secondary: 1.5pt `textSecondary` @ 55% border, `textPrimary` label.
+- **Field** — 56pt min height, radius 16, `surface` fill, 1px `textSecondary` @ 40% frost hairline
+  (the auth-surface treatment shared with the code digit), 20pt `textSecondary` icon slot,
+  `textTertiary` placeholder (was white-alpha).
+- The pre-Aurora `Theme.Radius.control` (11pt) died with the restyle — both components now carry
+  their radius in local `Metrics` like every other Aurora component; removed from `Theme.swift`.
+
+**Auth icons** (Figma `Stride/Icon/Person·Lock·Envelope·Hash`, `33:9`–`33:15`) follow the standing
+SF-Symbols decision: `person` · `lock` · `envelope` · `number`, passed as `StrideField`'s `icon:`.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
@@ -372,6 +416,8 @@ above.
 | Aurora token sync      | Core `Theme.Colors` values flipped to Aurora with the first Aurora component       | 2026-07-04: components bind to tokens; shipping `StrideTabBar` on old-blue would ship wrong.  |
 | Tab bar                | Custom `StrideTabBar`, not system `TabView`                                        | The raised glowing ⊕ FAB + navy surface deviate from the system bar; `TabView` can't host it. |
 | Tab bar icons          | SF Symbols (`house`, `chart.bar`, `person.2`, `gearshape`, `plus`), not SVG assets | 2026-07-04 (Trevor): near-identical glyphs + Dynamic Type/weight for free, no assets to keep. |
+| Code input             | Interactive (one hidden one-time-code field), not a dumb cell row                  | 2026-07-05: autofill + number pad need a real field; per-cell fields fight iOS autofill.      |
+| Button/Field reconcile | Restyled in place to the Figma sets; APIs unchanged                                | 2026-07-05: every pre-Aurora call site inherits the restyle with zero call-site churn.        |
 
 ## Where it lives
 
@@ -397,6 +443,8 @@ above.
 | `StrideReceiverRow`                                         | `ios/Caregiver/DesignSystem/StrideReceiverRow.swift`       |
 | `StrideSettingsRow`                                         | `ios/Caregiver/DesignSystem/StrideSettingsRow.swift`       |
 | `StrideTemplateCard`                                        | `ios/Caregiver/DesignSystem/StrideTemplateCard.swift`      |
+| `StrideBrand`                                               | `ios/Caregiver/DesignSystem/StrideBrand.swift`             |
+| `StrideCodeInput`                                           | `ios/Caregiver/DesignSystem/StrideCodeInput.swift`         |
 | Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`                   |
 | Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)             |
 
