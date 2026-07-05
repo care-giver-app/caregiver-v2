@@ -33,6 +33,19 @@ StrideTrackerRow(name:subtitle:meta:hue:recency:badge:) // full-width Trackers-l
 StrideTimeframeSelector(selection:)            // selection: Binding<StrideTimeframe>; week | month | threeMonths | year | custom
 StrideChip(label:isSelected:action:)           // self-sizing filter/choice pill; single-select lives in the consumer
 StrideSectionHeader(title:actionLabel:action:) // tracked-uppercase section label + optional accent "See all ›"
+Toggle(…).toggleStyle(.stride)                 // StrideToggleStyle — Aurora capsule track on the system Toggle
+StrideSelectTile(name:hue:isSelected:action:)  // picker-grid tile: hue dot + name + check ring; selection in consumer
+StrideStatCard(label:value:delta:deltaColor:)  // Insights stat-strip card: tracked label + big stat + tinted delta
+StrideInsightCard(name:hue:count:countCaption:latest:sparkline:) // Insights overview card w/ mini sparkline
+StrideSparkline(values:hue:)                   // chrome-less filled area mini + endpoint dot (Path, not Swift Charts)
+StrideLineChart(series:)                       // [StrideChartSeries] — value-vs-time lines + area under first series
+StrideScatterChart(points:hue:)                // hour-of-day × date adherence scatter (midnight at top)
+StrideBarChart(points:hue:)                    // count-per-bucket bar trend
+StrideMemberRow(state:role:)                   // state: .active(name:initial:isYou:) | .pending(email:meta:onRevoke:)
+StrideInviteCard(code:expiry:onShare:)         // glowing accent invite-code card; composes StrideButton
+StrideReceiverRow(name:detail:initial:hue:isActive:) // switch-sheet row: hue monogram + ✓ when active
+StrideSettingsRow(icon:label:trailing:)        // trailing: .none | .chevron | .check | .value(String) | .toggle(Binding)
+StrideTemplateCard(style:)                     // style: .template(name:kind:icon:hue:) | .custom (dashed ⊕)
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -46,21 +59,31 @@ you next touch a component.
 Reusable components live in `ios/Caregiver/DesignSystem/` and are consumed app-wide (Home, Auth,
 Settings, Insights, Activity, Trackers, Dashboard, …):
 
-| Component                 | File                            | Notes                                                       |
-| ------------------------- | ------------------------------- | ----------------------------------------------------------- |
-| `StrideButton`            | `Components.swift`              | `style: .primary \| .secondary`, `isLoading` (primary only) |
-| `StrideField`             | `Components.swift`              | `icon` (optional), `isSecure`                               |
-| `.strideCard()`           | `Components.swift`              | glass card modifier                                         |
-| state views               | `Components.swift`              | `StrideLoadingView`, `StrideEmptyState`, `StrideErrorState` |
-| `StrideBadge`             | `StrideBadge.swift`             | status × style matrix — see below                           |
-| `StrideTimeline`          | `StrideTimeline.swift`          | ordered `[TimelineNode]` — see below                        |
-| `StrideDialog`            | `StrideDialog.swift`            | confirm/alert dialog                                        |
-| `StrideTabBar`            | `StrideTabBar.swift`            | 4 tabs + raised ⊕ quick-log FAB — see below                 |
-| `StrideTrackerTile`       | `StrideTrackerTile.swift`       | hue dot + name + last-logged; recency states — see below    |
-| `StrideTrackerRow`        | `StrideTrackerRow.swift`        | full-width tracker list row; hue rail + recency — see below |
-| `StrideTimeframeSelector` | `StrideTimeframeSelector.swift` | segmented analytics-timeframe control — see below           |
-| `StrideChip`              | `StrideChip.swift`              | filter/choice pill, selected/default — see below            |
-| `StrideSectionHeader`     | `StrideSectionHeader.swift`     | uppercase section label + optional action — see below       |
+| Component                 | File                            | Notes                                                               |
+| ------------------------- | ------------------------------- | ------------------------------------------------------------------- |
+| `StrideButton`            | `Components.swift`              | `style: .primary \| .secondary`, `isLoading` (primary only)         |
+| `StrideField`             | `Components.swift`              | `icon` (optional), `isSecure`                                       |
+| `.strideCard()`           | `Components.swift`              | glass card modifier                                                 |
+| state views               | `Components.swift`              | `StrideLoadingView`, `StrideEmptyState`, `StrideErrorState`         |
+| `StrideBadge`             | `StrideBadge.swift`             | status × style matrix — see below                                   |
+| `StrideTimeline`          | `StrideTimeline.swift`          | ordered `[TimelineNode]` — see below                                |
+| `StrideDialog`            | `StrideDialog.swift`            | confirm/alert dialog                                                |
+| `StrideTabBar`            | `StrideTabBar.swift`            | 4 tabs + raised ⊕ quick-log FAB — see below                         |
+| `StrideTrackerTile`       | `StrideTrackerTile.swift`       | hue dot + name + last-logged; recency states — see below            |
+| `StrideTrackerRow`        | `StrideTrackerRow.swift`        | full-width tracker list row; hue rail + recency — see below         |
+| `StrideTimeframeSelector` | `StrideTimeframeSelector.swift` | segmented analytics-timeframe control — see below                   |
+| `StrideChip`              | `StrideChip.swift`              | filter/choice pill, selected/default — see below                    |
+| `StrideSectionHeader`     | `StrideSectionHeader.swift`     | uppercase section label + optional action — see below               |
+| `StrideToggleStyle`       | `StrideToggle.swift`            | Aurora `ToggleStyle` (`.toggleStyle(.stride)`) — see below          |
+| `StrideSelectTile`        | `StrideSelectTile.swift`        | picker-grid tile: hue dot + check ring — see below                  |
+| `StrideStatCard`          | `StrideStatCard.swift`          | label + big stat + tinted delta — see below                         |
+| `StrideInsightCard`       | `StrideInsightCard.swift`       | Insights overview card + `StrideSparkline` — see below              |
+| chart components          | `StrideCharts.swift`            | `StrideLineChart`/`StrideScatterChart`/`StrideBarChart` — see below |
+| `StrideMemberRow`         | `StrideMemberRow.swift`         | Team roster row, `.active`/`.pending` — see below                   |
+| `StrideInviteCard`        | `StrideInviteCard.swift`        | glowing invite-code share card — see below                          |
+| `StrideReceiverRow`       | `StrideReceiverRow.swift`       | receiver switch-sheet row — see below                               |
+| `StrideSettingsRow`       | `StrideSettingsRow.swift`       | settings row, 5 trailing accessories — see below                    |
+| `StrideTemplateCard`      | `StrideTemplateCard.swift`      | add-tracker template card + dashed custom — see below               |
 
 ### StrideBadge
 
@@ -101,6 +124,13 @@ an optional trailing chevron when tappable.
 
 The [[activity-timeline]] "Today" widget is the intended consumer (sun/moon icon + tint from
 `isDaytime`, time as `gutterText`, tracker color/name/value, tap → event detail).
+
+**Aurora restyle (2026-07-05, Figma `Stride/Timeline Node` `93:144`):** the node model is unchanged
+but the drawing now matches the Aurora node — 52pt right-aligned 12pt-medium `textTertiary` time
+gutter, an 11pt glowing dot **top-aligned** with the rail running _down_ from it (rail = 2pt
+`border`), 14pt semibold title / 12pt `textSecondary` description, 18pt bottom padding between
+nodes. The optional icon slot survives even though the Figma node doesn't draw one (the
+activity-timeline consumer uses it).
 
 ### StrideTabBar
 
@@ -200,6 +230,119 @@ a small `chevron.right` (3pt gap), one tap target. Space-between layout, transpa
 - The action renders only when both `actionLabel` and `action` are provided; the title carries the
   `.isHeader` accessibility trait.
 
+### StrideToggleStyle
+
+The Aurora switch treatment (Figma `Stride/Toggle`, set `156:572`; consumed by [[settings]]),
+implemented as a **`ToggleStyle` on the system `Toggle`** rather than a custom view — call sites keep
+the system semantics (label layout, tap target, VoiceOver on/off announcement) and only the drawing
+is custom: a 46×28 capsule track (`accent` on / `surfaceHi` off) with a 22pt `textPrimary` snow
+thumb sliding on a spring. Usage: `Toggle("Reminders", isOn: $flag).toggleStyle(.stride)`.
+
+Added the **`surfaceHi` token** (`#16285c`, the live `color/auth/surface-hi` variable) for the
+off-track — the first component to need the raised-surface value.
+
+### Icons: `Stride/Icon` + `Stride/Tracker Icon` — no Swift component
+
+Both Figma icon sets are glyph collections only, and per the standing SF-Symbols decision (tab bar,
+2026-07-04) they map to system symbols at call sites rather than bundled assets or a wrapper type.
+Tracker-kind glyphs (`Stride/Tracker Icon`, `171:960`): Heart → `heart` · Pill → `pills` · Scale →
+`scalemass` · Pulse → `waveform.path.ecg` · Walk → `figure.walk` · Moon → `moon`. UI glyphs
+(`Stride/Icon`, `157:600`) similarly (`person.2`, `plus`, `bell`, `shield`, `doc.text`,
+`questionmark.circle`, `info.circle`, `rectangle.portrait.and.arrow.right`, `calendar`). Components
+that show a tracker icon take an SF Symbol name (`icon: String`).
+
+### StrideSelectTile
+
+A selectable tracker tile for picker grids (Figma `Stride/Select Tile`, set `93:257`; the
+[[logging]] quick-log wizard's "choose tracker" step): 10pt hue dot + 14pt semibold name + trailing
+22pt check on a surface card (radius 14, 12/14pt padding). Unselected = 1.5pt `border` ring;
+selected = `accent`-filled circle with an ink `checkmark` SF Symbol, and the card border thickens to
+1.5pt `accent`. Like `StrideChip`, a dumb tile — selection state and single/multi rules live in the
+consumer; carries the `.isSelected` accessibility trait.
+
+### StrideStatCard
+
+The Insights detail screen's stat-strip card (Figma `Stride/Stat Card`, `115:196`): tracked (0.5pt)
+uppercase 11pt `textTertiary` label, 22pt stat value, optional 12pt tinted delta line on a surface
+card (radius 12, 14/12pt padding). The component uppercases the label (same convention as
+`StrideSectionHeader`). `deltaColor` defaults to `success`; pass `warning`/`alert`/`textTertiary`
+for adverse or neutral deltas — direction arrows ("↑ ↓") travel inside the `delta` string, since
+whether up is good depends on the metric. **Font note:** Figma sets the stat in Space Grotesk;
+neither it nor Inter is bundled, so the system font (+ `monospacedDigit`) stands in — fold into the
+pending bundled-font decision.
+
+### StrideInsightCard + StrideSparkline
+
+The Insights overview card, one per tracker (Figma `Stride/Insight Card`, `114:196`; consumed by
+[[insights]] decision #6 — count + latest value): 8pt hue dot + 16pt semibold name; a 22pt count
+with its 12pt `textTertiary` caption sharing the first text baseline; a 12pt `textSecondary`
+"latest" line; and a 100×44 **`StrideSparkline`** pinned right. Dumb card — the consumer wraps it
+in a `Button` for the drill-down tap. Surface card, radius 14, 16/14pt padding.
+
+`StrideSparkline(values:hue:)` is a chrome-less filled area mini (85% hue fill + endpoint dot),
+drawn with `Path` rather than Swift Charts — no axes, cheap in scrolling lists, normalizes raw
+values to its bounds. The full-size Insights charts are separate Swift-Charts components.
+
+### Charts: StrideLineChart · StrideScatterChart · StrideBarChart
+
+The full-size [[insights]] charts (Figma `Stride/Chart/Line` `117:196`, `Scatter` `118:206`, `Bar`
+`118:247`), built on **Swift Charts** (never hand-drawn rectangles) over a shared model —
+`StrideChartPoint(date:value:)` and, for multi-line, `StrideChartSeries(name:hue:points:)`. All
+three share the Aurora chart chrome (private `StrideChartCard` modifier): surface card radius 14,
+16pt padding, **horizontal-only** `border` gridlines, 10pt `textTertiary` labels both axes, 150pt
+plot height.
+
+- **Line** — one `LineMark` series per entry (2pt stroke, series hue), gradient area fill under the
+  _first_ series (22% → 2% hue), a glowing 9pt dot on each series' latest point, and a custom dot
+  legend (Charts' own legend is hidden — it can't match the treatment).
+- **Scatter** — the adherence view: `value` = hour-of-day (0–24), y-scale **inverted** (midnight at
+  top, like the Figma plot) with fixed `12a · 6a · 12p · 6p` marks; the latest date's points draw
+  9pt with glow, the rest 7pt @ 80%.
+- **Bar** — counts per week bucket, 4pt top corner radius. _Known drift:_ Figma glows the latest
+  bar; `BarMark` can't take a per-mark shadow, so the latest bar draws at full hue and earlier bars
+  at 85% instead.
+
+### StrideMemberRow
+
+The [[team]] roster row (Figma `Stride/Member Row`, set `144:427`). The two states are structurally
+different, so they're an enum with associated values: **`.active(name:initial:isYou:)`** — 36pt
+`surfaceHi` monogram avatar (1.5pt `accent` ring + accent-tinted "You" tag when `isYou`), 16pt
+semibold name, trailing `accent`-text role badge on a `surfaceHi` capsule; **`.pending(email:meta:
+onRevoke:)`** — envelope avatar, 15pt `textSecondary` email over 12pt `textTertiary` meta
+("Invited · expires 7d"), muted role badge + ✕ revoke button (the row's only action).
+
+### StrideInviteCard
+
+The token-first invite share card (Figma `Stride/Invite Card`, `145:421`; [[team]] invite sheet):
+tracked "INVITE CODE" label, 26pt code (2pt tracking) beside a `surface` expiry pill, and a
+composed **`StrideButton`** primary "Share link". The one glowing card in the system — raised
+`surfaceHi` fill, 1px `accent` border, 12pt cyan shadow @ 20% — because it's the artifact being
+handed to someone.
+
+### StrideReceiverRow
+
+The receiver switch/add sheet row (Figma `Stride/Receiver Row`, set `166:768`; [[receivers]]):
+40pt monogram avatar filled with the receiver's hue @ 15% and the initial in full hue, 16pt
+semibold name over a 13pt `textSecondary` detail line ("72 years"), and an `accent` checkmark when
+active. Dumb row — the sheet wraps it in a `Button`.
+
+### StrideSettingsRow
+
+The [[settings]] list row (Figma `Stride/Settings Row`, set `158:620`): 20pt SF Symbol
+(`textSecondary`) + 15pt medium label + a `Trailing` accessory enum — `.none` · `.chevron` ·
+`.check` (accent) · `.value(String)` (14pt `textTertiary`) · `.toggle(Binding<Bool>)` (binds
+through `StrideToggleStyle`). Only the toggle is self-interactive; navigation taps wrap the row in
+a `Button`.
+
+### StrideTemplateCard
+
+The [[add-tracker]] wizard's choose-template card (Figma `Stride/Template Card`, set `174:948`),
+2-column grid, fixed 146pt height so rows align: **`.template(name:kind:icon:hue:)`** — 44pt
+hue @ 18% icon square (radius 12) with the hue glyph, 15pt semibold name, kind badge on a
+`surfaceHi` capsule; **`.custom`** — dashed 1.5pt `border` card with centered accent ⊕ "Custom".
+Templates come from `GET /tracker-templates`; the icon is an SF Symbol name per the icon mapping
+above.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
@@ -244,6 +387,16 @@ a small `chevron.right` (3pt gap), one tap target. Space-between layout, transpa
 | `StrideTimeframeSelector` + `StrideTimeframe`               | `ios/Caregiver/DesignSystem/StrideTimeframeSelector.swift` |
 | `StrideChip`                                                | `ios/Caregiver/DesignSystem/StrideChip.swift`              |
 | `StrideSectionHeader`                                       | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
+| `StrideToggleStyle`                                         | `ios/Caregiver/DesignSystem/StrideToggle.swift`            |
+| `StrideSelectTile`                                          | `ios/Caregiver/DesignSystem/StrideSelectTile.swift`        |
+| `StrideStatCard`                                            | `ios/Caregiver/DesignSystem/StrideStatCard.swift`          |
+| `StrideInsightCard` + `StrideSparkline`                     | `ios/Caregiver/DesignSystem/StrideInsightCard.swift`       |
+| charts + `StrideChartPoint`/`StrideChartSeries`             | `ios/Caregiver/DesignSystem/StrideCharts.swift`            |
+| `StrideMemberRow`                                           | `ios/Caregiver/DesignSystem/StrideMemberRow.swift`         |
+| `StrideInviteCard`                                          | `ios/Caregiver/DesignSystem/StrideInviteCard.swift`        |
+| `StrideReceiverRow`                                         | `ios/Caregiver/DesignSystem/StrideReceiverRow.swift`       |
+| `StrideSettingsRow`                                         | `ios/Caregiver/DesignSystem/StrideSettingsRow.swift`       |
+| `StrideTemplateCard`                                        | `ios/Caregiver/DesignSystem/StrideTemplateCard.swift`      |
 | Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`                   |
 | Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)             |
 

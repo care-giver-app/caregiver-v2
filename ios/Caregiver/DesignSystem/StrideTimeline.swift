@@ -40,11 +40,12 @@ struct StrideTimeline: View {
         }
     }
 
+    // Aurora node treatment (Figma `Stride/Timeline Node`, 93:144): right-aligned time
+    // gutter, top-aligned glowing dot with the rail running down from it, 14/12pt text.
     private func row(_ node: StrideTimelineNode, isFirst: Bool, isLast: Bool) -> some View {
-        let railColor = Theme.Colors.textTertiary
-        return HStack(alignment: .center, spacing: Theme.Spacing.sm) {
-            // Gutter: optional icon + time label
-            VStack(spacing: Theme.Spacing.xs) {
+        HStack(alignment: .top, spacing: 10) {
+            // Gutter: optional icon over the right-aligned time label
+            VStack(alignment: .trailing, spacing: Theme.Spacing.xs) {
                 if let icon = node.icon {
                     Image(systemName: icon)
                         .font(.caption)
@@ -52,40 +53,41 @@ struct StrideTimeline: View {
                 }
                 if let time = node.time {
                     Text(time)
-                        .font(Theme.Typography.caption)
-                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Theme.Colors.textTertiary)
                         .lineLimit(1)
                 }
             }
-            .frame(width: 70)
+            .frame(width: 52, alignment: .trailing)
 
-            // Rail: continuous line with a colored dot; top/bottom lines trimmed at endpoints
+            // Rail: glowing dot at the row's top, line continuing down to the next node
             VStack(spacing: 0) {
-                Rectangle()
-                    .fill(isFirst ? Color.clear : railColor)
-                    .frame(width: 2)
-                    .frame(maxHeight: .infinity)
                 Circle()
                     .fill(node.dotColor)
-                    .frame(width: 12, height: 12)
-                Rectangle()
-                    .fill(isLast ? Color.clear : railColor)
-                    .frame(width: 2)
-                    .frame(maxHeight: .infinity)
+                    .frame(width: 11, height: 11)
+                    .shadow(color: node.dotColor.opacity(0.9), radius: 3)
+                if !isLast {
+                    Rectangle()
+                        .fill(Theme.Colors.border)
+                        .frame(width: 2)
+                        .frame(maxHeight: .infinity)
+                }
             }
-            .frame(width: 24)
+            .frame(width: 14)
+            .padding(.top, 2)
 
             // Content
-            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(node.title)
-                    .font(Theme.Typography.headline)
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.Colors.textPrimary)
                 if let description = node.description {
                     Text(description)
-                        .font(Theme.Typography.body)
+                        .font(.system(size: 12))
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
+            .padding(.bottom, isLast ? 0 : 18)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if node.action != nil {
@@ -94,7 +96,6 @@ struct StrideTimeline: View {
                     .foregroundStyle(Theme.Colors.textTertiary)
             }
         }
-        .frame(minHeight: 56)
         .contentShape(Rectangle())
         .onTapGesture { node.action?() }
         .allowsHitTesting(node.action != nil)
