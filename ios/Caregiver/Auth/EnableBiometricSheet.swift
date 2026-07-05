@@ -32,7 +32,7 @@ struct EnableBiometricSheet: View {
                 .foregroundStyle(Theme.Colors.textSecondary)
         }
         .padding(Theme.Spacing.lg)
-        .strideBackground()
+        .strideAuroraBackground()
         .presentationDetents([.medium, .large])
         .presentationCornerRadius(24)
     }
