@@ -35,6 +35,12 @@ StrideChip(label:isSelected:action:)           // self-sizing filter/choice pill
 StrideSectionHeader(title:actionLabel:action:) // tracked-uppercase section label + optional accent "See all ›"
 Toggle(…).toggleStyle(.stride)                 // StrideToggleStyle — Aurora capsule track on the system Toggle
 StrideSelectTile(name:hue:isSelected:action:)  // picker-grid tile: hue dot + name + check ring; selection in consumer
+StrideStatCard(label:value:delta:deltaColor:)  // Insights stat-strip card: tracked label + big stat + tinted delta
+StrideInsightCard(name:hue:count:countCaption:latest:sparkline:) // Insights overview card w/ mini sparkline
+StrideSparkline(values:hue:)                   // chrome-less filled area mini + endpoint dot (Path, not Swift Charts)
+StrideLineChart(series:)                       // [StrideChartSeries] — value-vs-time lines + area under first series
+StrideScatterChart(points:hue:)                // hour-of-day × date adherence scatter (midnight at top)
+StrideBarChart(points:hue:)                    // count-per-bucket bar trend
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -48,23 +54,26 @@ you next touch a component.
 Reusable components live in `ios/Caregiver/DesignSystem/` and are consumed app-wide (Home, Auth,
 Settings, Insights, Activity, Trackers, Dashboard, …):
 
-| Component                 | File                            | Notes                                                       |
-| ------------------------- | ------------------------------- | ----------------------------------------------------------- |
-| `StrideButton`            | `Components.swift`              | `style: .primary \| .secondary`, `isLoading` (primary only) |
-| `StrideField`             | `Components.swift`              | `icon` (optional), `isSecure`                               |
-| `.strideCard()`           | `Components.swift`              | glass card modifier                                         |
-| state views               | `Components.swift`              | `StrideLoadingView`, `StrideEmptyState`, `StrideErrorState` |
-| `StrideBadge`             | `StrideBadge.swift`             | status × style matrix — see below                           |
-| `StrideTimeline`          | `StrideTimeline.swift`          | ordered `[TimelineNode]` — see below                        |
-| `StrideDialog`            | `StrideDialog.swift`            | confirm/alert dialog                                        |
-| `StrideTabBar`            | `StrideTabBar.swift`            | 4 tabs + raised ⊕ quick-log FAB — see below                 |
-| `StrideTrackerTile`       | `StrideTrackerTile.swift`       | hue dot + name + last-logged; recency states — see below    |
-| `StrideTrackerRow`        | `StrideTrackerRow.swift`        | full-width tracker list row; hue rail + recency — see below |
-| `StrideTimeframeSelector` | `StrideTimeframeSelector.swift` | segmented analytics-timeframe control — see below           |
-| `StrideChip`              | `StrideChip.swift`              | filter/choice pill, selected/default — see below            |
-| `StrideSectionHeader`     | `StrideSectionHeader.swift`     | uppercase section label + optional action — see below       |
-| `StrideToggleStyle`       | `StrideToggle.swift`            | Aurora `ToggleStyle` (`.toggleStyle(.stride)`) — see below  |
-| `StrideSelectTile`        | `StrideSelectTile.swift`        | picker-grid tile: hue dot + check ring — see below          |
+| Component                 | File                            | Notes                                                               |
+| ------------------------- | ------------------------------- | ------------------------------------------------------------------- |
+| `StrideButton`            | `Components.swift`              | `style: .primary \| .secondary`, `isLoading` (primary only)         |
+| `StrideField`             | `Components.swift`              | `icon` (optional), `isSecure`                                       |
+| `.strideCard()`           | `Components.swift`              | glass card modifier                                                 |
+| state views               | `Components.swift`              | `StrideLoadingView`, `StrideEmptyState`, `StrideErrorState`         |
+| `StrideBadge`             | `StrideBadge.swift`             | status × style matrix — see below                                   |
+| `StrideTimeline`          | `StrideTimeline.swift`          | ordered `[TimelineNode]` — see below                                |
+| `StrideDialog`            | `StrideDialog.swift`            | confirm/alert dialog                                                |
+| `StrideTabBar`            | `StrideTabBar.swift`            | 4 tabs + raised ⊕ quick-log FAB — see below                         |
+| `StrideTrackerTile`       | `StrideTrackerTile.swift`       | hue dot + name + last-logged; recency states — see below            |
+| `StrideTrackerRow`        | `StrideTrackerRow.swift`        | full-width tracker list row; hue rail + recency — see below         |
+| `StrideTimeframeSelector` | `StrideTimeframeSelector.swift` | segmented analytics-timeframe control — see below                   |
+| `StrideChip`              | `StrideChip.swift`              | filter/choice pill, selected/default — see below                    |
+| `StrideSectionHeader`     | `StrideSectionHeader.swift`     | uppercase section label + optional action — see below               |
+| `StrideToggleStyle`       | `StrideToggle.swift`            | Aurora `ToggleStyle` (`.toggleStyle(.stride)`) — see below          |
+| `StrideSelectTile`        | `StrideSelectTile.swift`        | picker-grid tile: hue dot + check ring — see below                  |
+| `StrideStatCard`          | `StrideStatCard.swift`          | label + big stat + tinted delta — see below                         |
+| `StrideInsightCard`       | `StrideInsightCard.swift`       | Insights overview card + `StrideSparkline` — see below              |
+| chart components          | `StrideCharts.swift`            | `StrideLineChart`/`StrideScatterChart`/`StrideBarChart` — see below |
 
 ### StrideBadge
 
@@ -241,6 +250,48 @@ selected = `accent`-filled circle with an ink `checkmark` SF Symbol, and the car
 1.5pt `accent`. Like `StrideChip`, a dumb tile — selection state and single/multi rules live in the
 consumer; carries the `.isSelected` accessibility trait.
 
+### StrideStatCard
+
+The Insights detail screen's stat-strip card (Figma `Stride/Stat Card`, `115:196`): tracked (0.5pt)
+uppercase 11pt `textTertiary` label, 22pt stat value, optional 12pt tinted delta line on a surface
+card (radius 12, 14/12pt padding). The component uppercases the label (same convention as
+`StrideSectionHeader`). `deltaColor` defaults to `success`; pass `warning`/`alert`/`textTertiary`
+for adverse or neutral deltas — direction arrows ("↑ ↓") travel inside the `delta` string, since
+whether up is good depends on the metric. **Font note:** Figma sets the stat in Space Grotesk;
+neither it nor Inter is bundled, so the system font (+ `monospacedDigit`) stands in — fold into the
+pending bundled-font decision.
+
+### StrideInsightCard + StrideSparkline
+
+The Insights overview card, one per tracker (Figma `Stride/Insight Card`, `114:196`; consumed by
+[[insights]] decision #6 — count + latest value): 8pt hue dot + 16pt semibold name; a 22pt count
+with its 12pt `textTertiary` caption sharing the first text baseline; a 12pt `textSecondary`
+"latest" line; and a 100×44 **`StrideSparkline`** pinned right. Dumb card — the consumer wraps it
+in a `Button` for the drill-down tap. Surface card, radius 14, 16/14pt padding.
+
+`StrideSparkline(values:hue:)` is a chrome-less filled area mini (85% hue fill + endpoint dot),
+drawn with `Path` rather than Swift Charts — no axes, cheap in scrolling lists, normalizes raw
+values to its bounds. The full-size Insights charts are separate Swift-Charts components.
+
+### Charts: StrideLineChart · StrideScatterChart · StrideBarChart
+
+The full-size [[insights]] charts (Figma `Stride/Chart/Line` `117:196`, `Scatter` `118:206`, `Bar`
+`118:247`), built on **Swift Charts** (never hand-drawn rectangles) over a shared model —
+`StrideChartPoint(date:value:)` and, for multi-line, `StrideChartSeries(name:hue:points:)`. All
+three share the Aurora chart chrome (private `StrideChartCard` modifier): surface card radius 14,
+16pt padding, **horizontal-only** `border` gridlines, 10pt `textTertiary` labels both axes, 150pt
+plot height.
+
+- **Line** — one `LineMark` series per entry (2pt stroke, series hue), gradient area fill under the
+  _first_ series (22% → 2% hue), a glowing 9pt dot on each series' latest point, and a custom dot
+  legend (Charts' own legend is hidden — it can't match the treatment).
+- **Scatter** — the adherence view: `value` = hour-of-day (0–24), y-scale **inverted** (midnight at
+  top, like the Figma plot) with fixed `12a · 6a · 12p · 6p` marks; the latest date's points draw
+  9pt with glow, the rest 7pt @ 80%.
+- **Bar** — counts per week bucket, 4pt top corner radius. _Known drift:_ Figma glows the latest
+  bar; `BarMark` can't take a per-mark shadow, so the latest bar draws at full hue and earlier bars
+  at 85% instead.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
@@ -287,6 +338,9 @@ consumer; carries the `.isSelected` accessibility trait.
 | `StrideSectionHeader`                                       | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
 | `StrideToggleStyle`                                         | `ios/Caregiver/DesignSystem/StrideToggle.swift`            |
 | `StrideSelectTile`                                          | `ios/Caregiver/DesignSystem/StrideSelectTile.swift`        |
+| `StrideStatCard`                                            | `ios/Caregiver/DesignSystem/StrideStatCard.swift`          |
+| `StrideInsightCard` + `StrideSparkline`                     | `ios/Caregiver/DesignSystem/StrideInsightCard.swift`       |
+| charts + `StrideChartPoint`/`StrideChartSeries`             | `ios/Caregiver/DesignSystem/StrideCharts.swift`            |
 | Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`                   |
 | Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)             |
 
