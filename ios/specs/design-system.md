@@ -41,6 +41,11 @@ StrideSparkline(values:hue:)                   // chrome-less filled area mini +
 StrideLineChart(series:)                       // [StrideChartSeries] — value-vs-time lines + area under first series
 StrideScatterChart(points:hue:)                // hour-of-day × date adherence scatter (midnight at top)
 StrideBarChart(points:hue:)                    // count-per-bucket bar trend
+StrideMemberRow(state:role:)                   // state: .active(name:initial:isYou:) | .pending(email:meta:onRevoke:)
+StrideInviteCard(code:expiry:onShare:)         // glowing accent invite-code card; composes StrideButton
+StrideReceiverRow(name:detail:initial:hue:isActive:) // switch-sheet row: hue monogram + ✓ when active
+StrideSettingsRow(icon:label:trailing:)        // trailing: .none | .chevron | .check | .value(String) | .toggle(Binding)
+StrideTemplateCard(style:)                     // style: .template(name:kind:icon:hue:) | .custom (dashed ⊕)
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -74,6 +79,11 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 | `StrideStatCard`          | `StrideStatCard.swift`          | label + big stat + tinted delta — see below                         |
 | `StrideInsightCard`       | `StrideInsightCard.swift`       | Insights overview card + `StrideSparkline` — see below              |
 | chart components          | `StrideCharts.swift`            | `StrideLineChart`/`StrideScatterChart`/`StrideBarChart` — see below |
+| `StrideMemberRow`         | `StrideMemberRow.swift`         | Team roster row, `.active`/`.pending` — see below                   |
+| `StrideInviteCard`        | `StrideInviteCard.swift`        | glowing invite-code share card — see below                          |
+| `StrideReceiverRow`       | `StrideReceiverRow.swift`       | receiver switch-sheet row — see below                               |
+| `StrideSettingsRow`       | `StrideSettingsRow.swift`       | settings row, 5 trailing accessories — see below                    |
+| `StrideTemplateCard`      | `StrideTemplateCard.swift`      | add-tracker template card + dashed custom — see below               |
 
 ### StrideBadge
 
@@ -292,6 +302,47 @@ plot height.
   bar; `BarMark` can't take a per-mark shadow, so the latest bar draws at full hue and earlier bars
   at 85% instead.
 
+### StrideMemberRow
+
+The [[team]] roster row (Figma `Stride/Member Row`, set `144:427`). The two states are structurally
+different, so they're an enum with associated values: **`.active(name:initial:isYou:)`** — 36pt
+`surfaceHi` monogram avatar (1.5pt `accent` ring + accent-tinted "You" tag when `isYou`), 16pt
+semibold name, trailing `accent`-text role badge on a `surfaceHi` capsule; **`.pending(email:meta:
+onRevoke:)`** — envelope avatar, 15pt `textSecondary` email over 12pt `textTertiary` meta
+("Invited · expires 7d"), muted role badge + ✕ revoke button (the row's only action).
+
+### StrideInviteCard
+
+The token-first invite share card (Figma `Stride/Invite Card`, `145:421`; [[team]] invite sheet):
+tracked "INVITE CODE" label, 26pt code (2pt tracking) beside a `surface` expiry pill, and a
+composed **`StrideButton`** primary "Share link". The one glowing card in the system — raised
+`surfaceHi` fill, 1px `accent` border, 12pt cyan shadow @ 20% — because it's the artifact being
+handed to someone.
+
+### StrideReceiverRow
+
+The receiver switch/add sheet row (Figma `Stride/Receiver Row`, set `166:768`; [[receivers]]):
+40pt monogram avatar filled with the receiver's hue @ 15% and the initial in full hue, 16pt
+semibold name over a 13pt `textSecondary` detail line ("72 years"), and an `accent` checkmark when
+active. Dumb row — the sheet wraps it in a `Button`.
+
+### StrideSettingsRow
+
+The [[settings]] list row (Figma `Stride/Settings Row`, set `158:620`): 20pt SF Symbol
+(`textSecondary`) + 15pt medium label + a `Trailing` accessory enum — `.none` · `.chevron` ·
+`.check` (accent) · `.value(String)` (14pt `textTertiary`) · `.toggle(Binding<Bool>)` (binds
+through `StrideToggleStyle`). Only the toggle is self-interactive; navigation taps wrap the row in
+a `Button`.
+
+### StrideTemplateCard
+
+The [[add-tracker]] wizard's choose-template card (Figma `Stride/Template Card`, set `174:948`),
+2-column grid, fixed 146pt height so rows align: **`.template(name:kind:icon:hue:)`** — 44pt
+hue @ 18% icon square (radius 12) with the hue glyph, 15pt semibold name, kind badge on a
+`surfaceHi` capsule; **`.custom`** — dashed 1.5pt `border` card with centered accent ⊕ "Custom".
+Templates come from `GET /tracker-templates`; the icon is an SF Symbol name per the icon mapping
+above.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
@@ -341,6 +392,11 @@ plot height.
 | `StrideStatCard`                                            | `ios/Caregiver/DesignSystem/StrideStatCard.swift`          |
 | `StrideInsightCard` + `StrideSparkline`                     | `ios/Caregiver/DesignSystem/StrideInsightCard.swift`       |
 | charts + `StrideChartPoint`/`StrideChartSeries`             | `ios/Caregiver/DesignSystem/StrideCharts.swift`            |
+| `StrideMemberRow`                                           | `ios/Caregiver/DesignSystem/StrideMemberRow.swift`         |
+| `StrideInviteCard`                                          | `ios/Caregiver/DesignSystem/StrideInviteCard.swift`        |
+| `StrideReceiverRow`                                         | `ios/Caregiver/DesignSystem/StrideReceiverRow.swift`       |
+| `StrideSettingsRow`                                         | `ios/Caregiver/DesignSystem/StrideSettingsRow.swift`       |
+| `StrideTemplateCard`                                        | `ios/Caregiver/DesignSystem/StrideTemplateCard.swift`      |
 | Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`                   |
 | Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)             |
 
