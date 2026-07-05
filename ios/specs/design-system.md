@@ -33,6 +33,8 @@ StrideTrackerRow(name:subtitle:meta:hue:recency:badge:) // full-width Trackers-l
 StrideTimeframeSelector(selection:)            // selection: Binding<StrideTimeframe>; week | month | threeMonths | year | custom
 StrideChip(label:isSelected:action:)           // self-sizing filter/choice pill; single-select lives in the consumer
 StrideSectionHeader(title:actionLabel:action:) // tracked-uppercase section label + optional accent "See all ›"
+Toggle(…).toggleStyle(.stride)                 // StrideToggleStyle — Aurora capsule track on the system Toggle
+StrideSelectTile(name:hue:isSelected:action:)  // picker-grid tile: hue dot + name + check ring; selection in consumer
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -61,6 +63,8 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 | `StrideTimeframeSelector` | `StrideTimeframeSelector.swift` | segmented analytics-timeframe control — see below           |
 | `StrideChip`              | `StrideChip.swift`              | filter/choice pill, selected/default — see below            |
 | `StrideSectionHeader`     | `StrideSectionHeader.swift`     | uppercase section label + optional action — see below       |
+| `StrideToggleStyle`       | `StrideToggle.swift`            | Aurora `ToggleStyle` (`.toggleStyle(.stride)`) — see below  |
+| `StrideSelectTile`        | `StrideSelectTile.swift`        | picker-grid tile: hue dot + check ring — see below          |
 
 ### StrideBadge
 
@@ -101,6 +105,13 @@ an optional trailing chevron when tappable.
 
 The [[activity-timeline]] "Today" widget is the intended consumer (sun/moon icon + tint from
 `isDaytime`, time as `gutterText`, tracker color/name/value, tap → event detail).
+
+**Aurora restyle (2026-07-05, Figma `Stride/Timeline Node` `93:144`):** the node model is unchanged
+but the drawing now matches the Aurora node — 52pt right-aligned 12pt-medium `textTertiary` time
+gutter, an 11pt glowing dot **top-aligned** with the rail running _down_ from it (rail = 2pt
+`border`), 14pt semibold title / 12pt `textSecondary` description, 18pt bottom padding between
+nodes. The optional icon slot survives even though the Figma node doesn't draw one (the
+activity-timeline consumer uses it).
 
 ### StrideTabBar
 
@@ -200,6 +211,36 @@ a small `chevron.right` (3pt gap), one tap target. Space-between layout, transpa
 - The action renders only when both `actionLabel` and `action` are provided; the title carries the
   `.isHeader` accessibility trait.
 
+### StrideToggleStyle
+
+The Aurora switch treatment (Figma `Stride/Toggle`, set `156:572`; consumed by [[settings]]),
+implemented as a **`ToggleStyle` on the system `Toggle`** rather than a custom view — call sites keep
+the system semantics (label layout, tap target, VoiceOver on/off announcement) and only the drawing
+is custom: a 46×28 capsule track (`accent` on / `surfaceHi` off) with a 22pt `textPrimary` snow
+thumb sliding on a spring. Usage: `Toggle("Reminders", isOn: $flag).toggleStyle(.stride)`.
+
+Added the **`surfaceHi` token** (`#16285c`, the live `color/auth/surface-hi` variable) for the
+off-track — the first component to need the raised-surface value.
+
+### Icons: `Stride/Icon` + `Stride/Tracker Icon` — no Swift component
+
+Both Figma icon sets are glyph collections only, and per the standing SF-Symbols decision (tab bar,
+2026-07-04) they map to system symbols at call sites rather than bundled assets or a wrapper type.
+Tracker-kind glyphs (`Stride/Tracker Icon`, `171:960`): Heart → `heart` · Pill → `pills` · Scale →
+`scalemass` · Pulse → `waveform.path.ecg` · Walk → `figure.walk` · Moon → `moon`. UI glyphs
+(`Stride/Icon`, `157:600`) similarly (`person.2`, `plus`, `bell`, `shield`, `doc.text`,
+`questionmark.circle`, `info.circle`, `rectangle.portrait.and.arrow.right`, `calendar`). Components
+that show a tracker icon take an SF Symbol name (`icon: String`).
+
+### StrideSelectTile
+
+A selectable tracker tile for picker grids (Figma `Stride/Select Tile`, set `93:257`; the
+[[logging]] quick-log wizard's "choose tracker" step): 10pt hue dot + 14pt semibold name + trailing
+22pt check on a surface card (radius 14, 12/14pt padding). Unselected = 1.5pt `border` ring;
+selected = `accent`-filled circle with an ink `checkmark` SF Symbol, and the card border thickens to
+1.5pt `accent`. Like `StrideChip`, a dumb tile — selection state and single/multi rules live in the
+consumer; carries the `.isSelected` accessibility trait.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
@@ -244,6 +285,8 @@ a small `chevron.right` (3pt gap), one tap target. Space-between layout, transpa
 | `StrideTimeframeSelector` + `StrideTimeframe`               | `ios/Caregiver/DesignSystem/StrideTimeframeSelector.swift` |
 | `StrideChip`                                                | `ios/Caregiver/DesignSystem/StrideChip.swift`              |
 | `StrideSectionHeader`                                       | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
+| `StrideToggleStyle`                                         | `ios/Caregiver/DesignSystem/StrideToggle.swift`            |
+| `StrideSelectTile`                                          | `ios/Caregiver/DesignSystem/StrideSelectTile.swift`        |
 | Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`                   |
 | Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)             |
 

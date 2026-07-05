@@ -13,6 +13,7 @@ enum Theme {
     static let textTertiary  = dynamic(light: "5e709c")
     static let textOnAccent  = dynamic(light: "04121a")  // ink on cyan fills (FAB glyph, primary buttons)
     static let surface       = dynamic(light: "0e1c4a")
+    static let surfaceHi     = dynamic(light: "16285c")  // raised surface (toggle off-track)
     static let background    = dynamic(light: "050b2e")
     static let border        = dynamic(light: "294272")
     static let muted         = dynamic(light: "5A6E9E")
