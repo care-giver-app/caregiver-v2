@@ -6,19 +6,17 @@ import SwiftUI
 struct StrideBrand: View {
     private enum Metrics {
         static let logoWidth: CGFloat = 260
+        static let logoHeight: CGFloat = 120
         static let radius: CGFloat = 20
     }
 
     var body: some View {
-        // Width-only frame: scaledToFit derives the height from the mark's own
-        // aspect ratio, so the plaque hugs the logo and padding is the only
-        // whitespace (a fixed height letterboxes invisibly).
         Image("AppLogo")
             .resizable()
             .scaledToFit()
-            .frame(width: Metrics.logoWidth)
-            .padding(.horizontal, Theme.Spacing.xs)
-            .padding(.vertical, Theme.Spacing.xs)
+            .frame(width: Metrics.logoWidth, height: Metrics.logoHeight)
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.vertical, Theme.Spacing.md - 4)
             .background {
                 RoundedRectangle(cornerRadius: Metrics.radius)
                     .fill(Color(hex: "f1f6ff").opacity(0.96))
