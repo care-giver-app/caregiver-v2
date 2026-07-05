@@ -30,6 +30,7 @@ StrideTimeline(nodes:)                         // ordered [TimelineNode]
 StrideTabBar(selection:onQuickLog:)            // selection: Binding<StrideTab>; ⊕ FAB action
 StrideTrackerTile(name:subtitle:hue:recency:badge:) // recency: .fresh | .normal | .overdue; badge: StrideBadge?
 StrideTrackerRow(name:subtitle:meta:hue:recency:badge:) // full-width Trackers-list row; same recency/badge model
+StrideChip(label:isSelected:action:)           // self-sizing filter/choice pill; single-select lives in the consumer
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -55,6 +56,7 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 | `StrideTabBar`      | `StrideTabBar.swift`      | 4 tabs + raised ⊕ quick-log FAB — see below                 |
 | `StrideTrackerTile` | `StrideTrackerTile.swift` | hue dot + name + last-logged; recency states — see below    |
 | `StrideTrackerRow`  | `StrideTrackerRow.swift`  | full-width tracker list row; hue rail + recency — see below |
+| `StrideChip`        | `StrideChip.swift`        | filter/choice pill, selected/default — see below            |
 
 ### StrideBadge
 
@@ -149,6 +151,21 @@ the "Due" pill = `StrideBadge(.warning, "Due")` exactly, so it's composed, not r
 doesn't couple them. Kept as a separate component from the tile (different shape, layout, and
 trailing content); only the recency enum is shared.
 
+### StrideChip
+
+A self-sizing filter/choice pill (Figma `Stride/Chip`, set `90:85`, variants `Type=Default` /
+`Type=Selected`): a capsule that hugs its 13pt label (14pt horizontal / 8pt vertical padding).
+Default = `surface` fill + 1px `border`, medium `textSecondary` label; selected = `accent` @ 16%
+fill + 1px `accent` border, semibold `accent` label.
+
+- **A dumb pill:** `StrideChip(label:isSelected:action:)`. The "exactly one selected" rule lives in
+  the consumer row, not the chip — both Figma usages are single-select rows: the [[trackers]] filter
+  row (`All · Needs attention · Archived`, frame `72:12`) and the [[team]] invite-sheet role picker
+  (`Caregiver · Admin`, frame `150:643`).
+- **Not the timeframe control** — the [[insights]] spec's decision #2 originally reused the chip for
+  timeframes, but Figma grew the dedicated `Stride/Timeframe Selector` (`113:196`); the chip's role
+  is now purely filter/choice.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
@@ -190,6 +207,7 @@ trailing content); only the recency enum is shared.
 | `StrideTabBar` + `StrideTab`                                | `ios/Caregiver/DesignSystem/StrideTabBar.swift`      |
 | `StrideTrackerTile` + `StrideTrackerRecency`                | `ios/Caregiver/DesignSystem/StrideTrackerTile.swift` |
 | `StrideTrackerRow`                                          | `ios/Caregiver/DesignSystem/StrideTrackerRow.swift`  |
+| `StrideChip`                                                | `ios/Caregiver/DesignSystem/StrideChip.swift`        |
 | Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`             |
 | Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)       |
 
