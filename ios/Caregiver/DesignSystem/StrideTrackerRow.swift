@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The Trackers view's full-width list row (Figma `Stride/Tracker Row`): hue rail +
-/// name over a "Kind · value" subtitle, with trailing meta text ("2h ago") and a
-/// chevron that hug the text rather than the trailing edge. The rail carries the
+/// name over a "Kind · value" subtitle, with meta text ("2h ago") and a chevron
+/// pinned to the trailing edge. The rail carries the
 /// tracker's identity hue; `.overdue` swaps it to the warning amber (status is a
 /// layer over the hue, never a hue itself). Status text ("Due", "Missed", …) is a
 /// `StrideBadge` in the trailing slot, typically in place of `meta`.
@@ -19,9 +19,6 @@ struct StrideTrackerRow: View {
         static let railRadius: CGFloat = 2
         static let glowRadius: CGFloat = 4
         static let itemSpacing: CGFloat = 14
-        // Fixed gap between the text column and the trailing meta/badge — the
-        // trailing content hugs the text instead of pinning to the row's edge.
-        static let trailingGap: CGFloat = 8
         static let padding: CGFloat = 14
         static let radius: CGFloat = 16
     }
@@ -49,7 +46,7 @@ struct StrideTrackerRow: View {
                         .foregroundStyle(Theme.Colors.textTertiary)
                 }
             }
-            Color.clear.frame(width: Metrics.trailingGap, height: 1)
+            Spacer()
             if let meta {
                 Text(meta)
                     .font(.system(size: 12, weight: .medium))
@@ -59,7 +56,6 @@ struct StrideTrackerRow: View {
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.Colors.textTertiary)
-            Spacer(minLength: 0)
         }
         .lineLimit(1)
         .padding(Metrics.padding)

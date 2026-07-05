@@ -134,9 +134,12 @@ fold the badge into the `Stride/Tracker Tile` variants on the next Figma pass.
 The Trackers view's full-width list row (Figma `Stride/Tracker Row`, set `92:107`; consumed by
 [[trackers]]): a 4×40pt **hue rail** (radius 2) + name (16pt semibold) over a "Kind · value" subtitle
 (13pt, text-tertiary), on a surface card (radius 16, 1px border, padding 14). Trailing **`meta`** text
-("2h ago", 12pt medium) and a `chevron.right` **hug the text column** (fixed 8pt gap after the
-subtitle) rather than pinning to the row's trailing edge — per the Figma Trackers frame, where their
-x-position varies row to row. The chevron always draws: every row navigates to tracker detail.
+("2h ago", 12pt medium) and a `chevron.right` are **pinned to the row's trailing edge** (decided
+2026-07-05, Trevor) — the standard iOS list pattern, so recency scans down one consistent right edge.
+_Code leads Figma here_: the Figma component hugs the trailing content to the text column (x-position
+varies row to row in the Trackers frame — likely an auto-layout hug artifact); pin it right in the
+`Stride/Tracker Row` variants on the next Figma pass. The chevron always draws: every row navigates
+to tracker detail.
 
 `StrideTrackerRecency` is shared with `StrideTrackerTile` and renders the same way on the rail:
 `.fresh` glows (hue shadow @ 90%), `.normal` is the plain hue, `.overdue` flips the rail to `warning`
