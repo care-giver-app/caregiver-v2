@@ -6,7 +6,7 @@ import SwiftUI
 struct StrideBrand: View {
     private enum Metrics {
         static let logoWidth: CGFloat = 220
-        static let logoHeight: CGFloat = 160
+        static let logoHeight: CGFloat = 140
         static let radius: CGFloat = 20
     }
 

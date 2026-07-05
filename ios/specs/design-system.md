@@ -350,8 +350,8 @@ above.
 ### StrideBrand
 
 The CareToSher brand plaque (Figma `Stride/Brand`, `46:34`; the top anchor of all five auth
-screens): the existing `AppLogo` asset (dark navy mark, **230×120 frame, no padding** — Trevor
-tuned this by eye 2026-07-05 from Figma's 200×82 + 16/12 padding; the mark draws ~230×94 inside
+screens): the existing `AppLogo` asset (dark navy mark, **220×140 frame, no padding** — Trevor
+tuned this by eye 2026-07-05 from Figma's 200×82 + 16/12 padding; the mark draws ~220×90 inside
 the frame, so the letterbox _is_ the vertical breathing room. _Code leads Figma_, resize
 `Stride/Brand` next Figma pass) on a near-white "ice chip" slab —
 `#f1f6ff` @ 96%, radius 20, 1px white @ 70% hairline — with a cyan glow + deep drop shadow so it
