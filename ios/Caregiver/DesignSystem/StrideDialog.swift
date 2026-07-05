@@ -72,3 +72,29 @@ extension View {
         }
     }
 }
+
+#Preview("Confirm dialog") {
+    ZStack {
+        Theme.Colors.background.ignoresSafeArea()
+        StrideDialog(
+            icon: "archivebox",
+            title: "Archive Eleanor?",
+            message: "Her trackers and history stay saved, but she'll no longer appear on Home.",
+            actions: [
+                StrideDialogAction(title: "Archive", action: {}),
+                StrideDialogAction(title: "Cancel", style: .secondary, action: {}),
+            ]
+        )
+    }
+}
+
+#Preview("Alert, no icon") {
+    ZStack {
+        Theme.Colors.background.ignoresSafeArea()
+        StrideDialog(
+            title: "Invite expired",
+            message: "Ask an admin for a fresh invite code.",
+            actions: [StrideDialogAction(title: "OK", action: {})]
+        )
+    }
+}
