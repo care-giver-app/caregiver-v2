@@ -5,8 +5,8 @@ import SwiftUI
 /// Fixed-size — every auth screen top-anchors the same instance.
 struct StrideBrand: View {
     private enum Metrics {
-        static let logoWidth: CGFloat = 200
-        static let logoHeight: CGFloat = 82
+        static let logoWidth: CGFloat = 260
+        static let logoHeight: CGFloat = 120
         static let radius: CGFloat = 20
     }
 
