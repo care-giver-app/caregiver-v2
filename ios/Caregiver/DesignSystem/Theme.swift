@@ -49,7 +49,6 @@ enum Theme {
 
   enum Radius {
     static let card: CGFloat = 12
-    static let control: CGFloat = 11
   }
 
   enum Gradients {
