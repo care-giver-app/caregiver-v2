@@ -101,3 +101,31 @@ struct StrideTimeline: View {
         .allowsHitTesting(node.action != nil)
     }
 }
+
+#Preview("Today timeline") {
+    StrideTimeline(nodes: [
+        StrideTimelineNode(
+            icon: "sun.max", iconColor: Theme.Colors.warning, time: "9:04 AM",
+            title: "Blood pressure", description: "128/82 mmHg",
+            dotColor: Theme.Colors.trackerCyan, action: {}
+        ),
+        StrideTimelineNode(
+            time: "12:30 PM",
+            title: "Medication", description: "Lisinopril 10 mg · taken",
+            dotColor: Theme.Colors.trackerViolet, action: {}
+        ),
+        StrideTimelineNode(
+            time: "3:15 PM",
+            title: "Hydration", description: "Glass of water",
+            dotColor: Theme.Colors.trackerTeal
+        ),
+        StrideTimelineNode(
+            icon: "moon", iconColor: Theme.Colors.informational, time: "9:45 PM",
+            title: "Sleep", description: "7 h 20 m",
+            dotColor: Theme.Colors.trackerCyan
+        ),
+    ])
+    .padding(Theme.Spacing.md)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .background { Theme.Colors.background.ignoresSafeArea() }
+}
