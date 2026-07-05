@@ -2,7 +2,7 @@
 
 - **Module:** ios
 - **Status:** Current — the app's reusable SwiftUI components + tokens. (Superseded the standalone browser **design-gallery** tool, removed 2026-07-01 now that Figma is the design source of truth.)
-- **Last updated:** 2026-07-04
+- **Last updated:** 2026-07-05
 - **Contract:** none (no backend interaction).
 - **Related specs:** every ios screen spec consumes these components; [[sample-data]] (canonical fixtures + tracker hue map), [[insights]] (Aurora palette substrate table), [[activity-timeline]] (the `StrideTimeline` consumer)
 
@@ -29,6 +29,7 @@ StrideBadge(status:style:icon:label:)
 StrideTimeline(nodes:)                         // ordered [TimelineNode]
 StrideTabBar(selection:onQuickLog:)            // selection: Binding<StrideTab>; ⊕ FAB action
 StrideTrackerTile(name:subtitle:hue:recency:badge:) // recency: .fresh | .normal | .overdue; badge: StrideBadge?
+StrideTrackerRow(name:subtitle:meta:hue:recency:badge:) // full-width Trackers-list row; same recency/badge model
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -53,6 +54,7 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 | `StrideDialog`      | `StrideDialog.swift`      | confirm/alert dialog                                        |
 | `StrideTabBar`      | `StrideTabBar.swift`      | 4 tabs + raised ⊕ quick-log FAB — see below                 |
 | `StrideTrackerTile` | `StrideTrackerTile.swift` | hue dot + name + last-logged; recency states — see below    |
+| `StrideTrackerRow`  | `StrideTrackerRow.swift`  | full-width tracker list row; hue rail + recency — see below |
 
 ### StrideBadge
 
@@ -127,6 +129,23 @@ always text-tertiary) beside the optional `badge`, and is fixed at badge height 
 tiles grid-align. _Code leads Figma here_ — the Figma tile still draws "Due" as amber subtitle text;
 fold the badge into the `Stride/Tracker Tile` variants on the next Figma pass.
 
+### StrideTrackerRow
+
+The Trackers view's full-width list row (Figma `Stride/Tracker Row`, set `92:107`; consumed by
+[[trackers]]): a 4×40pt **hue rail** (radius 2) + name (16pt semibold) over a "Kind · value" subtitle
+(13pt, text-tertiary), on a surface card (radius 16, 1px border, padding 14). Trailing **`meta`** text
+("2h ago", 12pt medium) and a `chevron.right` **hug the text column** (fixed 8pt gap after the
+subtitle) rather than pinning to the row's trailing edge — per the Figma Trackers frame, where their
+x-position varies row to row. The chevron always draws: every row navigates to tracker detail.
+
+`StrideTrackerRecency` is shared with `StrideTrackerTile` and renders the same way on the rail:
+`.fresh` glows (hue shadow @ 90%), `.normal` is the plain hue, `.overdue` flips the rail to `warning`
+amber. Status text is the same optional **`badge:` slot** as the tile (Figma's overdue variant draws
+the "Due" pill = `StrideBadge(.warning, "Due")` exactly, so it's composed, not redrawn); `meta` and
+`badge` are independently optional — Figma's overdue variant passes a badge and no meta, but the API
+doesn't couple them. Kept as a separate component from the tile (different shape, layout, and
+trailing content); only the recency enum is shared.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
@@ -167,6 +186,7 @@ fold the badge into the `Stride/Tracker Tile` variants on the next Figma pass.
 | `StrideDialog`                                              | `ios/Caregiver/DesignSystem/StrideDialog.swift`      |
 | `StrideTabBar` + `StrideTab`                                | `ios/Caregiver/DesignSystem/StrideTabBar.swift`      |
 | `StrideTrackerTile` + `StrideTrackerRecency`                | `ios/Caregiver/DesignSystem/StrideTrackerTile.swift` |
+| `StrideTrackerRow`                                          | `ios/Caregiver/DesignSystem/StrideTrackerRow.swift`  |
 | Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`             |
 | Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)       |
 
