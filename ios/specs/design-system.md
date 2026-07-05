@@ -387,6 +387,16 @@ site (auth, onboarding, Home, tracker detail) picks the restyle up for free:
 **Auth icons** (Figma `Stride/Icon/Person·Lock·Envelope·Hash`, `33:9`–`33:15`) follow the standing
 SF-Symbols decision: `person` · `lock` · `envelope` · `number`, passed as `StrideField`'s `icon:`.
 
+### `.strideAuroraBackground()`
+
+The Aurora screen substrate (the auth frames' background, `StrideAuroraBackground.swift`): a
+vertical `background → #0a1640` night gradient with two soft glows bleeding in from the top —
+`accent` @ 22% top-leading (560×300, blur 70) and `trackerViolet` @ 16% upper-trailing (420×220,
+blur 60). Figma draws the glows as pre-blurred ellipse PNGs; the modifier draws blurred `Ellipse`s
+instead so no raster asset ships (an eye-tuned approximation). Used by the [[auth]] screens; the
+old `.strideBackground()` (pre-Aurora gradient) still backs the post-login screens until their
+assembly pass.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
