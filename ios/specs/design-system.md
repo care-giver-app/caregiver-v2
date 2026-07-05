@@ -350,7 +350,10 @@ above.
 ### StrideBrand
 
 The CareToSher brand plaque (Figma `Stride/Brand`, `46:34`; the top anchor of all five auth
-screens): the existing `AppLogo` asset (dark navy mark, 200×82) on a near-white "ice chip" slab —
+screens): the existing `AppLogo` asset (dark navy mark, **220×140 frame, no padding** — Trevor
+tuned this by eye 2026-07-05 from Figma's 200×82 + 16/12 padding; the mark draws ~220×90 inside
+the frame, so the letterbox _is_ the vertical breathing room. _Code leads Figma_, resize
+`Stride/Brand` next Figma pass) on a near-white "ice chip" slab —
 `#f1f6ff` @ 96%, radius 20, 1px white @ 70% hairline — with a cyan glow + deep drop shadow so it
 reads as lit ice on the navy background. The plaque colors are deliberate one-offs (a light chip on
 a dark system; they match no surface token). No parameters. User-facing brand = **CareToSher**,
@@ -386,6 +389,16 @@ site (auth, onboarding, Home, tracker detail) picks the restyle up for free:
 
 **Auth icons** (Figma `Stride/Icon/Person·Lock·Envelope·Hash`, `33:9`–`33:15`) follow the standing
 SF-Symbols decision: `person` · `lock` · `envelope` · `number`, passed as `StrideField`'s `icon:`.
+
+### `.strideAuroraBackground()`
+
+The Aurora screen substrate (the auth frames' background, `StrideAuroraBackground.swift`): a
+vertical `background → #0a1640` night gradient with two soft glows bleeding in from the top —
+`accent` @ 22% top-leading (560×300, blur 70) and `trackerViolet` @ 16% upper-trailing (420×220,
+blur 60). Figma draws the glows as pre-blurred ellipse PNGs; the modifier draws blurred `Ellipse`s
+instead so no raster asset ships (an eye-tuned approximation). Used by the [[auth]] screens; the
+old `.strideBackground()` (pre-Aurora gradient) still backs the post-login screens until their
+assembly pass.
 
 ## Tokens & the Aurora migration
 

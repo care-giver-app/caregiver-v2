@@ -104,9 +104,9 @@ private extension RootView {
                 onSignUp: { authScreen = .signUp }
             )
         case .signIn:
-            SignInView(model: auth, onBack: { authScreen = .landing })
+            SignInView(model: auth, onCreateAccount: { authScreen = .signUp })
         case .signUp:
-            SignUpView(model: auth, onBack: { authScreen = .landing })
+            SignUpView(model: auth, onSignIn: { authScreen = .signIn })
         }
     }
 }
