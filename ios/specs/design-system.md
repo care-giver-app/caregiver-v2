@@ -63,10 +63,10 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 
 | Component                 | File                            | Notes                                                               |
 | ------------------------- | ------------------------------- | ------------------------------------------------------------------- |
-| `StrideButton`            | `Components.swift`              | `style: .primary \| .secondary`, `isLoading` (primary only)         |
-| `StrideField`             | `Components.swift`              | `icon` (optional), `isSecure`                                       |
-| `.strideCard()`           | `Components.swift`              | glass card modifier                                                 |
-| state views               | `Components.swift`              | `StrideLoadingView`, `StrideEmptyState`, `StrideErrorState`         |
+| `StrideButton`            | `StrideButton.swift`            | `style: .primary \| .secondary`, `isLoading` (primary only)         |
+| `StrideField`             | `StrideField.swift`             | `icon` (optional), `isSecure`                                       |
+| `.strideCard()`           | `StrideCard.swift`              | glass card modifier (pre-Aurora treatment — restyle pending)        |
+| state views               | `StrideStateViews.swift`        | `StrideLoadingView`, `StrideEmptyState`, `StrideErrorState`         |
 | `StrideBadge`             | `StrideBadge.swift`             | status × style matrix — see below                                   |
 | `StrideTimeline`          | `StrideTimeline.swift`          | ordered `[TimelineNode]` — see below                                |
 | `StrideDialog`            | `StrideDialog.swift`            | confirm/alert dialog                                                |
@@ -421,32 +421,35 @@ SF-Symbols decision: `person` · `lock` · `envelope` · `number`, passed as `St
 
 ## Where it lives
 
-| Concept                                                     | File                                                       |
-| ----------------------------------------------------------- | ---------------------------------------------------------- |
-| `StrideButton`, `StrideField`, `.strideCard()`, state views | `ios/Caregiver/DesignSystem/Components.swift`              |
-| `StrideBadge`                                               | `ios/Caregiver/DesignSystem/StrideBadge.swift`             |
-| `StrideTimeline` + `TimelineNode`                           | `ios/Caregiver/DesignSystem/StrideTimeline.swift`          |
-| `StrideDialog`                                              | `ios/Caregiver/DesignSystem/StrideDialog.swift`            |
-| `StrideTabBar` + `StrideTab`                                | `ios/Caregiver/DesignSystem/StrideTabBar.swift`            |
-| `StrideTrackerTile` + `StrideTrackerRecency`                | `ios/Caregiver/DesignSystem/StrideTrackerTile.swift`       |
-| `StrideTrackerRow`                                          | `ios/Caregiver/DesignSystem/StrideTrackerRow.swift`        |
-| `StrideTimeframeSelector` + `StrideTimeframe`               | `ios/Caregiver/DesignSystem/StrideTimeframeSelector.swift` |
-| `StrideChip`                                                | `ios/Caregiver/DesignSystem/StrideChip.swift`              |
-| `StrideSectionHeader`                                       | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
-| `StrideToggleStyle`                                         | `ios/Caregiver/DesignSystem/StrideToggle.swift`            |
-| `StrideSelectTile`                                          | `ios/Caregiver/DesignSystem/StrideSelectTile.swift`        |
-| `StrideStatCard`                                            | `ios/Caregiver/DesignSystem/StrideStatCard.swift`          |
-| `StrideInsightCard` + `StrideSparkline`                     | `ios/Caregiver/DesignSystem/StrideInsightCard.swift`       |
-| charts + `StrideChartPoint`/`StrideChartSeries`             | `ios/Caregiver/DesignSystem/StrideCharts.swift`            |
-| `StrideMemberRow`                                           | `ios/Caregiver/DesignSystem/StrideMemberRow.swift`         |
-| `StrideInviteCard`                                          | `ios/Caregiver/DesignSystem/StrideInviteCard.swift`        |
-| `StrideReceiverRow`                                         | `ios/Caregiver/DesignSystem/StrideReceiverRow.swift`       |
-| `StrideSettingsRow`                                         | `ios/Caregiver/DesignSystem/StrideSettingsRow.swift`       |
-| `StrideTemplateCard`                                        | `ios/Caregiver/DesignSystem/StrideTemplateCard.swift`      |
-| `StrideBrand`                                               | `ios/Caregiver/DesignSystem/StrideBrand.swift`             |
-| `StrideCodeInput`                                           | `ios/Caregiver/DesignSystem/StrideCodeInput.swift`         |
-| Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`                   |
-| Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)             |
+| Concept                                            | File                                                       |
+| -------------------------------------------------- | ---------------------------------------------------------- |
+| `StrideButton`                                     | `ios/Caregiver/DesignSystem/StrideButton.swift`            |
+| `StrideField`                                      | `ios/Caregiver/DesignSystem/StrideField.swift`             |
+| `.strideCard()`                                    | `ios/Caregiver/DesignSystem/StrideCard.swift`              |
+| state views                                        | `ios/Caregiver/DesignSystem/StrideStateViews.swift`        |
+| `StrideBadge`                                      | `ios/Caregiver/DesignSystem/StrideBadge.swift`             |
+| `StrideTimeline` + `TimelineNode`                  | `ios/Caregiver/DesignSystem/StrideTimeline.swift`          |
+| `StrideDialog`                                     | `ios/Caregiver/DesignSystem/StrideDialog.swift`            |
+| `StrideTabBar` + `StrideTab`                       | `ios/Caregiver/DesignSystem/StrideTabBar.swift`            |
+| `StrideTrackerTile` + `StrideTrackerRecency`       | `ios/Caregiver/DesignSystem/StrideTrackerTile.swift`       |
+| `StrideTrackerRow`                                 | `ios/Caregiver/DesignSystem/StrideTrackerRow.swift`        |
+| `StrideTimeframeSelector` + `StrideTimeframe`      | `ios/Caregiver/DesignSystem/StrideTimeframeSelector.swift` |
+| `StrideChip`                                       | `ios/Caregiver/DesignSystem/StrideChip.swift`              |
+| `StrideSectionHeader`                              | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
+| `StrideToggleStyle`                                | `ios/Caregiver/DesignSystem/StrideToggle.swift`            |
+| `StrideSelectTile`                                 | `ios/Caregiver/DesignSystem/StrideSelectTile.swift`        |
+| `StrideStatCard`                                   | `ios/Caregiver/DesignSystem/StrideStatCard.swift`          |
+| `StrideInsightCard` + `StrideSparkline`            | `ios/Caregiver/DesignSystem/StrideInsightCard.swift`       |
+| charts + `StrideChartPoint`/`StrideChartSeries`    | `ios/Caregiver/DesignSystem/StrideCharts.swift`            |
+| `StrideMemberRow`                                  | `ios/Caregiver/DesignSystem/StrideMemberRow.swift`         |
+| `StrideInviteCard`                                 | `ios/Caregiver/DesignSystem/StrideInviteCard.swift`        |
+| `StrideReceiverRow`                                | `ios/Caregiver/DesignSystem/StrideReceiverRow.swift`       |
+| `StrideSettingsRow`                                | `ios/Caregiver/DesignSystem/StrideSettingsRow.swift`       |
+| `StrideTemplateCard`                               | `ios/Caregiver/DesignSystem/StrideTemplateCard.swift`      |
+| `StrideBrand`                                      | `ios/Caregiver/DesignSystem/StrideBrand.swift`             |
+| `StrideCodeInput`                                  | `ios/Caregiver/DesignSystem/StrideCodeInput.swift`         |
+| Tokens (core values = Aurora; hues/status pending) | `ios/Caregiver/DesignSystem/Theme.swift`                   |
+| Design source of truth                             | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)             |
 
 ## Non-goals
 
