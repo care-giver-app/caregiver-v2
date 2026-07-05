@@ -32,6 +32,7 @@ StrideTrackerTile(name:subtitle:hue:recency:badge:) // recency: .fresh | .normal
 StrideTrackerRow(name:subtitle:meta:hue:recency:badge:) // full-width Trackers-list row; same recency/badge model
 StrideTimeframeSelector(selection:)            // selection: Binding<StrideTimeframe>; week | month | threeMonths | year | custom
 StrideChip(label:isSelected:action:)           // self-sizing filter/choice pill; single-select lives in the consumer
+StrideSectionHeader(title:actionLabel:action:) // tracked-uppercase section label + optional accent "See all ›"
 // .strideCard() — glass-card View modifier
 StrideLoadingView · StrideEmptyState(message:) · StrideErrorState(message:retry:) · StrideDialog
 ```
@@ -59,6 +60,7 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 | `StrideTrackerRow`        | `StrideTrackerRow.swift`        | full-width tracker list row; hue rail + recency — see below |
 | `StrideTimeframeSelector` | `StrideTimeframeSelector.swift` | segmented analytics-timeframe control — see below           |
 | `StrideChip`              | `StrideChip.swift`              | filter/choice pill, selected/default — see below            |
+| `StrideSectionHeader`     | `StrideSectionHeader.swift`     | uppercase section label + optional action — see below       |
 
 ### StrideBadge
 
@@ -186,6 +188,18 @@ fill + 1px `accent` border, semibold `accent` label.
   timeframes, but Figma grew the dedicated `Stride/Timeframe Selector` (`113:196`); the chip's role
   is now purely filter/choice.
 
+### StrideSectionHeader
+
+The section label row used across the post-login screens (Figma `Stride/Section Header`, `90:92`):
+an uppercase 12pt semibold `textTertiary` title with 0.96pt tracking (the wide-tracked Aurora label
+signature) on the left, and an optional accent action on the right — 12pt semibold `accent` label +
+a small `chevron.right` (3pt gap), one tap target. Space-between layout, transparent background.
+
+- The component **uppercases the title itself** (`title.uppercased()` + `.tracking`) — callers pass
+  natural-case strings ("Today" → "TODAY") so the treatment stays a component concern.
+- The action renders only when both `actionLabel` and `action` are provided; the title carries the
+  `.isHeader` accessibility trait.
+
 ## Tokens & the Aurora migration
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
@@ -229,6 +243,7 @@ fill + 1px `accent` border, semibold `accent` label.
 | `StrideTrackerRow`                                          | `ios/Caregiver/DesignSystem/StrideTrackerRow.swift`        |
 | `StrideTimeframeSelector` + `StrideTimeframe`               | `ios/Caregiver/DesignSystem/StrideTimeframeSelector.swift` |
 | `StrideChip`                                                | `ios/Caregiver/DesignSystem/StrideChip.swift`              |
+| `StrideSectionHeader`                                       | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
 | Tokens (core values = Aurora; hues/status pending)          | `ios/Caregiver/DesignSystem/Theme.swift`                   |
 | Design source of truth                                      | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)             |
 
