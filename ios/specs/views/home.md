@@ -25,7 +25,7 @@ quick-log; the tab bar switches to Insights/Team/Settings.
   [[sample-data]]: receiver **Eleanor**, group **The Riverside Group**, face-pile **T · D · M**.
 - **"Coming up" banner** (`64:2`) — e.g. "Cardiology check-up · in 9 days". **Design-ahead; NOT built**
   until B3b ships a contract (decision 4, see below).
-- **Tracker snapshot** — a 2-column grid of up to **4 `StrideTrackerTile`s, attention-first** (overdue
+- **Tracker snapshot** — a 2-column grid of up to **6 `StrideTrackerTile`s, attention-first** (overdue
   first, then stalest), each showing the tracker's **last logged event** (req 3) with
   recency-as-luminance (cyan = fresh, dim = stale, amber "Due" = overdue). "See all (12)"
   pushes [[trackers]]. Snapshot trackers are a subset of the canonical [[sample-data]] roster and should
