@@ -15,6 +15,7 @@ struct HomeView: View {
     @State private var showAddReceiver = false
     @State private var showAddTracker = false
     @State private var selectedRef: EventRef?
+    @State private var pushTrackers = false
 
     private var isAdminForActive: Bool {
         guard let groupID = context.activeReceiver?.careGroupId else { return false }
@@ -38,6 +39,9 @@ struct HomeView: View {
             EventDetailView(tracker: ref.tracker, event: ref.event) {
                 Task { await reload() }
             }
+        }
+        .navigationDestination(isPresented: $pushTrackers) {
+            TrackersView(me: me)
         }
         .sheet(isPresented: $showAddReceiver) {
             AddReceiverView(me: me) {
@@ -70,7 +74,7 @@ struct HomeView: View {
             StrideSectionHeader(
                 title: "Trackers",
                 actionLabel: active.isEmpty ? nil : "See all (\(active.count))",
-                action: active.isEmpty ? nil : { /* Route push added in Task 6 */ }
+                action: active.isEmpty ? nil : { pushTrackers = true }
             )
             switch summaries.state {
             case .loading:
