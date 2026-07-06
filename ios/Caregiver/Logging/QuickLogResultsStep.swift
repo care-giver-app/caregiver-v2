@@ -26,6 +26,7 @@ struct QuickLogResultsStep: View {
             }
             StrideButton(title: "Retry failed", isLoading: model.isBusy) { onRetry() }
             StrideButton(title: "Done", style: .secondary) { onDone() }
+                .disabled(model.isBusy)
         }
     }
 

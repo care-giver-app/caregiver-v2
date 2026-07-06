@@ -7,16 +7,24 @@ struct StrideStepDots: View {
     let count: Int
     let current: Int
 
+    private enum Metrics {
+        static let spacing: CGFloat = 6
+        static let currentWidth: CGFloat = 20
+        static let dotSize: CGFloat = 6
+        static let mutedOpacity: Double = 0.35
+        static let animationDuration: Double = 0.15
+    }
+
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Metrics.spacing) {
             ForEach(0..<max(count, 1), id: \.self) { i in
                 Capsule()
                     .fill(i == current ? Theme.Colors.accent
-                                       : Theme.Colors.textSecondary.opacity(0.35))
-                    .frame(width: i == current ? 20 : 6, height: 6)
+                                       : Theme.Colors.textSecondary.opacity(Metrics.mutedOpacity))
+                    .frame(width: i == current ? Metrics.currentWidth : Metrics.dotSize, height: Metrics.dotSize)
             }
         }
-        .animation(.easeOut(duration: 0.15), value: current)
+        .animation(.easeOut(duration: Metrics.animationDuration), value: current)
     }
 }
 

@@ -101,4 +101,51 @@ final class QuickLogWizardTests: XCTestCase {
             trackers: [a, b], selected: [b.trackerId], details: [], occurredAt: Date())
         XCTAssertEqual(writes.map(\.trackerId), [b.trackerId])
     }
+
+    func testBuildWritesSharesOccurredAtAcrossMultipleTrackersInRosterOrder() throws {
+        let meals = tracker("Meals")
+        let mood = tracker("Mood", fields: [field("mood", ._enum, options: ["Low", "OK", "Good"])])
+        let pain = tracker("Pain", fields: [field("pain", .number)])
+        var moodInputs = DynamicFormBuilder.inputs(for: mood.fields)
+        moodInputs[0].textValue = "Good"
+        var painInputs = DynamicFormBuilder.inputs(for: pain.fields)
+        painInputs[0].textValue = "3"
+        let details = [QuickLogDetail(tracker: mood, inputs: moodInputs),
+                       QuickLogDetail(tracker: pain, inputs: painInputs)]
+        let when = Date(timeIntervalSince1970: 1_700_000_000)
+        let writes = try QuickLogWizardModel.buildWrites(
+            trackers: [meals, mood, pain],
+            selected: [meals.trackerId, mood.trackerId, pain.trackerId],
+            details: details, occurredAt: when)
+        XCTAssertEqual(writes.map(\.trackerId), [meals.trackerId, mood.trackerId, pain.trackerId])
+        XCTAssertTrue(writes.allSatisfy { $0.body.occurredAt == when })
+    }
+
+    // MARK: rebuiltDetails (back-to-select preserves entered values)
+
+    func testRebuiltDetailsReusesPriorEntryByTrackerIDAndAddsNewOnes() {
+        let mood = tracker("Mood", fields: [field("mood", ._enum, options: ["Low", "OK", "Good"])])
+        let pain = tracker("Pain", fields: [field("pain", .number)])
+        var moodInputs = DynamicFormBuilder.inputs(for: mood.fields)
+        moodInputs[0].textValue = "Good"
+        let prior = [QuickLogDetail(tracker: mood, inputs: moodInputs, note: "calm")]
+
+        let rebuilt = QuickLogWizardModel.rebuiltDetails(queue: [mood, pain], prior: prior)
+
+        XCTAssertEqual(rebuilt.map(\.id), [mood.id, pain.id])
+        XCTAssertEqual(rebuilt[0].inputs[0].textValue, "Good")
+        XCTAssertEqual(rebuilt[0].note, "calm")
+        XCTAssertEqual(rebuilt[1].inputs[0].textValue, DynamicFormBuilder.inputs(for: pain.fields)[0].textValue)
+    }
+
+    func testRebuiltDetailsDropsDeselectedTracker() {
+        let mood = tracker("Mood", fields: [field("mood", ._enum, options: ["Low", "OK", "Good"])])
+        let pain = tracker("Pain", fields: [field("pain", .number)])
+        let prior = [QuickLogDetail(tracker: mood, inputs: DynamicFormBuilder.inputs(for: mood.fields)),
+                    QuickLogDetail(tracker: pain, inputs: DynamicFormBuilder.inputs(for: pain.fields))]
+
+        let rebuilt = QuickLogWizardModel.rebuiltDetails(queue: [mood], prior: prior)
+
+        XCTAssertEqual(rebuilt.map(\.id), [mood.id])
+    }
 }

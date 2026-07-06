@@ -54,6 +54,19 @@ final class QuickLogWizardModel {
         trackers.filter { selected.contains($0.trackerId) && !$0.fields.isEmpty }
     }
 
+    /// Rebuild the detail queue after a selection change, reusing any prior entry
+    /// (by tracker id) so already-entered values (including enum defaults the user
+    /// changed) survive going back to select and forward again.
+    static func rebuiltDetails(
+        queue: [Components.Schemas.Tracker], prior: [QuickLogDetail]
+    ) -> [QuickLogDetail] {
+        let priorByID = Dictionary(uniqueKeysWithValues: prior.map { ($0.id, $0) })
+        return queue.map { tracker in
+            priorByID[tracker.trackerId]
+                ?? QuickLogDetail(tracker: tracker, inputs: DynamicFormBuilder.inputs(for: tracker.fields))
+        }
+    }
+
     /// "2 of 4 trackers need details" — nil when nothing needs details.
     static func helperText(selectedCount: Int, needingDetails: Int) -> String? {
         guard selectedCount > 0, needingDetails > 0 else { return nil }
@@ -92,7 +105,7 @@ final class QuickLogWizardModel {
         switch phase {
         case .select:
             let queue = Self.needingDetails(trackers, selected: selected)
-            details = queue.map { QuickLogDetail(tracker: $0, inputs: DynamicFormBuilder.inputs(for: $0.fields)) }
+            details = Self.rebuiltDetails(queue: queue, prior: details)
             if details.isEmpty { await submit(using: session) }
             else { phase = .detail(0) }
         case .detail(let i):
@@ -133,6 +146,7 @@ final class QuickLogWizardModel {
     }
 
     func submit(using session: Session) async {
+        guard !isBusy else { return }
         isBusy = true
         defer { isBusy = false }
         let writes: [(trackerId: String, name: String, body: Components.Schemas.EventWrite)]
@@ -180,7 +194,7 @@ final class QuickLogWizardModel {
                 ?? results.first { $0.trackerId == write.trackerId }
         }
         results = merged
-        phase = .results
+        if merged.contains(where: { !$0.success }) { phase = .results }
     }
 
     func retryFailed(using session: Session) async {

@@ -57,7 +57,7 @@ struct QuickLogWizardView: View {
 
     private func advanceAndMaybeDismiss() async {
         await model.advance(using: session)
-        if case .results = model.phase, model.allSucceeded { finish() }
+        if model.allSucceeded { finish() }
     }
 
     private func retryAndMaybeDismiss() async {
