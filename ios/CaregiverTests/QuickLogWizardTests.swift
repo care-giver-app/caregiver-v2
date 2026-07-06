@@ -67,4 +67,38 @@ final class QuickLogWizardTests: XCTestCase {
                        QuickLogResult(trackerId: "b", name: "B", success: false, message: "boom")]
         XCTAssertEqual(QuickLogWizardModel.pendingIDs(selected: ["a", "b"], results: results), ["b"])
     }
+
+    // MARK: buildWrites
+
+    func testBuildWritesEmptyValuesForNoFieldTrackerAndSharedOccurredAt() throws {
+        let meals = tracker("Meals")
+        let when = Date(timeIntervalSince1970: 1_700_000_000)
+        let writes = try QuickLogWizardModel.buildWrites(
+            trackers: [meals], selected: [meals.trackerId], details: [], occurredAt: when)
+        XCTAssertEqual(writes.count, 1)
+        XCTAssertEqual(writes[0].trackerId, meals.trackerId)
+        XCTAssertEqual(writes[0].body.occurredAt, when)
+        XCTAssertNil(writes[0].body.note)
+    }
+
+    func testBuildWritesCarriesDetailNoteAndSkipsEmptyNote() throws {
+        let mood = tracker("Mood", fields: [field("mood", ._enum, options: ["Low", "OK", "Good"])])
+        var inputs = DynamicFormBuilder.inputs(for: mood.fields)
+        inputs[0].textValue = "Good"
+        let details = [QuickLogDetail(tracker: mood, inputs: inputs, note: "calm, alert"),
+                       QuickLogDetail(tracker: mood, inputs: inputs, note: "")]
+        let writes = try QuickLogWizardModel.buildWrites(
+            trackers: [mood], selected: [mood.trackerId], details: [details[0]], occurredAt: Date())
+        XCTAssertEqual(writes[0].body.note, "calm, alert")
+        let writesNoNote = try QuickLogWizardModel.buildWrites(
+            trackers: [mood], selected: [mood.trackerId], details: [details[1]], occurredAt: Date())
+        XCTAssertNil(writesNoNote[0].body.note)
+    }
+
+    func testBuildWritesOnlyEmitsSelectedTrackers() throws {
+        let a = tracker("A"); let b = tracker("B")
+        let writes = try QuickLogWizardModel.buildWrites(
+            trackers: [a, b], selected: [b.trackerId], details: [], occurredAt: Date())
+        XCTAssertEqual(writes.map(\.trackerId), [b.trackerId])
+    }
 }
