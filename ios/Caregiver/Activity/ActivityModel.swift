@@ -56,6 +56,7 @@ final class ActivityModel {
             let refs = Self.merge(perTracker)
             state = refs.isEmpty ? .empty : .loaded(refs)
         } catch {
+            if error is CancellationError { return }
             state = .error(AppError.from(error).message)
         }
     }

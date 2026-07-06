@@ -396,9 +396,10 @@ The Aurora screen substrate (the auth frames' background, `StrideAuroraBackgroun
 vertical `background → #0a1640` night gradient with two soft glows bleeding in from the top —
 `accent` @ 22% top-leading (560×300, blur 70) and `trackerViolet` @ 16% upper-trailing (420×220,
 blur 60). Figma draws the glows as pre-blurred ellipse PNGs; the modifier draws blurred `Ellipse`s
-instead so no raster asset ships (an eye-tuned approximation). Used by the [[auth]] screens; the
-old `.strideBackground()` (pre-Aurora gradient) still backs the post-login screens until their
-assembly pass.
+instead so no raster asset ships (an eye-tuned approximation). Used by the [[auth]] screens.
+**Post-login screens** (from the [[shell]] assembly pass, 2026-07-05) use the same night gradient
+**without the glow ellipses** — the glows are an auth-screen signature; app frames sit on the plain
+night substrate. This retires the old pre-Aurora `.strideBackground()` gradient.
 
 ## Tokens & the Aurora migration
 

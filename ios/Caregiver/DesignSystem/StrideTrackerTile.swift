@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Recency of a tracker's last event — the "recency-as-luminance" signature.
 /// Fresh trackers glow, stale ones sit quiet, overdue ones go amber.
-enum StrideTrackerRecency {
+enum StrideTrackerRecency: Equatable {
     case fresh, normal, overdue
 }
 

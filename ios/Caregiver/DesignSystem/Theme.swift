@@ -51,17 +51,6 @@ enum Theme {
     static let card: CGFloat = 12
   }
 
-  enum Gradients {
-    static let stride = LinearGradient(
-      colors: [
-        Colors.highlight.opacity(0.55),
-        Colors.accent.opacity(0.55),
-      ],
-      startPoint: .top,
-      endPoint: .bottom
-    )
-  }
-
   enum Typography {
     static let largeTitle = Font.system(size: 28, weight: .bold)
     static let title      = Font.system(size: 20, weight: .semibold)
@@ -72,13 +61,17 @@ enum Theme {
   }
 }
 
+/// The post-login Aurora substrate: the same night gradient as
+/// `.strideAuroraBackground()` but without the auth glow ellipses —
+/// the glows are an auth-screen signature (see ios/specs/design-system.md).
 private struct StrideBackgroundModifier: ViewModifier {
   func body(content: Content) -> some View {
     ZStack {
-      Theme.Colors.background
-        .ignoresSafeArea()
-      Theme.Gradients.stride
-        .ignoresSafeArea()
+      LinearGradient(
+        colors: [Theme.Colors.background, Color(hex: "0a1640")],
+        startPoint: .top, endPoint: .bottom
+      )
+      .ignoresSafeArea()
       content
     }
   }

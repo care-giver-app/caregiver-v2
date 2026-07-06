@@ -1,6 +1,7 @@
 import XCTest
 @testable import Caregiver
 
+@MainActor
 final class StrideCodeInputTests: XCTestCase {
     func testPassesCleanDigitsThrough() {
         XCTAssertEqual(StrideCodeInput.sanitized("429", length: 6), "429")
