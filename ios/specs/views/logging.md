@@ -12,13 +12,13 @@
 ## Purpose
 
 Log **one or more** events in a single pass (req 1), including **quick-log events that need no data**
-(req 10). Reached from the ⊕ FAB on any tab. A full-screen wizard: pick trackers → fill only the ones
-that need values → confirm.
+(req 10). Reached from the ⊕ FAB on any tab. A bottom-sheet wizard: pick trackers → fill only the ones
+that need values → submit.
 
 ## Behavior
 
-A **full-screen wizard** (no tab bar; back control + step indicator), matching the modal pattern used by
-[[add-tracker]]:
+A **bottom-sheet wizard** over the dimmed current tab (grabber + scrim + step-dot indicator; the frames
+show a ~3/4-height sheet — decision 7):
 
 - **Step 0 — pick trackers.** "Log events for <receiver> · Now ▾" + a multi-select list of the receiver's
   trackers (checkable). A footer counts how many selected trackers **need details** ("2 of 4 trackers need
@@ -27,8 +27,9 @@ A **full-screen wizard** (no tab bar; back control + step indicator), matching t
   (Meals, Hydration count) are skipped. Each step matches the field kind (Mood = 1–5 scale; Pain = 0–10
   slider; numeric = keypad). "Add a note (optional)" maps to `EventWrite.note`. Step indicator shows
   `Step n of N`.
-- **Confirm** — the final primary button reads "**Log N events**" and posts one `logEvent` per selected
-  tracker (concurrently).
+- **Submit** — there is no separate confirm screen: the **last detail step's** primary button (or the
+  select step's, when nothing needs details) reads "**Log N events**" and posts one `logEvent` per
+  selected tracker (concurrently).
 - **Results / partial failure** — after submit, the confirm step shows per-tracker results: succeeded
   trackers lock in (never repost), failed ones show the error with a single **Retry failed** button that
   reposts only the failures. A fully successful submit dismisses the wizard and refreshes Home via the
@@ -51,14 +52,16 @@ Trackers).
 
 ## Key decisions
 
-| #   | Decision                    | Choice                                                                             | Why                                                                                                 |
-| --- | --------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| 1   | Multi-log model             | Full-screen wizard: multi-select → per-tracker detail steps → "Log N events"       | Covers reqs 1 + 10 in one pass; matches the [[add-tracker]] wizard pattern.                         |
-| 2   | Quick-log no-value          | Selected no-value trackers are logged directly (skipped in detail steps)           | Req 10 — some events need no data.                                                                  |
-| 3   | Sample data / picker roster | Bind to the canonical **[[sample-data]]** roster                                   | Coherence review 2026-07-01: the picker showed "Walk", absent from the [[trackers]] list.           |
-| 4   | Single-tracker log          | **Undesigned — flagged gap** (see below)                                           | Only the multi-tracker FAB path exists.                                                             |
-| 5   | Partial-failure handling    | Per-tracker results on the confirm step + **Retry failed** (reposts failures only) | 2026-07-06: no batch endpoint, so N POSTs can partially fail; succeeded posts must never duplicate. |
-| 6   | Load / error states         | Standard Stride state views on step 0's tracker fetch                              | 2026-07-06: follow the app-wide convention rather than bespoke Aurora states.                       |
+| #   | Decision                    | Choice                                                                                                                    | Why                                                                                                            |
+| --- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 1   | Multi-log model             | Full-screen wizard: multi-select → per-tracker detail steps → "Log N events"                                              | Covers reqs 1 + 10 in one pass; matches the [[add-tracker]] wizard pattern.                                    |
+| 2   | Quick-log no-value          | Selected no-value trackers are logged directly (skipped in detail steps)                                                  | Req 10 — some events need no data.                                                                             |
+| 3   | Sample data / picker roster | Bind to the canonical **[[sample-data]]** roster                                                                          | Coherence review 2026-07-01: the picker showed "Walk", absent from the [[trackers]] list.                      |
+| 4   | Single-tracker log          | **Undesigned — flagged gap** (see below)                                                                                  | Only the multi-tracker FAB path exists.                                                                        |
+| 5   | Partial-failure handling    | Per-tracker results on the confirm step + **Retry failed** (reposts failures only)                                        | 2026-07-06: no batch endpoint, so N POSTs can partially fail; succeeded posts must never duplicate.            |
+| 6   | Load / error states         | Standard Stride state views on step 0's tracker fetch                                                                     | 2026-07-06: follow the app-wide convention rather than bespoke Aurora states.                                  |
+| 7   | Presentation                | Bottom sheet (~3/4 height, grabber + scrim + step dots), not full-screen                                                  | 2026-07-06 build: frames `75:2`/`80:2`/`81:2` all show a sheet over the dimmed tab; spec corrected.            |
+| 8   | Field input mapping         | enum → scale tiles; number → keypad; bool → stride toggle; text/datetime → field/picker. Figma's pain **slider deferred** | `Field` has no min/max in the contract, so a bounded slider can't be data-driven (bounded-number ledger item). |
 
 ## Gaps (flagged by the 2026-07-01 review)
 
