@@ -3,6 +3,7 @@ import OpenAPIRuntime
 import CaregiverAPI
 @testable import Caregiver
 
+@MainActor
 final class TrackerSummariesTests: XCTestCase {
 
     // MARK: helpers
@@ -129,5 +130,15 @@ final class TrackerSummariesTests: XCTestCase {
         let sorted = TrackerSummariesModel.attentionFirst([fresh, stale, silent, never], now: now)
         // Attention group first (never-logged before oldest-logged), then the rest, stalest first.
         XCTAssertEqual(sorted.map(\.tracker.name), ["Never", "Silent", "Stale", "Fresh"])
+    }
+
+    // MARK: reset (C1 final-review fix — no stale tiles across receivers/accounts)
+
+    func testResetClearsToEmptyLoadedState() {
+        let model = TrackerSummariesModel()
+        model.reset()
+        XCTAssertEqual(model.state, .loaded([]))
+        XCTAssertTrue(model.active.isEmpty)
+        XCTAssertTrue(model.archived.isEmpty)
     }
 }

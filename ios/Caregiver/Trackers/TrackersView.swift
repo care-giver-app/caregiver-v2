@@ -55,7 +55,10 @@ struct TrackersView: View {
     }
 
     private func reload() async {
-        guard let id = context.activeReceiver?.receiverId else { return }
+        guard let id = context.activeReceiver?.receiverId else {
+            if context.isLoaded { summaries.reset() }
+            return
+        }
         await summaries.load(receiverID: id, using: session)
     }
 

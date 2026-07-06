@@ -7,6 +7,7 @@ import CaregiverAPI
 struct TodayTimelineCard: View {
     @Environment(Session.self) private var session
     @Environment(ReceiverContext.self) private var context
+    var refreshToken: Int = 0
     let onSelect: (EventRef) -> Void
 
     @State private var model = ActivityModel()
@@ -28,7 +29,8 @@ struct TodayTimelineCard: View {
         .strideCard()
         .task(id: DayKey(
             receiverID: context.activeReceiver?.receiverId ?? "",
-            dayStart: ActivityDay.bounds(for: selectedDate).start
+            dayStart: ActivityDay.bounds(for: selectedDate).start,
+            refreshToken: refreshToken
         )) {
             await reload()
         }
@@ -133,8 +135,10 @@ struct TodayTimelineCard: View {
     }
 }
 
-/// Reload trigger: re-runs when the active receiver or the selected day changes.
+/// Reload trigger: re-runs when the active receiver, the selected day, or an
+/// external refresh signal (quick-log save, pull-to-refresh) changes.
 private struct DayKey: Equatable {
     let receiverID: String
     let dayStart: Date
+    let refreshToken: Int
 }

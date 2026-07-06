@@ -11,11 +11,13 @@ struct HomeView: View {
     @Environment(ReceiverContext.self) private var context
     @Environment(TrackerSummariesModel.self) private var summaries
     let me: Me
+    var logVersion: Int = 0
 
     @State private var showAddReceiver = false
     @State private var showAddTracker = false
     @State private var selectedRef: EventRef?
     @State private var pushTrackers = false
+    @State private var localRefresh = 0
 
     private var isAdminForActive: Bool {
         guard let groupID = context.activeReceiver?.careGroupId else { return false }
@@ -32,7 +34,10 @@ struct HomeView: View {
             .padding(.horizontal, Theme.Spacing.md)
             .padding(.top, Theme.Spacing.md)
         }
-        .refreshable { await reload() }
+        .refreshable {
+            localRefresh += 1
+            await reload()
+        }
         .strideBackground()
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(item: $selectedRef) { ref in
@@ -62,7 +67,10 @@ struct HomeView: View {
     }
 
     private func reload() async {
-        guard let id = context.activeReceiver?.receiverId else { return }
+        guard let id = context.activeReceiver?.receiverId else {
+            if context.isLoaded { summaries.reset() }
+            return
+        }
         await summaries.load(receiverID: id, using: session)
     }
 
@@ -128,7 +136,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm + 2) {
             StrideSectionHeader(title: "Today")
             if context.activeReceiver != nil {
-                TodayTimelineCard { ref in selectedRef = ref }
+                TodayTimelineCard(refreshToken: logVersion + localRefresh) { ref in selectedRef = ref }
             } else {
                 StrideEmptyState(message: "No receiver selected.")
                     .frame(height: 120)

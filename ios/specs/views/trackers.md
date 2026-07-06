@@ -22,7 +22,8 @@ tracker name, its **kind label**, and its **last logged value + recency**. Admin
 - **Filter chips:** `All · Needs attention · Archived`. "Needs attention" = never-logged or 7+ days
   silent (a soft "quiet lately" filter — see decision 6; true "Due" needs B3b).
 - **Tracker rows:** hue rail + name + kind label + last value + recency (e.g. "Blood pressure · Numeric ·
-  128/82 · yesterday"; "Meals · Quick log · no value · **Due**"). Recency-as-luminance per [[design-system]].
+  128/82 · yesterday"; "Meals · Quick log · no value · **Due**" (Figma only — "Due" never renders until
+  B3b, decision 6)). Recency-as-luminance per [[design-system]].
 - Tab bar pinned (Home active in this frame, pushed as a child of Home).
 
 ## Backend reality (shapes the design)

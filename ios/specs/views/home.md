@@ -27,7 +27,8 @@ quick-log; the tab bar switches to Insights/Team/Settings.
   until B3b ships a contract (decision 4, see below).
 - **Tracker snapshot** — a 2-column grid of up to **6 `StrideTrackerTile`s, attention-first** (overdue
   first, then stalest), each showing the tracker's **last logged event** (req 3) with
-  recency-as-luminance (cyan = fresh, dim = stale, amber "Due" = overdue). "See all (12)"
+  recency-as-luminance (cyan = fresh, dim = stale, amber "Due" = overdue) (design layer only — never
+  rendered until B3b, decision 8). "See all (12)"
   pushes [[trackers]]. Snapshot trackers are a subset of the canonical [[sample-data]] roster and should
   overlap [[insights]] on the headline trackers (BP / Medication / Pain). Data comes from the shared
   **`TrackerSummariesModel`** (decision 6).

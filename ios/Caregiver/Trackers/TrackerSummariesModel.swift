@@ -109,8 +109,15 @@ final class TrackerSummariesModel {
             }
             state = .loaded(summaries)
         } catch {
+            if error is CancellationError { return }
             state = .error(AppError.from(error).message)
         }
+    }
+
+    /// Clears any prior receiver's data — used when no receiver is active
+    /// (fresh group, or sign-out) so stale tiles never render.
+    func reset() {
+        state = .loaded([])
     }
 
     /// Kind → friendly label, per the sample-data.md mapping table.

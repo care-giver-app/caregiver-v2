@@ -12,6 +12,7 @@ struct RootView: View {
     @State private var summaries = TrackerSummariesModel()
     @State private var selectedTab: StrideTab = .home
     @State private var showQuickLog = false
+    @State private var logVersion = 0
 
     var body: some View {
         Group {
@@ -34,6 +35,7 @@ struct RootView: View {
             switch session.state {
             case .signedOut:
                 authScreen = .landing
+                summaries.reset()
                 if !session.signedOutExplicitly && faceIDEnabled && BiometricAuth.isAvailable {
                     Task {
                         let granted = await BiometricAuth.authenticate(reason: "Sign in to Caregiver")
@@ -59,7 +61,7 @@ struct RootView: View {
     private func mainStack(_ me: Me) -> some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                HomeView(me: me)
+                HomeView(me: me, logVersion: logVersion)
                     .appRouteDestinations(me: me)
                     .toolbar(.hidden, for: .tabBar)
             }
@@ -89,6 +91,7 @@ struct RootView: View {
         }
         .sheet(isPresented: $showQuickLog) {
             QuickLogSheet {
+                logVersion += 1
                 Task {
                     if let id = receiverContext.activeReceiver?.receiverId {
                         await summaries.load(receiverID: id, using: session)
