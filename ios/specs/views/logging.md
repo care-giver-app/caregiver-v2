@@ -1,7 +1,7 @@
 # Logging (quick-log wizard)
 
 - **Module:** ios
-- **Status:** Figma design pass **done** (wizard section `84:2`); submission/partial-failure and load-state decisions resolved 2026-07-06 — SwiftUI build underway (replaces the interim `QuickLogSheet`).
+- **Status:** Built (2026-07-06) — wizard live behind the ⊕ FAB; interim QuickLogSheet deleted. Single-tracker entry + breach surfacing still deferred.
 - **Last updated:** 2026-07-06
 - **Contract:** `logEvent(trackerId, EventWrite{values, occurred_at?, note?})` → `Event` (`shared/openapi/openapi.yaml`); `listTrackers(receiverId)` to populate the picker. Editing a logged event reuses this via [[event-detail]] (`updateEvent`).
 - **Related specs:** [[home]] (the ⊕ FAB opens this), [[trackers]] (the tracker source), [[event-detail]] (edit reuses the same input), [[sample-data]] (fixtures), [[design-system]]
@@ -71,12 +71,12 @@ Trackers).
 
 ## Where it lives
 
-| Concept                      | Location                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------ |
-| Design (lead)                | Figma `qoiOteGuzktJPB6WKRbGHt` → **App Flow** page → `Logging` section `84:2`  |
-| Entry point                  | The ⊕ FAB on the tab bar ([[home]] and siblings)                               |
-| iOS screen (to build)        | `ios/Caregiver/Logging/…` (edit path reuses [[event-detail]]'s `LogEventView`) |
-| Tokens (pending Aurora sync) | `ios/Caregiver/DesignSystem/Theme.swift` (see [[design-system]])               |
+| Concept                      | Location                                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- |
+| Design (lead)                | Figma `qoiOteGuzktJPB6WKRbGHt` → **App Flow** page → `Logging` section `84:2`                      |
+| Entry point                  | The ⊕ FAB on the tab bar ([[home]] and siblings)                                                   |
+| iOS screen                   | `ios/Caregiver/Logging/` (QuickLogWizardView + steps; edit path still event-detail's LogEventView) |
+| Tokens (pending Aurora sync) | `ios/Caregiver/DesignSystem/Theme.swift` (see [[design-system]])                                   |
 
 ## Non-goals
 
