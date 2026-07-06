@@ -71,7 +71,3 @@ struct QuickLogSheet: View {
         }
     }
 }
-
-extension Components.Schemas.Tracker: @retroactive Identifiable {
-    public var id: String { trackerId }
-}
