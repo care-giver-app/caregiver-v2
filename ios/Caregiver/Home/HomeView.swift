@@ -4,107 +4,39 @@ import CaregiverAPI
 private struct HomeTaskID: Equatable {
     let receiverID: String?
     let contextReady: Bool
-    let refreshToken: Int
 }
-
-// MARK: - Model
-
-@MainActor
-@Observable
-final class HomeModel {
-    enum State: Equatable {
-        case loading
-        case loaded([Components.Schemas.Tracker])
-        case empty
-        case error(String)
-    }
-
-    var state: State
-
-    init(state: State = .loading) { self.state = state }
-
-    func load(receiverID: String, using session: Session) async {
-        state = .loading
-        do {
-            let response = try await session.api.listTrackers(path: .init(receiverId: receiverID))
-            let trackers = try response.ok.body.json.filter { !$0.archived }
-            state = trackers.isEmpty ? .empty : .loaded(trackers)
-        } catch {
-            state = .error(AppError.from(error).message)
-        }
-    }
-}
-
-// MARK: - View
 
 struct HomeView: View {
     @Environment(Session.self) private var session
     @Environment(ReceiverContext.self) private var context
+    @Environment(TrackerSummariesModel.self) private var summaries
     let me: Me
-    var refreshToken: Int = 0
 
-    @State private var model: HomeModel
-    @State private var logTracker: Components.Schemas.Tracker?
     @State private var showAddReceiver = false
     @State private var showAddTracker = false
-
-    private var activeTeamName: String? {
-        guard let groupID = context.activeReceiver?.careGroupId else { return nil }
-        return me.teamName(forCareGroup: groupID)
-    }
+    @State private var selectedRef: EventRef?
 
     private var isAdminForActive: Bool {
         guard let groupID = context.activeReceiver?.careGroupId else { return false }
         return me.isAdmin(inCareGroup: groupID)
     }
 
-    init(me: Me, refreshToken: Int = 0) {
-        self.me = me
-        self.refreshToken = refreshToken
-        _model = State(initialValue: HomeModel())
-    }
-
-    init(me: Me, model: HomeModel, refreshToken: Int = 0) {
-        self.me = me
-        self.refreshToken = refreshToken
-        _model = State(initialValue: model)
-    }
-
     var body: some View {
-        Group {
-            switch model.state {
-            case .loading:
-                StrideLoadingView()
-            case .empty:
-                emptyState
-            case .error(let message):
-                StrideErrorState(message: message) { Task { await reload() } }
-            case .loaded(let trackers):
-                trackerList(trackers)
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
+                HomeHeaderView(me: me) { showAddReceiver = true }
+                snapshotSection
+                timelineSection
             }
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.top, Theme.Spacing.md)
         }
+        .refreshable { await reload() }
         .strideBackground()
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                VStack(spacing: 2) {
-                    receiverSwitcher
-                    if let team = activeTeamName {
-                        Text(team)
-                            .font(Theme.Typography.caption)
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    }
-                }
-            }
-        }
-        .sheet(isPresented: Binding(
-            get: { logTracker != nil },
-            set: { if !$0 { logTracker = nil } }
-        )) {
-            if let tracker = logTracker {
-                LogEventView(tracker: tracker, existing: nil) {
-                    Task { await reload() }
-                }
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(item: $selectedRef) { ref in
+            EventDetailView(tracker: ref.tracker, event: ref.event) {
+                Task { await reload() }
             }
         }
         .sheet(isPresented: $showAddReceiver) {
@@ -119,176 +51,84 @@ struct HomeView: View {
                 }
             }
         }
-        .task(id: HomeTaskID(
-            receiverID: context.activeReceiver?.receiverId,
-            contextReady: context.isLoaded,
-            refreshToken: refreshToken
-        )) {
+        .task(id: HomeTaskID(receiverID: context.activeReceiver?.receiverId,
+                             contextReady: context.isLoaded)) {
             await reload()
         }
     }
 
     private func reload() async {
-        guard let id = context.activeReceiver?.receiverId else {
-            if context.isLoaded { model.state = .empty }
-            return
-        }
-        await model.load(receiverID: id, using: session)
+        guard let id = context.activeReceiver?.receiverId else { return }
+        await summaries.load(receiverID: id, using: session)
     }
 
-    // MARK: Empty state
+    // MARK: Tracker snapshot (home.md: 6 tiles, attention-first)
+
+    @ViewBuilder private var snapshotSection: some View {
+        let active = summaries.active
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm + 2) {
+            StrideSectionHeader(
+                title: "Trackers",
+                actionLabel: active.isEmpty ? nil : "See all (\(active.count))",
+                action: active.isEmpty ? nil : { /* Route push added in Task 6 */ }
+            )
+            switch summaries.state {
+            case .loading:
+                StrideLoadingView().frame(height: 120)
+            case .error(let message):
+                StrideErrorState(message: message) { Task { await reload() } }
+                    .frame(height: 160)
+            case .loaded:
+                if active.isEmpty {
+                    emptyState
+                } else {
+                    LazyVGrid(
+                        columns: [GridItem(.flexible()), GridItem(.flexible())],
+                        spacing: Theme.Spacing.sm + 2
+                    ) {
+                        ForEach(active.prefix(6)) { summary in
+                            NavigationLink(value: Route.tracker(summary.tracker)) {
+                                tile(for: summary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func tile(for summary: TrackerSummary) -> some View {
+        StrideTrackerTile(
+            name: summary.tracker.name,
+            subtitle: summary.recencyText() ?? "Not logged yet",
+            hue: summary.tracker.color.map { Color(hex: $0) } ?? Theme.Colors.accent,
+            recency: summary.recency()
+        )
+    }
 
     @ViewBuilder private var emptyState: some View {
-        if isAdminForActive, context.activeReceiver != nil {
-            VStack(spacing: Theme.Spacing.md) {
-                StrideEmptyState(message: "No trackers yet.")
-                StrideButton(title: "Add tracker") {
-                    showAddTracker = true
-                }
-                .padding(.horizontal, Theme.Spacing.lg)
-            }
-        } else {
+        VStack(spacing: Theme.Spacing.md) {
             StrideEmptyState(message: "No trackers yet.")
-        }
-    }
-
-    // MARK: Receiver switcher
-
-    @ViewBuilder private var receiverSwitcher: some View {
-        let canAddReceiver = !me.adminGroups.isEmpty
-        if context.receivers.count <= 1 && !canAddReceiver {
-            Text(context.activeReceiver?.name ?? "")
-                .font(Theme.Typography.headline)
-                .foregroundStyle(Theme.Colors.textPrimary)
-        } else {
-            Menu {
-                let activeGroupID = context.activeReceiver?.careGroupId
-                // Active team first (stable), then other teams. Pre-filter to groups
-                // that actually have receivers so dividers only separate rendered
-                // sections (never appear at the top).
-                let visibleGroups: [(membership: Me.Membership, receivers: [Components.Schemas.Receiver])] =
-                    me.memberships
-                        .sorted { lhs, rhs in
-                            let lhsActive = lhs.careGroupID == activeGroupID
-                            let rhsActive = rhs.careGroupID == activeGroupID
-                            if lhsActive != rhsActive { return lhsActive }
-                            return false
-                        }
-                        .compactMap { membership in
-                            let receivers = context.receivers.filter { $0.careGroupId == membership.careGroupID }
-                            return receivers.isEmpty ? nil : (membership, receivers)
-                        }
-                ForEach(Array(visibleGroups.enumerated()), id: \.element.membership.careGroupID) { index, group in
-                    if index > 0 { Divider() }
-                    Section(group.membership.name) {
-                        ForEach(group.receivers, id: \.receiverId) { receiver in
-                            Button {
-                                context.setActive(receiver)
-                            } label: {
-                                if receiver.receiverId == context.activeReceiverID {
-                                    Label(receiver.name, systemImage: "checkmark")
-                                } else {
-                                    Text(receiver.name)
-                                }
-                            }
-                        }
-                    }
-                }
-                if canAddReceiver {
-                    Divider()
-                    Button {
-                        showAddReceiver = true
-                    } label: {
-                        Label("Add receiver", systemImage: "plus")
-                    }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(context.activeReceiver?.name ?? "")
-                        .font(Theme.Typography.headline)
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                    Image(systemName: "chevron.down")
-                        .font(.caption.bold())
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                }
+                .frame(maxHeight: 120)
+            if isAdminForActive, context.activeReceiver != nil {
+                StrideButton(title: "Add tracker") { showAddTracker = true }
+                    .padding(.horizontal, Theme.Spacing.lg)
             }
         }
     }
 
-    // MARK: Tracker list
+    // MARK: Today timeline
 
-    private func trackerList(_ trackers: [Components.Schemas.Tracker]) -> some View {
-        ScrollView {
-            LazyVStack(spacing: Theme.Spacing.sm) {
-                ForEach(trackers, id: \.trackerId) { tracker in
-                    TrackerCard(tracker: tracker) {
-                        logTracker = tracker
-                    }
-                }
+    @ViewBuilder private var timelineSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm + 2) {
+            StrideSectionHeader(title: "Today")
+            if context.activeReceiver != nil {
+                TodayTimelineCard { ref in selectedRef = ref }
+            } else {
+                StrideEmptyState(message: "No receiver selected.")
+                    .frame(height: 120)
             }
-            .padding(Theme.Spacing.md)
         }
-        .refreshable { await reload() }
-    }
-}
-
-// MARK: - Tracker card
-
-struct TrackerCard: View {
-    let tracker: Components.Schemas.Tracker
-    let onLog: () -> Void
-
-    var trackerColor: Color {
-        tracker.color.map { Color(hex: $0) } ?? Theme.Colors.accent
-    }
-
-    var body: some View {
-        HStack(spacing: 0) {
-            NavigationLink(value: Route.tracker(tracker)) {
-                HStack(spacing: Theme.Spacing.md) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(trackerColor)
-                        .frame(width: 4, height: 40)
-                    VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                        Text(tracker.name)
-                            .font(Theme.Typography.headline)
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                        Text(tracker.kind.rawValue.capitalized)
-                            .font(Theme.Typography.caption)
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    }
-                    Spacer()
-                }
-                .padding(.vertical, Theme.Spacing.md)
-                .padding(.leading, Theme.Spacing.md)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            Rectangle()
-                .fill(Theme.Colors.border)
-                .frame(width: 1, height: 40)
-
-            Button(action: onLog) {
-                Image(systemName: "plus")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.Colors.accent)
-                    .frame(width: 56, height: 56)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-        .background {
-            RoundedRectangle(cornerRadius: Theme.Radius.card)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: Theme.Radius.card)
-                        .fill(LinearGradient(
-                            colors: [.white.opacity(0.25), .clear],
-                            startPoint: .top, endPoint: .center
-                        ))
-                }
-        }
-        .shadow(color: Theme.Colors.ink.opacity(0.08), radius: 8, x: 0, y: 4)
     }
 }

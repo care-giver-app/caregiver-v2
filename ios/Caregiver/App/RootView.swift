@@ -9,9 +9,9 @@ struct RootView: View {
     @AppStorage("faceIDEnabled") private var faceIDEnabled = false
     @State private var showEnableFaceID = false
     @State private var receiverContext = ReceiverContext()
+    @State private var summaries = TrackerSummariesModel()
     @State private var selectedTab: StrideTab = .home
     @State private var showQuickLog = false
-    @State private var logRefreshToken = 0
 
     var body: some View {
         Group {
@@ -59,7 +59,7 @@ struct RootView: View {
     private func mainStack(_ me: Me) -> some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                HomeView(me: me, refreshToken: logRefreshToken)
+                HomeView(me: me)
                     .appRouteDestinations(me: me)
                     .toolbar(.hidden, for: .tabBar)
             }
@@ -88,10 +88,17 @@ struct RootView: View {
             StrideTabBar(selection: $selectedTab) { showQuickLog = true }
         }
         .sheet(isPresented: $showQuickLog) {
-            QuickLogSheet { logRefreshToken += 1 }
+            QuickLogSheet {
+                Task {
+                    if let id = receiverContext.activeReceiver?.receiverId {
+                        await summaries.load(receiverID: id, using: session)
+                    }
+                }
+            }
         }
         .tint(Theme.Colors.accent)
         .environment(receiverContext)
+        .environment(summaries)
         .task { await receiverContext.load(using: session) }
     }
 
