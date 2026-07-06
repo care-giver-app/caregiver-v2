@@ -9,6 +9,9 @@ struct RootView: View {
     @AppStorage("faceIDEnabled") private var faceIDEnabled = false
     @State private var showEnableFaceID = false
     @State private var receiverContext = ReceiverContext()
+    @State private var selectedTab: StrideTab = .home
+    @State private var showQuickLog = false
+    @State private var logRefreshToken = 0
 
     var body: some View {
         Group {
@@ -54,24 +57,38 @@ struct RootView: View {
     }
 
     private func mainStack(_ me: Me) -> some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationStack {
-                HomeView(me: me)
+                HomeView(me: me, refreshToken: logRefreshToken)
                     .appRouteDestinations(me: me)
+                    .toolbar(.hidden, for: .tabBar)
             }
-            .tabItem { Label("Home", systemImage: "house") }
+            .tag(StrideTab.home)
 
-            NavigationStack { InsightsView() }
-                .tabItem { Label("Insights", systemImage: "chart.line.uptrend.xyaxis") }
+            NavigationStack {
+                InsightsView()
+                    .toolbar(.hidden, for: .tabBar)
+            }
+            .tag(StrideTab.insights)
 
-            NavigationStack { ActivityView() }
-                .tabItem { Label("Activity", systemImage: "list.bullet.clipboard") }
+            NavigationStack {
+                TeamView()
+                    .toolbar(.hidden, for: .tabBar)
+            }
+            .tag(StrideTab.team)
 
             NavigationStack {
                 SettingsView(me: me)
                     .appRouteDestinations(me: me)
+                    .toolbar(.hidden, for: .tabBar)
             }
-            .tabItem { Label("Settings", systemImage: "gearshape") }
+            .tag(StrideTab.settings)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            StrideTabBar(selection: $selectedTab) { showQuickLog = true }
+        }
+        .sheet(isPresented: $showQuickLog) {
+            QuickLogSheet { logRefreshToken += 1 }
         }
         .tint(Theme.Colors.accent)
         .environment(receiverContext)

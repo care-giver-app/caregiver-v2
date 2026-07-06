@@ -4,6 +4,7 @@ import CaregiverAPI
 private struct HomeTaskID: Equatable {
     let receiverID: String?
     let contextReady: Bool
+    let refreshToken: Int
 }
 
 // MARK: - Model
@@ -40,6 +41,7 @@ struct HomeView: View {
     @Environment(Session.self) private var session
     @Environment(ReceiverContext.self) private var context
     let me: Me
+    var refreshToken: Int = 0
 
     @State private var model: HomeModel
     @State private var logTracker: Components.Schemas.Tracker?
@@ -56,13 +58,15 @@ struct HomeView: View {
         return me.isAdmin(inCareGroup: groupID)
     }
 
-    init(me: Me) {
+    init(me: Me, refreshToken: Int = 0) {
         self.me = me
+        self.refreshToken = refreshToken
         _model = State(initialValue: HomeModel())
     }
 
-    init(me: Me, model: HomeModel) {
+    init(me: Me, model: HomeModel, refreshToken: Int = 0) {
         self.me = me
+        self.refreshToken = refreshToken
         _model = State(initialValue: model)
     }
 
@@ -115,7 +119,11 @@ struct HomeView: View {
                 }
             }
         }
-        .task(id: HomeTaskID(receiverID: context.activeReceiver?.receiverId, contextReady: context.isLoaded)) {
+        .task(id: HomeTaskID(
+            receiverID: context.activeReceiver?.receiverId,
+            contextReady: context.isLoaded,
+            refreshToken: refreshToken
+        )) {
             await reload()
         }
     }
