@@ -9,6 +9,7 @@ struct QuickLogWizardView: View {
     let onLogged: () -> Void
 
     @State private var model = QuickLogWizardModel()
+    @State private var didNotify = false
 
     var body: some View {
         Group {
@@ -40,6 +41,10 @@ struct QuickLogWizardView: View {
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(model.isBusy)
         .task { await load() }
+        // Swipe-to-dismiss (allowed on .select/.detail/.results whenever not busy)
+        // bypasses `finish()`, so this is the single source of truth for notifying
+        // Home — guarded so an explicit `finish()` doesn't double-fire `onLogged`.
+        .onDisappear { notifyIfNeeded() }
     }
 
     private func load() async {
@@ -61,7 +66,16 @@ struct QuickLogWizardView: View {
     }
 
     private func finish() {
-        if model.anySucceeded { onLogged() }
+        notifyIfNeeded()
         dismiss()
+    }
+
+    /// Fires `onLogged` once, whether reached via an explicit `finish()` or via
+    /// swipe-to-dismiss tearing the view down directly (decision 5: partial
+    /// success must still refresh Home).
+    private func notifyIfNeeded() {
+        guard !didNotify else { return }
+        didNotify = true
+        if model.anySucceeded { onLogged() }
     }
 }
