@@ -26,7 +26,6 @@ struct TodayTimelineCard: View {
             Divider()
             dayContent
         }
-        .strideCard()
         .task(id: DayKey(
             receiverID: context.activeReceiver?.receiverId ?? "",
             dayStart: ActivityDay.bounds(for: selectedDate).start,
