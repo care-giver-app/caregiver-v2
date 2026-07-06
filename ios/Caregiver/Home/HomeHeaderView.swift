@@ -58,6 +58,10 @@ struct HomeHeaderView: View {
     }
 
     private func loadMembers() async {
+        guard session.client != nil else {
+            members = []
+            return
+        }
         guard let groupID = context.activeReceiver?.careGroupId else {
             members = []
             return
