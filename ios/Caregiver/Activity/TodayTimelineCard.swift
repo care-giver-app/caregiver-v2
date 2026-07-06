@@ -1,14 +1,17 @@
 import SwiftUI
 import CaregiverAPI
 
-struct ActivityView: View {
+/// The single-day cross-tracker timeline (ios/specs/views/activity-timeline.md),
+/// embedded on Home as the "Today" widget — no longer a standalone tab
+/// (ios/specs/views/shell.md decision 2).
+struct TodayTimelineCard: View {
     @Environment(Session.self) private var session
     @Environment(ReceiverContext.self) private var context
+    let onSelect: (EventRef) -> Void
 
     @State private var model = ActivityModel()
     @State private var selectedDate = Date()
     @State private var showDatePicker = false
-    @State private var selectedRef: EventRef?
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateStyle = .none; f.timeStyle = .short; return f
@@ -17,30 +20,19 @@ struct ActivityView: View {
     private var isToday: Bool { Calendar.current.isDateInToday(selectedDate) }
 
     var body: some View {
-        Group {
-            if let receiver = context.activeReceiver {
-                ScrollView {
-                    VStack(spacing: Theme.Spacing.lg) {
-                        timelineWidget(receiverID: receiver.receiverId)
-                    }
-                    .padding(.horizontal, Theme.Spacing.md)
-                    .padding(.top, Theme.Spacing.md)
-                }
-                .refreshable { await reload() }
-            } else {
-                StrideEmptyState(message: "No receiver selected.")
-            }
+        VStack(spacing: 0) {
+            dateHeader
+            Divider()
+            dayContent
         }
-        .navigationTitle("Activity")
-        .strideBackground()
-        .navigationDestination(item: $selectedRef) { ref in
-            EventDetailView(tracker: ref.tracker, event: ref.event) {
-                Task { await reload() }
-            }
+        .strideCard()
+        .task(id: DayKey(
+            receiverID: context.activeReceiver?.receiverId ?? "",
+            dayStart: ActivityDay.bounds(for: selectedDate).start
+        )) {
+            await reload()
         }
-        .sheet(isPresented: $showDatePicker) {
-            datePickerSheet
-        }
+        .sheet(isPresented: $showDatePicker) { datePickerSheet }
     }
 
     // MARK: Reload
@@ -110,19 +102,6 @@ struct ActivityView: View {
 
     // MARK: Day content
 
-    /// The timeline as a self-contained glass widget: date-nav header + the day's content.
-    @ViewBuilder private func timelineWidget(receiverID: String) -> some View {
-        VStack(spacing: 0) {
-            dateHeader
-            Divider()
-            dayContent
-        }
-        .strideCard()
-        .task(id: DayKey(receiverID: receiverID, dayStart: ActivityDay.bounds(for: selectedDate).start)) {
-            await reload()
-        }
-    }
-
     @ViewBuilder private var dayContent: some View {
         switch model.state {
         case .loading:
@@ -146,7 +125,7 @@ struct ActivityView: View {
                         values: ref.event.values, fields: ref.tracker.fields
                     ),
                     dotColor: ref.tracker.color.map { Color(hex: $0) } ?? Theme.Colors.accent,
-                    action: { selectedRef = ref }
+                    action: { onSelect(ref) }
                 )
             })
             .padding(.horizontal, Theme.Spacing.md)
