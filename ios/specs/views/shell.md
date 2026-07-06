@@ -1,7 +1,7 @@
 # Post-login shell (tabs + ⊕ FAB)
 
 - **Module:** ios
-- **Status:** designed 2026-07-05 (assembly pass with [[home]] + [[trackers]]) — SwiftUI build next.
+- **Status:** SwiftUI build **done** (this branch's PR) — designed 2026-07-05, built same day.
 - **Last updated:** 2026-07-05
 - **Contract:** none of its own — the shell hosts tabs; each tab's spec lists its endpoints.
 - **Related specs:** [[home]] · [[insights]] · [[team]] · [[settings]] (the four tabs), [[logging]] (the ⊕ FAB's eventual target), [[design-system]] (`StrideTabBar`, backgrounds)

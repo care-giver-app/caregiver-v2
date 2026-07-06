@@ -1,7 +1,7 @@
 # Home
 
 - **Module:** ios
-- **Status:** Figma design pass **done** (landing frame `53:3`); **SwiftUI build underway** (2026-07-05 assembly pass with [[shell]] + [[trackers]]).
+- **Status:** Figma design pass **done** (landing frame `53:3`); **SwiftUI build done** (this branch's PR) (2026-07-05 assembly pass with [[shell]] + [[trackers]]).
 - **Last updated:** 2026-07-05
 - **Contract:** `listReceivers`, `listTrackers(receiverId)`, `listEvents(trackerId, from:, to:)`, `listMembers(careGroupId)` (`shared/openapi/openapi.yaml`). **No appointments/schedule endpoint exists** — see Backend reality.
 - **Related specs:** [[shell]] (the tab frame hosting Home), [[receivers]] (the header switcher opens the switch sheet), [[trackers]] ("See all" target), [[logging]] (the ⊕ FAB), [[activity-timeline]] (the Today timeline widget), [[insights]] · [[team]] · [[settings]] (sibling tabs), [[sample-data]] (fixtures), [[design-system]] (Stride system)

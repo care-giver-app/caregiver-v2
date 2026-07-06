@@ -1,7 +1,7 @@
 # Trackers (browse & manage)
 
 - **Module:** ios
-- **Status:** Figma design pass **done** (browse frame `71:2`); **SwiftUI build underway** (2026-07-05 assembly pass with [[shell]] + [[home]]).
+- **Status:** Figma design pass **done** (browse frame `71:2`); **SwiftUI build done** (this branch's PR) (2026-07-05 assembly pass with [[shell]] + [[home]]).
 - **Last updated:** 2026-07-05
 - **Contract:** `listTrackers(receiverId)` → `Tracker{tracker_id,name,kind,fields,icon?,color?,archived}`; per-tracker events via `listEvents(trackerId)` (`shared/openapi/openapi.yaml`). `TrackerKind = event | measurement | scheduled`.
 - **Related specs:** [[home]] ("See all" pushes here), [[shell]] (the pinned tab bar), [[add-tracker]] (the "New" button target), [[event-detail]] (a tapped event), [[sample-data]] (fixtures + kind-label mapping), [[design-system]]
