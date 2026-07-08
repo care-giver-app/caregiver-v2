@@ -90,7 +90,7 @@ struct RootView: View {
             StrideTabBar(selection: $selectedTab) { showQuickLog = true }
         }
         .sheet(isPresented: $showQuickLog) {
-            QuickLogSheet {
+            QuickLogWizardView {
                 logVersion += 1
                 Task {
                     if let id = receiverContext.activeReceiver?.receiverId {
