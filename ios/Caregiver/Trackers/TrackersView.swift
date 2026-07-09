@@ -25,7 +25,7 @@ struct TrackersView: View {
     let me: Me
 
     @State private var filter: TrackerFilter = .all
-    @State private var showAddTracker = false
+    @State private var addTarget: AddTrackerTarget?
 
     private var isAdminForActive: Bool {
         guard let groupID = context.activeReceiver?.careGroupId else { return false }
@@ -45,11 +45,9 @@ struct TrackersView: View {
         .strideBackground()
         .navigationTitle("Trackers")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showAddTracker) {
-            if let receiver = context.activeReceiver {
-                TemplatePickerView(receiverId: receiver.receiverId) {
-                    Task { await reload() }
-                }
+        .fullScreenCover(item: $addTarget) { target in
+            AddTrackerWizard(receiverId: target.id) {
+                Task { await reload() }
             }
         }
     }
@@ -73,7 +71,7 @@ struct TrackersView: View {
             Spacer()
             if isAdminForActive {
                 Button {
-                    showAddTracker = true
+                    addTarget = context.activeReceiver.map { AddTrackerTarget(id: $0.receiverId) }
                 } label: {
                     Label("New", systemImage: "plus")
                         .font(.system(size: 13, weight: .semibold))
