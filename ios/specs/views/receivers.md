@@ -1,8 +1,8 @@
 # Care receivers — switch & add
 
 - **Module:** ios
-- **Status:** Figma design pass **done** (switch sheet + add sheet + Receiver Row component + Calendar icon) — next is the SwiftUI build.
-- **Last updated:** 2026-07-01
+- **Status:** **Built** — SwiftUI switch sheet + Aurora add sheet (Name-only; DOB deferred), 2026-07-09. Figma design pass done.
+- **Last updated:** 2026-07-09
 - **Contract:** `listReceivers(careGroupId)` → `Receiver{receiver_id,name,date_of_birth?,archived,…}`; `createReceiver(careGroupId,{name,date_of_birth?})` **admin-only**; `getReceiver` / `updateReceiver` / `archiveReceiver` exist (`shared/openapi/openapi.yaml`). **Active receiver is a client-side selection** (no endpoint).
 - **Related specs:** [[settings]] (same switch+create pattern for care groups), [[team]], [[insights]], [[design-system]] (Stride design system), [[caretosher-post-login-ia]] (post-login IA)
 
@@ -20,7 +20,10 @@ Insights, Activity, and logging.
 ## Backend reality (shapes the design)
 
 - **`Receiver` has `name` + optional `date_of_birth` + `archived`; no photo** → monogram avatars; **age derived from
-  `date_of_birth`** (blank when absent).
+  `date_of_birth`** (blank when absent). **In practice DOB is expected to be unset** (2026-07-09, Trevor) → **DOB
+  capture is deferred**: the Add sheet is **Name-only** for now (add the optional DOB field eventually), and the
+  switcher row renders **name-only** (`StrideReceiverRow` hides its detail line when empty). Age helper (decision 7)
+  defers with it — no dead code until DOB lands.
 - **`createReceiver` is admin-only** → the "+ Add care receiver" entry and Add sheet are admin-gated; the **switch list
   is visible to all members**.
 - **Active receiver is client-side** (no "set active" endpoint) — selection updates the Home header locally (signature
@@ -29,14 +32,20 @@ Insights, Activity, and logging.
 
 ## Resolved decisions (brainstorm 2026-07-01)
 
-| #   | Decision              | Choice                                                | Why                                                                                                                  |
-| --- | --------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| 1   | Switcher presentation | **Bottom sheet** from the Home header chevron         | Consistent with every other sheet (quick-log, invite, create-group); scales to many receivers; room for the Add row. |
-| 2   | Receiver row content  | **Hue monogram + name + age**, active row checkmarked | Per-receiver hue aids at-a-glance recognition of who you're on; age is the useful elder-care meta.                   |
-| 3   | Per-receiver color    | **Tracker hues** (cyan/teal/violet) on the monogram   | Reuses the existing hue palette; the one accent moment.                                                              |
-| 4   | Add fields            | **Name (required) + Date of birth (optional)**        | Matches `CreateReceiverRequest` exactly.                                                                             |
-| 5   | Edit / archive        | **Defer** (endpoints exist) — v1 = switch + add       | YAGNI; keep the switcher fast. See Non-goals.                                                                        |
-| 6   | Add gating            | Admin-only Add; all members can switch                | `createReceiver` is admin-only.                                                                                      |
+| #   | Decision              | Choice                                                                 | Why                                                                                                                  |
+| --- | --------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 1   | Switcher presentation | **Bottom sheet** from the Home header chevron                          | Consistent with every other sheet (quick-log, invite, create-group); scales to many receivers; room for the Add row. |
+| 2   | Receiver row content  | **Hue monogram + name + age**, active row checkmarked                  | Per-receiver hue aids at-a-glance recognition of who you're on; age is the useful elder-care meta.                   |
+| 3   | Per-receiver color    | **Tracker hues** (cyan/teal/violet) on the monogram                    | Reuses the existing hue palette; the one accent moment.                                                              |
+| 4   | Add fields            | **Name only** for v1; DOB deferred (2026-07-09)                        | Contract has optional `date_of_birth`, but DOB won't be populated in practice → YAGNI; add the optional field later. |
+| 5   | Edit / archive        | **Defer** (endpoints exist) — v1 = switch + add                        | YAGNI; keep the switcher fast. See Non-goals.                                                                        |
+| 6   | Add gating            | Admin-only Add; all members can switch                                 | `createReceiver` is admin-only.                                                                                      |
+| 7   | Age helper location   | Deferred with DOB — reusable `Date` helper in `Support/` when it lands | Was: age (whole years) via a testable free helper. DOB deferred (decision 4) → no age line yet, so no helper now.    |
+| 8   | Sheet detents         | Switcher `[.medium, .large]`; Add `.medium`                            | Switcher scrolls/expands when many receivers; the short Add form sits at medium. Matches quick-log/other sheets.     |
+| 9   | Post-add behaviour    | Auto-switch to the newly added receiver                                | Client-side selection intent — you just added them, so scope Home to them; refresh `ReceiverContext` then setActive. |
+
+> Decisions 7–9 are **SwiftUI build-phase** choices (2026-07-09), locked with recommended defaults while proceeding;
+> product decisions 1–6 came from the 2026-07-01 Figma brainstorm.
 
 ### Scope of the first Figma pass
 

@@ -13,7 +13,6 @@ struct HomeView: View {
     let me: Me
     var logVersion: Int = 0
 
-    @State private var showAddReceiver = false
     @State private var showAddTracker = false
     @State private var selectedRef: EventRef?
     @State private var pushTrackers = false
@@ -27,7 +26,7 @@ struct HomeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
-                HomeHeaderView(me: me) { showAddReceiver = true }
+                HomeHeaderView(me: me)
                 snapshotSection
                 timelineSection
             }
@@ -47,11 +46,6 @@ struct HomeView: View {
         }
         .navigationDestination(isPresented: $pushTrackers) {
             TrackersView(me: me)
-        }
-        .sheet(isPresented: $showAddReceiver) {
-            AddReceiverView(me: me) {
-                Task { await context.load(using: session) }
-            }
         }
         .sheet(isPresented: $showAddTracker) {
             if let receiver = context.activeReceiver {
