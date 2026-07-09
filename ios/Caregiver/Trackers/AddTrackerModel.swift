@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 import CaregiverAPI
 
 /// Drives the add-tracker wizard (ios/specs/views/add-tracker.md): load the seeded
@@ -21,7 +21,10 @@ final class AddTrackerModel {
     // Editable config for the chosen template.
     private(set) var selected: Components.Schemas.TrackerTemplate?
     var name = ""
-    var selectedHue: TrackerHue = .cyan
+    /// The chosen tracker color. Defaults to the template's Aurora hue on `choose`,
+    /// but the user can pick **any** color via the wizard's color picker
+    /// (add-tracker.md decision 15); persisted as hex into `TrackerWrite.color`.
+    var selectedColor: Color = TrackerHue.cyan.color
     /// Keyed by `Field.key`; seeded for every `number` field on `choose`.
     var thresholds: [String: ThresholdText] = [:]
 
@@ -42,7 +45,7 @@ final class AddTrackerModel {
     func choose(_ template: Components.Schemas.TrackerTemplate) {
         selected = template
         name = template.name
-        selectedHue = AddTrackerLogic.hue(forTemplateID: template.templateId)
+        selectedColor = AddTrackerLogic.hue(forTemplateID: template.templateId).color
         var seeded: [String: ThresholdText] = [:]
         for field in template.fields where field._type == .number {
             seeded[field.key] = ThresholdText(
@@ -69,7 +72,7 @@ final class AddTrackerModel {
         submitError = nil
         let body = AddTrackerLogic.makeWrite(
             template: template, name: trimmed,
-            colorHex: selectedHue.hex, thresholds: thresholds
+            colorHex: selectedColor.hexRGB, thresholds: thresholds
         )
         do {
             _ = try await session.api.createTracker(

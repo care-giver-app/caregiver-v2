@@ -20,4 +20,10 @@ final class ColorHexTests: XCTestCase {
         let c = Color(hex: "not-a-color")
         XCTAssertNotNil(c.rgbaComponents) // fallback, not a crash
     }
+
+    func testHexRGBRoundTripsThroughInit() {
+        XCTAssertEqual(Color(hex: "4dd6e6").hexRGB, "4dd6e6")
+        XCTAssertEqual(Color(hex: "#7C6FF0").hexRGB, "7c6ff0")
+        XCTAssertEqual(Color(hex: "93C5FD").hexRGB, "93c5fd")
+    }
 }

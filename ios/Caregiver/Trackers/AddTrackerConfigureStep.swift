@@ -36,12 +36,12 @@ struct AddTrackerConfigureStep: View {
     private var header: some View {
         HStack(spacing: Theme.Spacing.sm) {
             RoundedRectangle(cornerRadius: 12)
-                .fill(model.selectedHue.color.opacity(0.18))
+                .fill(model.selectedColor.opacity(0.18))
                 .frame(width: 44, height: 44)
                 .overlay {
                     Image(systemName: model.selected?.icon ?? "square.dashed")
                         .font(.system(size: 18))
-                        .foregroundStyle(model.selectedHue.color)
+                        .foregroundStyle(model.selectedColor)
                 }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Configure")
@@ -67,26 +67,37 @@ struct AddTrackerConfigureStep: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             sectionLabel("COLOR")
             HStack(spacing: Theme.Spacing.md) {
+                // Aurora quick-picks…
                 ForEach(TrackerHue.allCases, id: \.self) { hue in
-                    Button { model.selectedHue = hue } label: {
+                    Button { model.selectedColor = hue.color } label: {
                         Circle()
                             .fill(hue.color)
                             .frame(width: 36, height: 36)
                             .overlay {
                                 Circle().stroke(
                                     Theme.Colors.textPrimary,
-                                    lineWidth: model.selectedHue == hue ? 2.5 : 0
+                                    lineWidth: isSelected(hue) ? 2.5 : 0
                                 )
                                 .padding(-3)
                             }
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(hue.rawValue)
-                    .accessibilityAddTraits(model.selectedHue == hue ? .isSelected : [])
+                    .accessibilityAddTraits(isSelected(hue) ? .isSelected : [])
                 }
+                // …plus a full picker for any custom color (decision 15). Its swatch
+                // also shows the current selection when it isn't an Aurora preset.
+                ColorPicker("Custom color", selection: $model.selectedColor, supportsOpacity: false)
+                    .labelsHidden()
+                    .frame(width: 36, height: 36)
                 Spacer(minLength: 0)
             }
         }
+    }
+
+    /// A preset is highlighted only when the chosen color exactly matches its hue.
+    private func isSelected(_ hue: TrackerHue) -> Bool {
+        model.selectedColor.hexRGB == hue.hex
     }
 
     private var fieldsCard: some View {
