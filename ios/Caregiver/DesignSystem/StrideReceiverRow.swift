@@ -26,9 +26,13 @@ struct StrideReceiverRow: View {
                 Text(name)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Theme.Colors.textPrimary)
-                Text(detail)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.Colors.textSecondary)
+                // `detail` (age) is usually absent — receivers rarely carry a DOB
+                // (receivers.md). Render name-only when there's nothing to show.
+                if !detail.isEmpty {
+                    Text(detail)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
             }
             Spacer(minLength: Theme.Spacing.sm)
             if isActive {
@@ -67,6 +71,11 @@ struct StrideReceiverRow: View {
         StrideReceiverRow(
             name: "Rosa", detail: "69 years", initial: "R",
             hue: Theme.Colors.trackerViolet
+        )
+        // Name-only (no DOB) — the common case; detail line is hidden.
+        StrideReceiverRow(
+            name: "Walter", detail: "", initial: "W",
+            hue: Theme.Colors.trackerCyan
         )
     }
     .padding(Theme.Spacing.md)

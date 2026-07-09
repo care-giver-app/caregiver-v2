@@ -8,9 +8,9 @@ struct HomeHeaderView: View {
     @Environment(Session.self) private var session
     @Environment(ReceiverContext.self) private var context
     let me: Me
-    let onAddReceiver: () -> Void
 
     @State private var members: [Components.Schemas.Member] = []
+    @State private var showSwitcher = false
 
     private var activeTeamName: String? {
         guard let groupID = context.activeReceiver?.careGroupId else { return nil }
@@ -21,7 +21,7 @@ struct HomeHeaderView: View {
         HStack(spacing: Theme.Spacing.md) {
             monogram
             VStack(alignment: .leading, spacing: 2) {
-                switcherMenu
+                switcherTrigger
                 if let team = activeTeamName {
                     Text(team)
                         .font(Theme.Typography.caption)
@@ -32,6 +32,9 @@ struct HomeHeaderView: View {
             facePile
         }
         .task(id: context.activeReceiver?.careGroupId) { await loadMembers() }
+        .sheet(isPresented: $showSwitcher) {
+            ReceiverSwitcherSheet(me: me)
+        }
     }
 
     private var monogram: some View {
@@ -74,57 +77,20 @@ struct HomeHeaderView: View {
 
     // MARK: Receiver switcher
     //
-    // Copied verbatim from `HomeView.receiverSwitcher` (home.md decision 5) — Task 5
-    // deletes the original when it rewrites HomeView to compose this header.
+    // The chevron opens the `ReceiverSwitcherSheet` (receivers.md decision 1) — the
+    // grouping/active-first ordering and the admin "+ Add care receiver" row now live
+    // in that sheet. Shown as plain text only when there's nothing to switch to and
+    // nothing to add.
 
-    @ViewBuilder private var switcherMenu: some View {
+    @ViewBuilder private var switcherTrigger: some View {
         let canAddReceiver = !me.adminGroups.isEmpty
         if context.receivers.count <= 1 && !canAddReceiver {
             Text(context.activeReceiver?.name ?? "")
                 .font(Theme.Typography.title)
                 .foregroundStyle(Theme.Colors.textPrimary)
         } else {
-            Menu {
-                let activeGroupID = context.activeReceiver?.careGroupId
-                // Active team first (stable), then other teams. Pre-filter to groups
-                // that actually have receivers so dividers only separate rendered
-                // sections (never appear at the top).
-                let visibleGroups: [(membership: Me.Membership, receivers: [Components.Schemas.Receiver])] =
-                    me.memberships
-                        .sorted { lhs, rhs in
-                            let lhsActive = lhs.careGroupID == activeGroupID
-                            let rhsActive = rhs.careGroupID == activeGroupID
-                            if lhsActive != rhsActive { return lhsActive }
-                            return false
-                        }
-                        .compactMap { membership in
-                            let receivers = context.receivers.filter { $0.careGroupId == membership.careGroupID }
-                            return receivers.isEmpty ? nil : (membership, receivers)
-                        }
-                ForEach(Array(visibleGroups.enumerated()), id: \.element.membership.careGroupID) { index, group in
-                    if index > 0 { Divider() }
-                    Section(group.membership.name) {
-                        ForEach(group.receivers, id: \.receiverId) { receiver in
-                            Button {
-                                context.setActive(receiver)
-                            } label: {
-                                if receiver.receiverId == context.activeReceiverID {
-                                    Label(receiver.name, systemImage: "checkmark")
-                                } else {
-                                    Text(receiver.name)
-                                }
-                            }
-                        }
-                    }
-                }
-                if canAddReceiver {
-                    Divider()
-                    Button {
-                        onAddReceiver()
-                    } label: {
-                        Label("Add receiver", systemImage: "plus")
-                    }
-                }
+            Button {
+                showSwitcher = true
             } label: {
                 HStack(spacing: 4) {
                     Text(context.activeReceiver?.name ?? "")
@@ -135,6 +101,7 @@ struct HomeHeaderView: View {
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
+            .buttonStyle(.plain)
         }
     }
 }
@@ -153,7 +120,7 @@ struct HomeHeaderView: View {
         userName: "Trevor",
         memberships: [Me.Membership(careGroupID: "riverside", name: "The Riverside Group", role: "admin")]
     )
-    return HomeHeaderView(me: me, onAddReceiver: {})
+    return HomeHeaderView(me: me)
         .padding()
         .strideBackground()
         .environment(session)
