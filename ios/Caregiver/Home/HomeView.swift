@@ -13,7 +13,7 @@ struct HomeView: View {
     let me: Me
     var logVersion: Int = 0
 
-    @State private var showAddTracker = false
+    @State private var addTarget: AddTrackerTarget?
     @State private var selectedRef: EventRef?
     @State private var pushTrackers = false
     @State private var localRefresh = 0
@@ -47,11 +47,9 @@ struct HomeView: View {
         .navigationDestination(isPresented: $pushTrackers) {
             TrackersView(me: me)
         }
-        .sheet(isPresented: $showAddTracker) {
-            if let receiver = context.activeReceiver {
-                TemplatePickerView(receiverId: receiver.receiverId) {
-                    Task { await reload() }
-                }
+        .fullScreenCover(item: $addTarget) { target in
+            AddTrackerWizard(receiverId: target.id) {
+                Task { await reload() }
             }
         }
         .task(id: HomeTaskID(receiverID: context.activeReceiver?.receiverId,
@@ -118,8 +116,10 @@ struct HomeView: View {
             StrideEmptyState(message: "No trackers yet.")
                 .frame(maxHeight: 120)
             if isAdminForActive, context.activeReceiver != nil {
-                StrideButton(title: "Add tracker") { showAddTracker = true }
-                    .padding(.horizontal, Theme.Spacing.lg)
+                StrideButton(title: "Add tracker") {
+                    addTarget = context.activeReceiver.map { AddTrackerTarget(id: $0.receiverId) }
+                }
+                .padding(.horizontal, Theme.Spacing.lg)
             }
         }
     }
