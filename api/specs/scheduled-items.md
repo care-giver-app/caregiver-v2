@@ -13,13 +13,23 @@
 
 Activates the reserved `scheduled` tracker kind (B3a `domain/care.go:13`). A tracker of kind
 `scheduled` owns a list of **scheduled items** — discrete, dated, planned entries (a doctor visit, a
-medication time, a therapy session, a bill-due date). Each item is a single `scheduled_for` datetime
-with an optional note. This is the backend contract the iOS **Home "Coming up" banner** and the
-tracker **"Due"/upcoming** states bind to — both are deliberately unbuilt today because "the contract
-has no schedule/cadence" ([[home]] decisions 3–4, 8; [[trackers]] decision 6).
+medication time, a therapy session, a bill-due date). Each item has a first-class `scheduled_for`
+datetime plus a `values` map that fills in the **tracker's own fields** (e.g. a dentist tracker's
+`location` / `dr_name`) and an optional note. This is the backend contract the iOS **Home "Coming up"
+banner** and the tracker **"Due"/upcoming** states bind to — both are deliberately unbuilt today
+because "the contract has no schedule/cadence" ([[home]] decisions 3–4, 8; [[trackers]] decision 6).
 
-A `ScheduledItem` is deliberately distinct from an `Event`: an `Event` is something that **happened**
-(`occurred_at`, past, logged); a `ScheduledItem` is something **planned** (`scheduled_for`, future).
+A `ScheduledItem` and an `Event` are deliberate near-twins — same three denormalized ids, same
+`values` map (validated against the same `tracker.Fields` via the same `validate.go`), same optional
+note. The one semantic pivot is the time column: an `Event` **happened** (`occurred_at`, past,
+`logged_by`); a `ScheduledItem` is **planned** (`scheduled_for`, future, `created_by`). They are
+separate tables (opposite index directions — history newest-first vs upcoming soonest-first — and to
+keep planned rows out of every existing event query) but share the field machinery.
+
+**`scheduled_for` is a first-class column, not a tracker field.** For a scheduled tracker, the
+appointment's date/time is the built-in `scheduled_for`; the tracker's user-defined fields carry the
+_other_ details (location, doctor, …). Clients should not add a redundant "date" field. A scheduled
+tracker with zero fields degenerates to just `scheduled_for` + `note`.
 
 ## Behavior
 
@@ -44,6 +54,8 @@ the API resolves authorization from the item's denormalized `care_group_id` in a
 - If the target tracker does not exist or is archived, then the API shall respond `404`.
 - If the target tracker's `kind` is not `scheduled`, then the API shall respond `400`.
 - If `scheduled_for` is absent or is not a valid RFC3339 datetime, then the API shall respond `400`.
+- If `values` do not conform to the tracker's `fields` (unknown key, wrong type, missing required,
+  invalid enum option), then the API shall respond `400` — reusing B3a's `validate.go`.
 
 **List by tracker** — `GET /trackers/{trackerId}/scheduled-items`
 
@@ -62,9 +74,9 @@ the API resolves authorization from the item's denormalized `care_group_id` in a
 **Get / Update / Delete** — `/scheduled-items/{scheduledItemId}`
 
 - When a member gets a scheduled item, the API shall respond with the full `ScheduledItem`.
-- When a member updates a scheduled item, the API shall replace `scheduled_for` and `note`, carry the
-  denormalized fields through unchanged (B3a's full-item PutItem pattern), and respond with the
-  updated item.
+- When a member updates a scheduled item, the API shall replace `scheduled_for`, `values`, and
+  `note` (re-validating `values` against the tracker's fields), carry the denormalized fields through
+  unchanged (B3a's full-item PutItem pattern), and respond with the updated item.
 - When a member deletes a scheduled item, the API shall hard-delete it (like Events) and respond
   `204`.
 - If the referenced scheduled item does not exist, then the API shall respond `404`.
@@ -79,16 +91,20 @@ the API resolves authorization from the item's denormalized `care_group_id` in a
 
 New entity `ScheduledItem`, new table `caregiver-{stage}-scheduled-item` (multi-table per ADR-0011).
 
-| field               | notes                                                       |
-| ------------------- | ----------------------------------------------------------- |
-| `scheduled_item_id` | PK, uuid                                                    |
-| `tracker_id`        | owning scheduled tracker (denormalized)                     |
-| `receiver_id`       | denormalized from tracker → powers the receiver-wide banner |
-| `care_group_id`     | denormalized → single-read authz (B3a pattern)              |
-| `scheduled_for`     | RFC3339 datetime, **required**                              |
-| `note`              | optional text                                               |
-| `created_by`        | `ac.UserID`                                                 |
-| `created_at`        | server timestamp                                            |
+| field               | notes                                                              |
+| ------------------- | ------------------------------------------------------------------ |
+| `scheduled_item_id` | PK, uuid                                                           |
+| `tracker_id`        | owning scheduled tracker (denormalized)                            |
+| `receiver_id`       | denormalized from tracker → powers the receiver-wide banner        |
+| `care_group_id`     | denormalized → single-read authz (B3a pattern)                     |
+| `scheduled_for`     | RFC3339 datetime, **required** — the first-class timeline key      |
+| `values`            | `map[string]any` conforming to the tracker's `fields` (like Event) |
+| `note`              | optional text                                                      |
+| `created_by`        | `ac.UserID`                                                        |
+| `created_at`        | server timestamp                                                   |
+
+Mirrors `Event` (`domain/care.go:87`) field-for-field except `event_id`→`scheduled_item_id`,
+`occurred_at`(past)→`scheduled_for`(future), and `logged_by`→`created_by`.
 
 Two GSIs, both mirroring the existing `receiver-index` shape on `store/tracker.go`:
 
@@ -97,17 +113,20 @@ Two GSIs, both mirroring the existing `receiver-index` shape on `store/tracker.g
 
 ## Key decisions
 
-| Decision           | Choice                                                                   | Why                                                                                                                    |
-| ------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| Schedule ↔ tracker | A schedule is a **cadence on a tracker**; activates the `scheduled` kind | The kind was reserved for exactly this (B3a §12); reuses tracker authz/scoping; no `TrackerKind` enum change           |
-| Cadence model (v1) | **Discrete scheduled items only** — 1 tracker → many dated items         | Matches the "add appointments to a Dr tracker" mental model; no recurrence engine needed for the first cut             |
-| Recurrence         | **Deferred** (future work)                                               | Real appointments are irregular; a rule engine is unnecessary now and can be added per-item later without churn        |
-| Entity name        | **`ScheduledItem`** (not `Appointment`/`Schedule`)                       | Generic across appointments, meds, therapy, bills — a scheduled tracker isn't always appointments                      |
-| `next_occurrence`  | **Not stored** — earliest future row via soonest-first query             | Avoids stale materialized state; keeps B3b self-contained. B2 can materialize later if a reminder job needs it         |
-| Authz              | **`RequireMember`** for all CRUD; admins still own tracker structure     | Scheduling care is day-to-day coordination (like logging Events), not structural config                                |
-| Receiver-wide list | Denormalize `receiver_id` + `receiver-index` GSI                         | Makes the cross-tracker Home banner a single query instead of an N+1 fan-out over the receiver's trackers              |
-| Delete semantics   | **Hard delete** (like Events)                                            | Scheduled items are transient future data; past ones simply age out of `from=now` queries                              |
-| Archive cascade    | **None in v1** (known gap)                                               | Archiving a scheduled tracker leaves its items; the banner could show an archived tracker's item — revisit if it bites |
+| Decision           | Choice                                                                   | Why                                                                                                                                                                                                |
+| ------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schedule ↔ tracker | A schedule is a **cadence on a tracker**; activates the `scheduled` kind | The kind was reserved for exactly this (B3a §12); reuses tracker authz/scoping; no `TrackerKind` enum change                                                                                       |
+| Cadence model (v1) | **Discrete scheduled items only** — 1 tracker → many dated items         | Matches the "add appointments to a Dr tracker" mental model; no recurrence engine needed for the first cut                                                                                         |
+| Item shape         | Carries a `values` map (tracker fields) + first-class `scheduled_for`    | Respects the tracker field schema (a dentist tracker's `location`/`dr_name`); reuses Event field-validation; `scheduled_for` gives a uniform banner sort key across trackers with different fields |
+| Event vs item      | **Separate tables, shared field machinery**                              | Twins except the time column (past/future) & index direction; a shared table would force a first-class schedule timestamp onto events anyway _and_ make every event query exclude planned rows     |
+| `scheduled_for`    | A **built-in column**, not a user-defined tracker field                  | One uniform timeline key regardless of each tracker's custom fields; clients shouldn't add a redundant "date" field                                                                                |
+| Recurrence         | **Deferred** (future work)                                               | Real appointments are irregular; a rule engine is unnecessary now and can be added per-item later without churn                                                                                    |
+| Entity name        | **`ScheduledItem`** (not `Appointment`/`Schedule`)                       | Generic across appointments, meds, therapy, bills — a scheduled tracker isn't always appointments                                                                                                  |
+| `next_occurrence`  | **Not stored** — earliest future row via soonest-first query             | Avoids stale materialized state; keeps B3b self-contained. B2 can materialize later if a reminder job needs it                                                                                     |
+| Authz              | **`RequireMember`** for all CRUD; admins still own tracker structure     | Scheduling care is day-to-day coordination (like logging Events), not structural config                                                                                                            |
+| Receiver-wide list | Denormalize `receiver_id` + `receiver-index` GSI                         | Makes the cross-tracker Home banner a single query instead of an N+1 fan-out over the receiver's trackers                                                                                          |
+| Delete semantics   | **Hard delete** (like Events)                                            | Scheduled items are transient future data; past ones simply age out of `from=now` queries                                                                                                          |
+| Archive cascade    | **None in v1** (known gap)                                               | Archiving a scheduled tracker leaves its items; the banner could show an archived tracker's item — revisit if it bites                                                                             |
 
 > **Routes are registered in two places.** A new path must be added to BOTH the Go mux
 > (`api/cmd/lambda/mux.go`) AND the CDK `authedRoutes` list (`infra/lib/api-stack.ts`). A route present
@@ -122,6 +141,7 @@ Two GSIs, both mirroring the existing `receiver-index` shape on `store/tracker.g
 | Store registration + GSI consts                                              | `shared/go-common/store/store.go`                                    |
 | Test table + GSIs                                                            | `shared/go-common/store/dynamotest/dynamotest.go`                    |
 | Handler: authz + validate + JSON                                             | `api/internal/handlers/scheduled_items.go` (new)                     |
+| Field-value validation (reused)                                              | `shared/go-common/domain/validate.go` (existing, shared with Event)  |
 | Route wiring (Go mux) + `*_TABLE`                                            | `api/cmd/lambda/mux.go`                                              |
 | Table + GSIs (CDK)                                                           | `infra/lib/shared-stack.ts`                                          |
 | Env var + API Gateway routes (CDK)                                           | `infra/lib/api-stack.ts` (`addEnvironment`, `authedRoutes`)          |
