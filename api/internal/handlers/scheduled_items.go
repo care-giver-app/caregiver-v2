@@ -194,6 +194,10 @@ func (h *ScheduledItems) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tr, err := h.stores.Trackers.Get(r.Context(), si.TrackerID)
+	if errors.Is(err, store.ErrNotFound) {
+		httpx.WriteError(w, http.StatusNotFound, "tracker not found")
+		return
+	}
 	if err != nil {
 		httpx.ServerError(w, r, err, "lookup failed")
 		return
