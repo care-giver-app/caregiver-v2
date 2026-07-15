@@ -18,6 +18,7 @@ final class EventDetailModel {
 
 struct EventDetailView: View {
     @Environment(Session.self) private var session
+    @Environment(MembersStore.self) private var members
     @Environment(\.dismiss) private var dismiss
     let tracker: Components.Schemas.Tracker
     let event: Components.Schemas.Event
@@ -25,23 +26,32 @@ struct EventDetailView: View {
     @State private var model = EventDetailModel()
     @State private var showEdit = false
     @State private var confirmDelete = false
+    @State private var loggedByName = "A care-team member"
+
+    private var rows: [DynamicFormBuilder.ValueRow] {
+        DynamicFormBuilder.rows(values: event.values, fields: tracker.fields)
+    }
 
     var body: some View {
-        Form {
-            Section("Reading") {
-                Text(DynamicFormBuilder.display(values: event.values, fields: tracker.fields))
-                    .foregroundStyle(Theme.Colors.textPrimary)
+        ScrollView {
+            VStack(spacing: Theme.Spacing.md) {
+                headerCard
+                valuesCard
+                if let note = event.note, !note.isEmpty { noteCard(note) }
+                actions
+                if let error = model.error {
+                    Text(error).font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.alert)
+                }
             }
-            if let note = event.note, !note.isEmpty {
-                Section("Note") { Text(note) }
-            }
-            Section {
-                Button("Edit") { showEdit = true }
-                Button("Delete", role: .destructive) { confirmDelete = true }.disabled(model.isBusy)
-            }
-            if let error = model.error { Text(error).foregroundStyle(Theme.Colors.alert) }
+            .padding(Theme.Spacing.md)
         }
+        .strideBackground()
         .navigationTitle("Reading")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            loggedByName = await members.name(
+                forUser: event.loggedBy, inGroup: event.careGroupId, using: session)
+        }
         .sheet(isPresented: $showEdit) {
             LogEventView(tracker: tracker, existing: event) { onChanged(); dismiss() }
         }
@@ -54,5 +64,66 @@ struct EventDetailView: View {
                 }
             }
         }
+    }
+
+    private var headerCard: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            HStack(spacing: Theme.Spacing.sm) {
+                Circle()
+                    .fill(Color(hex: tracker.color ?? "397234"))
+                    .frame(width: 12, height: 12)
+                if let icon = tracker.icon, !icon.isEmpty {
+                    Image(systemName: icon).foregroundStyle(Theme.Colors.textPrimary)
+                }
+                Text(tracker.name).font(Theme.Typography.title).foregroundStyle(Theme.Colors.textPrimary)
+            }
+            Text(occurredAtText).font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.textSecondary)
+            Text("Logged by \(loggedByName)").font(Theme.Typography.caption).foregroundStyle(Theme.Colors.textTertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Theme.Spacing.md)
+        .strideCard()
+    }
+
+    private var valuesCard: some View {
+        VStack(spacing: Theme.Spacing.sm) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                HStack {
+                    Text(row.label).font(Theme.Typography.body).foregroundStyle(Theme.Colors.textSecondary)
+                    Spacer()
+                    Text(row.unit.map { "\(row.value) \($0)" } ?? row.value)
+                        .font(Theme.Typography.headline).foregroundStyle(Theme.Colors.textPrimary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Theme.Spacing.md)
+        .strideCard()
+    }
+
+    private func noteCard(_ note: String) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Text("Note").font(Theme.Typography.caption).foregroundStyle(Theme.Colors.textTertiary)
+            Text(note).font(Theme.Typography.body).foregroundStyle(Theme.Colors.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Theme.Spacing.md)
+        .strideCard()
+    }
+
+    private var actions: some View {
+        VStack(spacing: Theme.Spacing.sm) {
+            StrideButton(title: "Edit") { showEdit = true }
+            StrideButton(title: "Delete", style: .secondary) { confirmDelete = true }
+                .disabled(model.isBusy)
+        }
+        .padding(.top, Theme.Spacing.sm)
+    }
+
+    private var occurredAtText: String {
+        let date = event.occurredAt
+        let absolute = date.formatted(date: .abbreviated, time: .shortened)
+        let relative = date.formatted(.relative(presentation: .named))
+        return "\(absolute) · \(relative)"
     }
 }

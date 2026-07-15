@@ -5,6 +5,7 @@ import AWSCognitoAuthPlugin
 @main
 struct CaregiverApp: App {
     @State private var session = Session()
+    @State private var members = MembersStore()
 
     init() {
         configureAmplify()
@@ -13,7 +14,9 @@ struct CaregiverApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView().environment(session)
+            RootView()
+                .environment(session)
+                .environment(members)
         }
     }
 
