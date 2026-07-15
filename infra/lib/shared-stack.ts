@@ -27,6 +27,7 @@ export class SharedStack extends cdk.Stack {
     receivers: dynamodb.Table;
     trackers: dynamodb.Table;
     events: dynamodb.Table;
+    scheduledItems: dynamodb.Table;
   };
   public readonly userPool: cognito.UserPool;
   public readonly userPoolClient: cognito.UserPoolClient;
@@ -184,7 +185,32 @@ export class SharedStack extends cdk.Stack {
       sortKey: { name: 'occurred_at', type: s },
     });
 
-    this.tables = { users, careGroups, memberships, invitations, receivers, trackers, events };
+    const scheduledItems = new dynamodb.Table(this, 'ScheduledItemsTable', {
+      ...tableBase,
+      tableName: `caregiver-${props.stage}-scheduled-item`,
+      partitionKey: { name: 'scheduled_item_id', type: s },
+    });
+    scheduledItems.addGlobalSecondaryIndex({
+      indexName: 'tracker-index',
+      partitionKey: { name: 'tracker_id', type: s },
+      sortKey: { name: 'scheduled_for', type: s },
+    });
+    scheduledItems.addGlobalSecondaryIndex({
+      indexName: 'receiver-index',
+      partitionKey: { name: 'receiver_id', type: s },
+      sortKey: { name: 'scheduled_for', type: s },
+    });
+
+    this.tables = {
+      users,
+      careGroups,
+      memberships,
+      invitations,
+      receivers,
+      trackers,
+      events,
+      scheduledItems,
+    };
 
     this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: `caregiver-${props.stage}`,

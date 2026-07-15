@@ -31,6 +31,7 @@ export interface ApiStackProps extends cdk.StackProps {
     receivers: dynamodb.ITable;
     trackers: dynamodb.ITable;
     events: dynamodb.ITable;
+    scheduledItems: dynamodb.ITable;
   };
 }
 
@@ -107,6 +108,7 @@ export class ApiStack extends cdk.Stack {
     this.apiFunction.addEnvironment('RECEIVERS_TABLE', props.tables.receivers.tableName);
     this.apiFunction.addEnvironment('TRACKERS_TABLE', props.tables.trackers.tableName);
     this.apiFunction.addEnvironment('EVENTS_TABLE', props.tables.events.tableName);
+    this.apiFunction.addEnvironment('SCHEDULED_ITEMS_TABLE', props.tables.scheduledItems.tableName);
 
     // AppConfig actions: `StartConfigurationSession` is a control-plane call that
     // doesn't accept a resource ARN, and `GetLatestConfiguration` operates on
@@ -202,6 +204,12 @@ export class ApiStack extends cdk.Stack {
       { path: '/trackers/{trackerId}/events/{eventId}', methods: [apigw.HttpMethod.PATCH] },
       { path: '/trackers/{trackerId}/events/{eventId}', methods: [apigw.HttpMethod.DELETE] },
       { path: '/tracker-templates', methods: [apigw.HttpMethod.GET] },
+      { path: '/trackers/{trackerId}/scheduled-items', methods: [apigw.HttpMethod.GET] },
+      { path: '/trackers/{trackerId}/scheduled-items', methods: [apigw.HttpMethod.POST] },
+      { path: '/receivers/{receiverId}/scheduled-items', methods: [apigw.HttpMethod.GET] },
+      { path: '/scheduled-items/{scheduledItemId}', methods: [apigw.HttpMethod.GET] },
+      { path: '/scheduled-items/{scheduledItemId}', methods: [apigw.HttpMethod.PUT] },
+      { path: '/scheduled-items/{scheduledItemId}', methods: [apigw.HttpMethod.DELETE] },
     ];
     for (const route of authedRoutes) {
       httpApi.addRoutes({
