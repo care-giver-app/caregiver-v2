@@ -45,7 +45,7 @@ struct EventDetailView: View {
             }
             .padding(Theme.Spacing.md)
         }
-        .earthBackground()
+        .strideBackground()
         .navigationTitle("Reading")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -82,7 +82,7 @@ struct EventDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Theme.Spacing.md)
-        .glassCard()
+        .strideCard()
     }
 
     private var valuesCard: some View {
@@ -98,7 +98,7 @@ struct EventDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Theme.Spacing.md)
-        .glassCard()
+        .strideCard()
     }
 
     private func noteCard(_ note: String) -> some View {
@@ -108,18 +108,14 @@ struct EventDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Theme.Spacing.md)
-        .glassCard()
+        .strideCard()
     }
 
     private var actions: some View {
         VStack(spacing: Theme.Spacing.sm) {
-            PrimaryButton(title: "Edit") { showEdit = true }
-            Button(role: .destructive) { confirmDelete = true } label: {
-                Text("Delete").font(Theme.Typography.headline).frame(maxWidth: .infinity)
-                    .padding(.vertical, Theme.Spacing.md - 3)
-            }
-            .foregroundStyle(Theme.Colors.alert)
-            .disabled(model.isBusy)
+            StrideButton(title: "Edit") { showEdit = true }
+            StrideButton(title: "Delete", style: .secondary) { confirmDelete = true }
+                .disabled(model.isBusy)
         }
         .padding(.top, Theme.Spacing.sm)
     }
