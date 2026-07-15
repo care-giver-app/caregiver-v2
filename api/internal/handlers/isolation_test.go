@@ -110,6 +110,38 @@ func TestIsolation_nonMemberCannotLogEvent(t *testing.T) {
 	}
 }
 
+func TestIsolation_nonMemberCannotCreateScheduledItem(t *testing.T) {
+	s := dynamotest.Start(t)
+	seedTracker(t, s.Trackers) // tr1 in g1
+	h := handlers.NewScheduledItems(s)
+	req := httptest.NewRequest(http.MethodPost, "/trackers/tr1/scheduled-items", strings.NewReader(`{"scheduled_for":"2026-08-01T10:00:00Z"}`))
+	req.SetPathValue("trackerId", "tr1")
+	req = withAuth(req, "stranger", "s@x.com", map[string]domain.Role{"g2": domain.RoleAdmin})
+	rec := httptest.NewRecorder()
+	h.Create(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("non-member scheduled item create should be 403, got %d", rec.Code)
+	}
+}
+
+func TestIsolation_nonMemberCannotReadScheduledItem(t *testing.T) {
+	s := dynamotest.Start(t)
+	now := time.Now().UTC()
+	_ = s.ScheduledItems.Put(context.Background(), domain.ScheduledItem{
+		ScheduledItemID: "si1", TrackerID: "tr1", CareGroupID: "g1", ReceiverID: "r1",
+		Values: map[string]any{}, ScheduledFor: now.Add(24 * time.Hour), CreatedBy: "u1", CreatedAt: now,
+	})
+	h := handlers.NewScheduledItems(s)
+	req := httptest.NewRequest(http.MethodGet, "/scheduled-items/si1", nil)
+	req.SetPathValue("scheduledItemId", "si1")
+	req = withAuth(req, "stranger", "s@x.com", map[string]domain.Role{"g2": domain.RoleAdmin})
+	rec := httptest.NewRecorder()
+	h.Get(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("non-member scheduled item read should be 403, got %d", rec.Code)
+	}
+}
+
 func TestIsolation_caregiverCannotCreateTracker(t *testing.T) {
 	s := dynamotest.Start(t)
 	_ = s.Receivers.Put(context.Background(), domain.Receiver{ReceiverID: "r1", CareGroupID: "g1", Name: "Mom", CreatedAt: time.Now().UTC()})

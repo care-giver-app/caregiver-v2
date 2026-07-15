@@ -49,7 +49,7 @@ describe('SharedStack', () => {
       stage: 'dev',
     });
     const t = Template.fromStack(stack);
-    t.resourceCountIs('AWS::DynamoDB::Table', 7);
+    t.resourceCountIs('AWS::DynamoDB::Table', 8);
     for (const name of [
       'caregiver-dev-user',
       'caregiver-dev-care-group',
@@ -58,6 +58,7 @@ describe('SharedStack', () => {
       'caregiver-dev-receiver',
       'caregiver-dev-tracker',
       'caregiver-dev-event',
+      'caregiver-dev-scheduled-item',
     ]) {
       t.hasResourceProperties('AWS::DynamoDB::Table', { TableName: name });
     }

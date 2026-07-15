@@ -37,6 +37,7 @@ func TestNewMux_healthServesWithoutContactingDynamo(t *testing.T) {
 	t.Setenv("RECEIVERS_TABLE", "r")
 	t.Setenv("TRACKERS_TABLE", "tr")
 	t.Setenv("EVENTS_TABLE", "ev")
+	t.Setenv("SCHEDULED_ITEMS_TABLE", "si")
 	t.Setenv("AWS_REGION", "us-east-2")
 	t.Setenv("AWS_ACCESS_KEY_ID", "x")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "x")

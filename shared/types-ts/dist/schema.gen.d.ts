@@ -286,6 +286,60 @@ export interface paths {
         patch: operations['updateEvent'];
         trace?: never;
     };
+    '/trackers/{trackerId}/scheduled-items': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a tracker's scheduled items, soonest first (paginated) */
+        get: operations['listScheduledItems'];
+        put?: never;
+        /** Add a scheduled item to a scheduled tracker */
+        post: operations['createScheduledItem'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/receivers/{receiverId}/scheduled-items': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a receiver's scheduled items across trackers, soonest first (paginated) */
+        get: operations['listReceiverScheduledItems'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/scheduled-items/{scheduledItemId}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single scheduled item */
+        get: operations['getScheduledItem'];
+        /** Reschedule or edit a scheduled item */
+        put: operations['updateScheduledItem'];
+        post?: never;
+        /** Delete a scheduled item */
+        delete: operations['deleteScheduledItem'];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     '/tracker-templates': {
         parameters: {
             query?: never;
@@ -478,6 +532,33 @@ export interface components {
         };
         EventList: {
             items: components['schemas']['Event'][];
+            next_cursor?: string;
+        };
+        ScheduledItem: {
+            scheduled_item_id: string;
+            tracker_id: string;
+            care_group_id: string;
+            receiver_id: string;
+            values: {
+                [key: string]: unknown;
+            };
+            note?: string;
+            /** Format: date-time */
+            scheduled_for: string;
+            created_by: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ScheduledItemWrite: {
+            /** Format: date-time */
+            scheduled_for: string;
+            values?: {
+                [key: string]: unknown;
+            };
+            note?: string;
+        };
+        ScheduledItemList: {
+            items: components['schemas']['ScheduledItem'][];
             next_cursor?: string;
         };
         Error: {
@@ -1158,6 +1239,174 @@ export interface operations {
                 };
             };
             400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    listScheduledItems: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                trackerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['ScheduledItemList'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    createScheduledItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['ScheduledItemWrite'];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['ScheduledItem'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    listReceiverScheduledItems: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['ScheduledItemList'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    getScheduledItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduledItemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['ScheduledItem'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    updateScheduledItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduledItemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['ScheduledItemWrite'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['ScheduledItem'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    deleteScheduledItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduledItemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             401: components['responses']['Unauthorized'];
             403: components['responses']['Forbidden'];
             404: components['responses']['NotFound'];
