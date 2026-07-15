@@ -23,30 +23,57 @@ A `ScheduledItem` is deliberately distinct from an `Event`: an `Event` is someth
 
 ## Behavior
 
-A scheduled item is **created under a tracker** (which supplies `receiver_id` / `care_group_id`) but
-is **listable by receiver** (for the cross-tracker banner) and addressable **by its own id**.
+Requirements as EARS statements. A scheduled item is **created under a tracker** (which supplies
+`receiver_id` / `care_group_id`) but is **listable by receiver** and addressable **by its own id**;
+the API resolves authorization from the item's denormalized `care_group_id` in a single read.
 
-- **Authorization:** **any member** may create/read/update/delete scheduled items (`RequireMember`) —
-  scheduling care is day-to-day coordination, mirroring how all members log Events. Admins still
-  solely manage the tracker itself (create/rename/archive). Non-members get `403`.
-- **Create** (`POST /trackers/{trackerId}/scheduled-items`): the tracker must exist, not be archived,
-  and be `kind == scheduled` (else `400`). Server assigns `scheduled_item_id`, denormalizes
-  `tracker_id` / `receiver_id` / `care_group_id` from the tracker, stamps `created_by` (`ac.UserID`)
-  and `created_at`. Returns `201` + the full `ScheduledItem`.
-- **List by tracker** (`GET /trackers/{trackerId}/scheduled-items`): a tracker's items, **soonest
-  first**, with optional `from`/`to` (RFC3339) window and `limit`/`cursor` pagination.
-- **List by receiver** (`GET /receivers/{receiverId}/scheduled-items`): **the Home "Coming up"
-  banner** — every scheduled item across the receiver's scheduled trackers, soonest first, same
-  `from`/`to`/`limit`/`cursor` params (banner passes `from=now`).
-- **Get / Update / Delete** (`/scheduled-items/{scheduledItemId}`): `GET` reads one; `PUT` reschedules
-  or edits the note (replace semantics, carrying denormalized fields through unchanged, per B3a's
-  full-item PutItem pattern); `DELETE` hard-deletes (like Events). All resolve authz off the item's
-  denormalized `care_group_id` in a single read.
-- **Errors:** `401` unauthenticated, `403` non-member, `404` missing tracker/item, `400` validation
-  (`kind != scheduled`, missing/unparseable `scheduled_for`), `500` store failure — via `httpx`.
+**Authorization**
 
-**No stored `next_occurrence`.** "Next" is just the earliest future row, which the soonest-first
-queries surface directly — no materialized field to keep fresh.
+- The API shall permit any care-group member to create, read, update, and delete scheduled items
+  (`RequireMember`) — scheduling care is day-to-day coordination, like logging Events; admins still
+  solely manage the tracker itself.
+- If the request is unauthenticated, then the API shall respond `401`.
+- If the requester is not a member of the item's care group, then the API shall respond `403`.
+- If a store operation fails, then the API shall respond `500` via the shared `httpx` helpers.
+
+**Create** — `POST /trackers/{trackerId}/scheduled-items`
+
+- When a member posts a scheduled item to a tracker, the API shall assign a `scheduled_item_id`,
+  denormalize `tracker_id` / `receiver_id` / `care_group_id` from the tracker, stamp `created_by`
+  (`ac.UserID`) and `created_at`, and respond `201` with the full `ScheduledItem`.
+- If the target tracker does not exist or is archived, then the API shall respond `404`.
+- If the target tracker's `kind` is not `scheduled`, then the API shall respond `400`.
+- If `scheduled_for` is absent or is not a valid RFC3339 datetime, then the API shall respond `400`.
+
+**List by tracker** — `GET /trackers/{trackerId}/scheduled-items`
+
+- When a member lists a tracker's scheduled items, the API shall return them soonest-first (by
+  `scheduled_for`).
+- Where `from` and/or `to` are supplied, the API shall return only items whose `scheduled_for` falls
+  within that window.
+- Where more items remain than `limit`, the API shall return a `next_cursor` for continuation.
+
+**List by receiver (Home "Coming up" banner)** — `GET /receivers/{receiverId}/scheduled-items`
+
+- When a member lists a receiver's scheduled items, the API shall return every item across the
+  receiver's scheduled trackers, soonest-first, honoring the same `from` / `to` / `limit` / `cursor`
+  params (the banner passes `from=now`).
+
+**Get / Update / Delete** — `/scheduled-items/{scheduledItemId}`
+
+- When a member gets a scheduled item, the API shall respond with the full `ScheduledItem`.
+- When a member updates a scheduled item, the API shall replace `scheduled_for` and `note`, carry the
+  denormalized fields through unchanged (B3a's full-item PutItem pattern), and respond with the
+  updated item.
+- When a member deletes a scheduled item, the API shall hard-delete it (like Events) and respond
+  `204`.
+- If the referenced scheduled item does not exist, then the API shall respond `404`.
+- If `scheduled_for` is absent or invalid on update, then the API shall respond `400`.
+
+**Derived state**
+
+- The API shall not store a `next_occurrence`; the earliest future item is surfaced by the
+  soonest-first ordering, so there is no materialized field to keep fresh.
 
 ## Data model
 

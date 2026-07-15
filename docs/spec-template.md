@@ -21,12 +21,24 @@ One or two sentences: what this feature is and who it serves.
 
 ## Behavior
 
-Plain-language description of what the feature does — the conceptual big picture. Read this to
-understand the feature without reading code.
+Write what the feature does as **EARS statements** — one testable requirement per line, so each rule
+maps almost directly to a test. EARS (Easy Approach to Requirements Syntax) has five patterns; pick
+the one that fits each rule, and name the actor concretely (the API, the screen, the stack) rather
+than a generic "system":
 
-- For **ios** specs: the screen / flow, its states, navigation.
-- For **api** specs: endpoint behavior, validation, authorization rules.
-- For **infra** specs: the resources, their relationships, wiring.
+- **Ubiquitous** (always true): _The `<actor>` shall `<response>`._
+- **Event-driven** (`When`): _When `<trigger>`, the `<actor>` shall `<response>`._
+- **State-driven** (`While`): _While `<state>`, the `<actor>` shall `<response>`._
+- **Optional** (`Where`): _Where `<feature/param is present>`, the `<actor>` shall `<response>`._
+- **Unwanted** (`If`/`Then`): _If `<unwanted condition>`, then the `<actor>` shall `<response>`._
+
+Combine them for complex rules (e.g. _When X, if Y, then the API shall Z_). A short lead-in sentence
+for the conceptual big picture is fine before the statements.
+
+- For **api** / **infra** specs: EARS fits directly (endpoint behavior, validation, authorization,
+  resource wiring) — prefer it.
+- For **ios** specs: use EARS where it clarifies state/event rules; plain prose is fine for screen
+  layout, navigation, and visual states where EARS reads awkwardly.
 
 ## Key decisions
 
