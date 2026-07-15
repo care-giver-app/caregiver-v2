@@ -19,13 +19,14 @@ var ErrNotFound = errors.New("not found")
 
 // TableNames holds every table name the stores need.
 type TableNames struct {
-	Users       string
-	CareGroups  string
-	Memberships string
-	Invitations string
-	Receivers   string
-	Trackers    string
-	Events      string
+	Users          string
+	CareGroups     string
+	Memberships    string
+	Invitations    string
+	Receivers      string
+	Trackers       string
+	Events         string
+	ScheduledItems string
 }
 
 // Stores aggregates the per-entity repositories and owns cross-table transactions.
@@ -33,13 +34,14 @@ type Stores struct {
 	client *dynamodb.Client
 	names  TableNames
 
-	Users       *UserStore
-	CareGroups  *CareGroupStore
-	Memberships *MembershipStore
-	Invitations *InvitationStore
-	Receivers   *ReceiverStore
-	Trackers    *TrackerStore
-	Events      *EventStore
+	Users          *UserStore
+	CareGroups     *CareGroupStore
+	Memberships    *MembershipStore
+	Invitations    *InvitationStore
+	Receivers      *ReceiverStore
+	Trackers       *TrackerStore
+	Events         *EventStore
+	ScheduledItems *ScheduledItemStore
 }
 
 const (
@@ -47,20 +49,22 @@ const (
 	emailIndex    = "email-index"
 	receiverIndex = "receiver-index"
 	timeIndex     = "time-index"
+	trackerIndex  = "tracker-index"
 )
 
 // New builds Stores from a DynamoDB client and table names.
 func New(client *dynamodb.Client, names TableNames) *Stores {
 	return &Stores{
-		client:      client,
-		names:       names,
-		Users:       &UserStore{client: client, table: names.Users},
-		CareGroups:  &CareGroupStore{client: client, table: names.CareGroups},
-		Memberships: &MembershipStore{client: client, table: names.Memberships},
-		Invitations: &InvitationStore{client: client, table: names.Invitations},
-		Receivers:   &ReceiverStore{client: client, table: names.Receivers},
-		Trackers:    &TrackerStore{client: client, table: names.Trackers},
-		Events:      &EventStore{client: client, table: names.Events},
+		client:         client,
+		names:          names,
+		Users:          &UserStore{client: client, table: names.Users},
+		CareGroups:     &CareGroupStore{client: client, table: names.CareGroups},
+		Memberships:    &MembershipStore{client: client, table: names.Memberships},
+		Invitations:    &InvitationStore{client: client, table: names.Invitations},
+		Receivers:      &ReceiverStore{client: client, table: names.Receivers},
+		Trackers:       &TrackerStore{client: client, table: names.Trackers},
+		Events:         &EventStore{client: client, table: names.Events},
+		ScheduledItems: &ScheduledItemStore{client: client, table: names.ScheduledItems},
 	}
 }
 

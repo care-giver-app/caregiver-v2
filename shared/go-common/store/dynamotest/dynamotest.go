@@ -54,13 +54,14 @@ func Start(t *testing.T) *store.Stores {
 	}
 
 	names := store.TableNames{
-		Users:       "test-user",
-		CareGroups:  "test-care-group",
-		Memberships: "test-membership",
-		Invitations: "test-invitation",
-		Receivers:   "test-receiver",
-		Trackers:    "test-tracker",
-		Events:      "test-event",
+		Users:          "test-user",
+		CareGroups:     "test-care-group",
+		Memberships:    "test-membership",
+		Invitations:    "test-invitation",
+		Receivers:      "test-receiver",
+		Trackers:       "test-tracker",
+		Events:         "test-event",
+		ScheduledItems: "test-scheduled-item",
 	}
 	createTables(t, ctx, client, names)
 	return store.New(client, names)
@@ -210,5 +211,37 @@ func createTables(t *testing.T, ctx context.Context, c *dynamodb.Client, n store
 			},
 			Projection: &types.Projection{ProjectionType: types.ProjectionTypeAll},
 		}},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:   aws.String(n.ScheduledItems),
+		BillingMode: types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{
+			{AttributeName: aws.String("scheduled_item_id"), AttributeType: types.ScalarAttributeTypeS},
+			{AttributeName: aws.String("tracker_id"), AttributeType: types.ScalarAttributeTypeS},
+			{AttributeName: aws.String("receiver_id"), AttributeType: types.ScalarAttributeTypeS},
+			{AttributeName: aws.String("scheduled_for"), AttributeType: types.ScalarAttributeTypeS},
+		},
+		KeySchema: []types.KeySchemaElement{
+			{AttributeName: aws.String("scheduled_item_id"), KeyType: types.KeyTypeHash},
+		},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+			{
+				IndexName: aws.String("tracker-index"),
+				KeySchema: []types.KeySchemaElement{
+					{AttributeName: aws.String("tracker_id"), KeyType: types.KeyTypeHash},
+					{AttributeName: aws.String("scheduled_for"), KeyType: types.KeyTypeRange},
+				},
+				Projection: &types.Projection{ProjectionType: types.ProjectionTypeAll},
+			},
+			{
+				IndexName: aws.String("receiver-index"),
+				KeySchema: []types.KeySchemaElement{
+					{AttributeName: aws.String("receiver_id"), KeyType: types.KeyTypeHash},
+					{AttributeName: aws.String("scheduled_for"), KeyType: types.KeyTypeRange},
+				},
+				Projection: &types.Projection{ProjectionType: types.ProjectionTypeAll},
+			},
+		},
 	})
 }
