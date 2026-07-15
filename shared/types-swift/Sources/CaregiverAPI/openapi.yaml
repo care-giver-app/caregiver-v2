@@ -417,6 +417,119 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /trackers/{trackerId}/scheduled-items:
+    get:
+      operationId: listScheduledItems
+      summary: List a tracker's scheduled items, soonest first (paginated)
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+        - {
+            name: limit,
+            in: query,
+            required: false,
+            schema: { type: integer, minimum: 1, maximum: 100 },
+          }
+        - { name: cursor, in: query, required: false, schema: { type: string } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScheduledItemList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: createScheduledItem
+      summary: Add a scheduled item to a scheduled tracker
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScheduledItemWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScheduledItem' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /receivers/{receiverId}/scheduled-items:
+    get:
+      operationId: listReceiverScheduledItems
+      summary: List a receiver's scheduled items across trackers, soonest first (paginated)
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+        - {
+            name: limit,
+            in: query,
+            required: false,
+            schema: { type: integer, minimum: 1, maximum: 100 },
+          }
+        - { name: cursor, in: query, required: false, schema: { type: string } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScheduledItemList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /scheduled-items/{scheduledItemId}:
+    get:
+      operationId: getScheduledItem
+      summary: Get a single scheduled item
+      parameters:
+        - { name: scheduledItemId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScheduledItem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: updateScheduledItem
+      summary: Reschedule or edit a scheduled item
+      parameters:
+        - { name: scheduledItemId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScheduledItemWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ScheduledItem' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteScheduledItem
+      summary: Delete a scheduled item
+      parameters:
+        - { name: scheduledItemId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /tracker-templates:
     get:
       operationId: listTrackerTemplates
@@ -680,6 +793,48 @@ components:
         items:
           type: array
           items: { $ref: '#/components/schemas/Event' }
+        next_cursor: { type: string }
+    ScheduledItem:
+      type: object
+      required:
+        [
+          scheduled_item_id,
+          tracker_id,
+          care_group_id,
+          receiver_id,
+          values,
+          scheduled_for,
+          created_by,
+          created_at,
+        ]
+      properties:
+        scheduled_item_id: { type: string }
+        tracker_id: { type: string }
+        care_group_id: { type: string }
+        receiver_id: { type: string }
+        values:
+          type: object
+          additionalProperties: true
+        note: { type: string }
+        scheduled_for: { type: string, format: date-time }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+    ScheduledItemWrite:
+      type: object
+      required: [scheduled_for]
+      properties:
+        scheduled_for: { type: string, format: date-time }
+        values:
+          type: object
+          additionalProperties: true
+        note: { type: string }
+    ScheduledItemList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ScheduledItem' }
         next_cursor: { type: string }
     Error:
       type: object
