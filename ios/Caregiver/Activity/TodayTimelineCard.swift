@@ -1,41 +1,39 @@
 import SwiftUI
 import CaregiverAPI
 
-struct ActivityView: View {
+/// The single-day cross-tracker timeline (ios/specs/views/activity-timeline.md),
+/// embedded on Home as the "Today" widget — no longer a standalone tab
+/// (ios/specs/views/shell.md decision 2).
+struct TodayTimelineCard: View {
     @Environment(Session.self) private var session
     @Environment(ReceiverContext.self) private var context
+    var refreshToken: Int = 0
+    let onSelect: (EventRef) -> Void
 
     @State private var model = ActivityModel()
     @State private var selectedDate = Date()
     @State private var showDatePicker = false
 
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateStyle = .none; f.timeStyle = .short; return f
+    }()
+
     private var isToday: Bool { Calendar.current.isDateInToday(selectedDate) }
 
     var body: some View {
-        Group {
-            if let receiver = context.activeReceiver {
-                ScrollView {
-                    VStack(spacing: Theme.Spacing.lg) {
-                        timelineWidget(receiverID: receiver.receiverId)
-                    }
-                    .padding(.horizontal, Theme.Spacing.md)
-                    .padding(.top, Theme.Spacing.md)
-                }
-                .refreshable { await reload() }
-            } else {
-                EmptyStateView(message: "No receiver selected.")
-            }
+        VStack(spacing: 0) {
+            dateHeader
+            Divider()
+            dayContent
         }
-        .navigationTitle("Activity")
-        .earthBackground()
-        .navigationDestination(for: EventRef.self) { ref in
-            EventDetailView(tracker: ref.tracker, event: ref.event) {
-                Task { await reload() }
-            }
+        .task(id: DayKey(
+            receiverID: context.activeReceiver?.receiverId ?? "",
+            dayStart: ActivityDay.bounds(for: selectedDate).start,
+            refreshToken: refreshToken
+        )) {
+            await reload()
         }
-        .sheet(isPresented: $showDatePicker) {
-            datePickerSheet
-        }
+        .sheet(isPresented: $showDatePicker) { datePickerSheet }
     }
 
     // MARK: Reload
@@ -55,7 +53,7 @@ struct ActivityView: View {
             Button { showDatePicker = true } label: {
                 Text(ActivityDay.label(for: selectedDate))
                     .font(Theme.Typography.headline)
-                    .foregroundStyle(Theme.Colors.ink)
+                    .foregroundStyle(Theme.Colors.textPrimary)
             }
             .buttonStyle(.plain)
             Spacer()
@@ -105,45 +103,41 @@ struct ActivityView: View {
 
     // MARK: Day content
 
-    /// The timeline as a self-contained glass widget: date-nav header + the day's content.
-    @ViewBuilder private func timelineWidget(receiverID: String) -> some View {
-        VStack(spacing: 0) {
-            dateHeader
-            Divider()
-            dayContent
-        }
-        .glassCard()
-        .task(id: DayKey(receiverID: receiverID, dayStart: ActivityDay.bounds(for: selectedDate).start)) {
-            await reload()
-        }
-    }
-
     @ViewBuilder private var dayContent: some View {
         switch model.state {
         case .loading:
-            LoadingView()
+            StrideLoadingView()
                 .frame(height: 140)
         case .empty:
-            EmptyStateView(message: "No activity on \(ActivityDay.label(for: selectedDate)).")
+            StrideEmptyState(message: "No activity on \(ActivityDay.label(for: selectedDate)).")
                 .frame(height: 140)
         case .error(let message):
-            ErrorStateView(message: message) { Task { await reload() } }
+            StrideErrorState(message: message) { Task { await reload() } }
                 .frame(height: 160)
         case .loaded(let refs):
-            VStack(spacing: 0) {
-                ForEach(Array(refs.enumerated()), id: \.element) { index, ref in
-                    NavigationLink(value: ref) {
-                        ActivityRow(ref: ref, isFirst: index == 0, isLast: index == refs.count - 1)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            StrideTimeline(nodes: refs.map { ref in
+                let isDaytime = ActivityDay.isDaytime(ref.event.occurredAt)
+                return StrideTimelineNode(
+                    icon: isDaytime ? "sun.max.fill" : "moon.fill",
+                    iconColor: isDaytime ? Theme.Colors.warning : Theme.Colors.textSecondary,
+                    time: Self.timeFormatter.string(from: ref.event.occurredAt),
+                    title: ref.tracker.name,
+                    description: DynamicFormBuilder.display(
+                        values: ref.event.values, fields: ref.tracker.fields
+                    ),
+                    dotColor: ref.tracker.color.map { Color(hex: $0) } ?? Theme.Colors.accent,
+                    action: { onSelect(ref) }
+                )
+            })
+            .padding(.horizontal, Theme.Spacing.md)
         }
     }
 }
 
-/// Reload trigger: re-runs when the active receiver or the selected day changes.
+/// Reload trigger: re-runs when the active receiver, the selected day, or an
+/// external refresh signal (quick-log save, pull-to-refresh) changes.
 private struct DayKey: Equatable {
     let receiverID: String
     let dayStart: Date
+    let refreshToken: Int
 }

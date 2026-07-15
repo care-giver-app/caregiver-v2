@@ -44,16 +44,24 @@ No new table, GSI, or write path — this is a read over data B1 already stores.
 | Why it exists   | Driven by [[event-detail]] needing `logged_by` → name | There was no id→name lookup for teammates; this is the contract seam that unblocks real names |
 | Scope           | Read-only list; no add/remove members here            | Membership mutation already lives in the invitations flow; this endpoint is purely a read     |
 
+> **Routes are registered in two places.** The HTTP API uses **explicit per-route** registration:
+> a new path must be added to BOTH the Go mux (`api/cmd/lambda/mux.go`) AND the CDK `authedRoutes`
+> list (`infra/lib/api-stack.ts`). A route present only in the Go mux returns **404** at the API
+> Gateway (it never reaches the Lambda). This endpoint shipped mux-only at first, so `listMembers`
+> 404'd and the iOS "Logged by" line fell back to the placeholder name until the CDK route was added.
+
 ## Where it lives
 
-| Concept                         | File                                                   |
-| ------------------------------- | ------------------------------------------------------ |
-| Handler: authz + resolve + JSON | `api/internal/handlers/members.go`                     |
-| Route wiring                    | `api/cmd/lambda/mux.go`                                |
-| Membership query (existing)     | `shared/go-common/store/membership.go` (`ListByGroup`) |
-| User name lookup (existing)     | `shared/go-common/store/user.go` (`Get` / batch)       |
-| Contract: operation + `Member`  | `shared/openapi/openapi.yaml`                          |
-| Handler tests                   | `api/internal/handlers/members_test.go`                |
+| Concept                          | File                                                   |
+| -------------------------------- | ------------------------------------------------------ |
+| Handler: authz + resolve + JSON  | `api/internal/handlers/members.go`                     |
+| Route wiring (Go mux)            | `api/cmd/lambda/mux.go`                                |
+| Route wiring (API Gateway / CDK) | `infra/lib/api-stack.ts` (`authedRoutes`)              |
+| Membership query (existing)      | `shared/go-common/store/membership.go` (`ListByGroup`) |
+| User name lookup (existing)      | `shared/go-common/store/user.go` (`Get` / batch)       |
+| Contract: operation + `Member`   | `shared/openapi/openapi.yaml`                          |
+| Handler tests                    | `api/internal/handlers/members_test.go`                |
+| Route registration test          | `infra/test/api-stack.test.ts`                         |
 
 ## Non-goals
 

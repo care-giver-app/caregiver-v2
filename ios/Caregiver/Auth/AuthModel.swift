@@ -55,6 +55,12 @@ final class AuthModel {
         }
     }
 
+    func resendCode() async {
+        await run {
+            _ = try await Amplify.Auth.resendSignUpCode(for: self.email)
+        }
+    }
+
     func sendResetCode() async {
         await run {
             _ = try await Amplify.Auth.resetPassword(for: self.email)

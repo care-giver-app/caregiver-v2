@@ -37,25 +37,25 @@ struct CreateGroupView: View {
             VStack(spacing: Theme.Spacing.sm) {
                 Text("Welcome, \(userName)!")
                     .font(Theme.Typography.title)
-                    .foregroundStyle(Theme.Colors.ink)
+                    .foregroundStyle(Theme.Colors.textPrimary)
                 Text("Create a care team to get started. A care team connects caregivers and the people they look after.")
                     .font(Theme.Typography.subhead)
-                    .foregroundStyle(Theme.Colors.ink.opacity(0.6))
+                    .foregroundStyle(Theme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
-            GlassField(placeholder: "Care team name", icon: "person.2", text: $model.name)
+            StrideField(placeholder: "Care team name", icon: "person.2", text: $model.name)
                 .textContentType(.organizationName)
                 .autocorrectionDisabled()
             if let error = model.error {
                 Text(error.message).font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.alert)
             }
-            PrimaryButton(title: "Create team", isLoading: model.isBusy) {
+            StrideButton(title: "Create team", isLoading: model.isBusy) {
                 Task { await model.create(using: session) }
             }
             Spacer()
         }
         .padding(Theme.Spacing.lg)
-        .earthBackground()
+        .strideBackground()
     }
 }
 

@@ -178,6 +178,7 @@ export class ApiStack extends cdk.Stack {
     const authedRoutes: Array<{ path: string; methods: apigw.HttpMethod[] }> = [
       { path: '/me', methods: [apigw.HttpMethod.GET] },
       { path: '/care-groups', methods: [apigw.HttpMethod.POST] },
+      { path: '/care-groups/{careGroupId}/members', methods: [apigw.HttpMethod.GET] },
       { path: '/care-groups/{careGroupId}/invitations', methods: [apigw.HttpMethod.POST] },
       {
         path: '/care-groups/{careGroupId}/invitations/{token}',

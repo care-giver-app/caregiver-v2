@@ -2,9 +2,10 @@ import Foundation
 import CaregiverAPI
 
 /// Couples a tracker with one of its events for the event-detail route.
-struct EventRef: Hashable {
+struct EventRef: Hashable, Identifiable {
     let tracker: Components.Schemas.Tracker
     let event: Components.Schemas.Event
+    var id: String { event.eventId }
 }
 
 /// Navigation destinations for the main NavigationStack. Generated schema types
