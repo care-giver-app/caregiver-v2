@@ -38,6 +38,7 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	rcv := handlers.NewReceivers(stores)
 	trk := handlers.NewTrackers(stores)
 	evt := handlers.NewEvents(stores)
+	si := handlers.NewScheduledItems(stores)
 	tpl := handlers.NewTemplates()
 
 	mux.Handle("GET /me", authn.Wrap(handlers.NewMe(stores)))
@@ -66,6 +67,13 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	mux.Handle("PATCH /trackers/{trackerId}/events/{eventId}", authn.Wrap(http.HandlerFunc(evt.Update)))
 	mux.Handle("DELETE /trackers/{trackerId}/events/{eventId}", authn.Wrap(http.HandlerFunc(evt.Delete)))
 
+	mux.Handle("GET /trackers/{trackerId}/scheduled-items", authn.Wrap(http.HandlerFunc(si.List)))
+	mux.Handle("POST /trackers/{trackerId}/scheduled-items", authn.Wrap(http.HandlerFunc(si.Create)))
+	mux.Handle("GET /receivers/{receiverId}/scheduled-items", authn.Wrap(http.HandlerFunc(si.ListByReceiver)))
+	mux.Handle("GET /scheduled-items/{scheduledItemId}", authn.Wrap(http.HandlerFunc(si.Get)))
+	mux.Handle("PUT /scheduled-items/{scheduledItemId}", authn.Wrap(http.HandlerFunc(si.Update)))
+	mux.Handle("DELETE /scheduled-items/{scheduledItemId}", authn.Wrap(http.HandlerFunc(si.Delete)))
+
 	mux.Handle("GET /tracker-templates", authn.Wrap(http.HandlerFunc(tpl.List)))
 
 	return middleware.RequestLogger(log)(mux), nil
@@ -73,16 +81,17 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 
 func newStores(ctx context.Context) (*store.Stores, error) {
 	names := store.TableNames{
-		Users:       os.Getenv("USERS_TABLE"),
-		CareGroups:  os.Getenv("CARE_GROUPS_TABLE"),
-		Memberships: os.Getenv("MEMBERSHIPS_TABLE"),
-		Invitations: os.Getenv("INVITATIONS_TABLE"),
-		Receivers:   os.Getenv("RECEIVERS_TABLE"),
-		Trackers:    os.Getenv("TRACKERS_TABLE"),
-		Events:      os.Getenv("EVENTS_TABLE"),
+		Users:          os.Getenv("USERS_TABLE"),
+		CareGroups:     os.Getenv("CARE_GROUPS_TABLE"),
+		Memberships:    os.Getenv("MEMBERSHIPS_TABLE"),
+		Invitations:    os.Getenv("INVITATIONS_TABLE"),
+		Receivers:      os.Getenv("RECEIVERS_TABLE"),
+		Trackers:       os.Getenv("TRACKERS_TABLE"),
+		Events:         os.Getenv("EVENTS_TABLE"),
+		ScheduledItems: os.Getenv("SCHEDULED_ITEMS_TABLE"),
 	}
 	if names.Users == "" || names.CareGroups == "" || names.Memberships == "" || names.Invitations == "" ||
-		names.Receivers == "" || names.Trackers == "" || names.Events == "" {
+		names.Receivers == "" || names.Trackers == "" || names.Events == "" || names.ScheduledItems == "" {
 		return nil, fmt.Errorf("all DynamoDB table env vars must be set")
 	}
 	// DYNAMODB_ENDPOINT is empty in Lambda (default AWS resolution); set for local/dev.
