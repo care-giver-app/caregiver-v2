@@ -92,7 +92,7 @@ struct QuickLogSelectStep: View {
 
     private var timePickerSheet: some View {
         VStack(spacing: Theme.Spacing.md) {
-            DatePicker("When", selection: $model.occurredAt, in: ...Date())
+            DatePicker("When", selection: $model.occurredAt)
                 .datePickerStyle(.graphical)
             StrideButton(title: "Done") { showTimePicker = false }
         }

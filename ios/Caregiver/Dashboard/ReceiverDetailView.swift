@@ -43,8 +43,8 @@ struct ReceiverDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showAddTracker) {
-            TemplatePickerView(receiverId: receiver.receiverId) {
+        .fullScreenCover(isPresented: $showAddTracker) {
+            AddTrackerWizard(receiverId: receiver.receiverId) {
                 Task { await model.load(receiverId: receiver.receiverId, using: session) }
             }
         }
