@@ -44,9 +44,13 @@ enum AddTrackerLogic {
         case "blood_pressure": .cyan
         case "weight": .teal
         case "medication": .violet
-        case "temperature": .infoBlue
         case "meal": .teal
         case "mood": .violet
+        case "walk": .teal
+        case "doctor_appointment": .infoBlue
+        case "urination": .cyan
+        case "bowel_movement": .violet
+        case "shower": .teal
         default: .cyan
         }
     }

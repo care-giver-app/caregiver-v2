@@ -43,20 +43,13 @@
     ]
   },
   {
-    "template_id": "temperature",
-    "name": "Temperature",
+    "template_id": "walk",
+    "name": "Walk",
     "kind": "measurement",
-    "icon": "thermometer",
-    "color": "#F76808",
+    "icon": "figure.walk",
+    "color": "#0EA5E9",
     "fields": [
-      {
-        "key": "temperature",
-        "label": "Temperature",
-        "type": "number",
-        "unit": "°F",
-        "required": true,
-        "threshold": { "max": 100.4 }
-      }
+      { "key": "duration", "label": "Duration", "type": "number", "unit": "min", "required": true }
     ]
   },
   {
@@ -102,5 +95,60 @@
         "options": ["great", "ok", "low", "bad"]
       }
     ]
+  },
+  {
+    "template_id": "doctor_appointment",
+    "name": "Doctor Appointment",
+    "kind": "event",
+    "icon": "stethoscope",
+    "color": "#0891B2",
+    "fields": [
+      { "key": "doctor", "label": "Doctor", "type": "text", "required": true },
+      { "key": "specialty", "label": "Specialty", "type": "text", "required": false },
+      { "key": "location", "label": "Location", "type": "text", "required": false },
+      { "key": "reason", "label": "Reason", "type": "text", "required": false },
+      { "key": "outcome", "label": "Outcome", "type": "text", "required": false },
+      { "key": "follow_up", "label": "Follow-up", "type": "datetime", "required": false }
+    ]
+  },
+  {
+    "template_id": "urination",
+    "name": "Urination",
+    "kind": "event",
+    "icon": "drop.fill",
+    "color": "#EAB308",
+    "fields": [
+      {
+        "key": "color",
+        "label": "Color",
+        "type": "enum",
+        "required": false,
+        "options": ["clear", "light", "dark"]
+      }
+    ]
+  },
+  {
+    "template_id": "bowel_movement",
+    "name": "Bowel Movement",
+    "kind": "event",
+    "icon": "toilet",
+    "color": "#92400E",
+    "fields": [
+      {
+        "key": "amount",
+        "label": "Amount",
+        "type": "enum",
+        "required": false,
+        "options": ["small", "normal", "large"]
+      }
+    ]
+  },
+  {
+    "template_id": "shower",
+    "name": "Shower",
+    "kind": "event",
+    "icon": "shower",
+    "color": "#38BDF8",
+    "fields": []
   }
 ]

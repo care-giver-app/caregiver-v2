@@ -17,8 +17,8 @@ enum DynamicFormBuilder {
                 isRequired: field.required ?? false,
                 options: options
             )
-            if input.kind == .enumeration, let first = options.first {
-                input.textValue = first // preselect first option
+            if input.kind == .enumeration, input.isRequired, let first = options.first {
+                input.textValue = first // preselect first option — required only, optional starts blank
             }
             return input
         }
