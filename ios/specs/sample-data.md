@@ -2,9 +2,9 @@
 
 - **Module:** ios
 - **Status:** Canonical (adopted from the 2026-07-01 design-coherence review)
-- **Last updated:** 2026-07-01
+- **Last updated:** 2026-07-16
 - **Contract:** shapes only — see `shared/openapi/openapi.yaml`. This spec invents no fields.
-- **Related specs:** every ios screen spec references this ([[home]], [[trackers]], [[logging]], [[insights]], [[team]], [[settings]], [[receivers]], [[add-tracker]], [[activity-timeline]], [[event-detail]])
+- **Related specs:** every ios screen spec references this ([[home]], [[trackers]], [[logging]], [[insights]], [[team]], [[settings]], [[receivers]], [[add-tracker]], [[activity-timeline]], [[event-detail]], [[schedule]])
 
 > **Read this before authoring any Figma frame or SwiftUI preview.** The 2026-07-01 review found the
 > same active receiver named _Eleanor_ on Home but _Margaret_ on Insights, and the same active care
@@ -85,3 +85,27 @@ axis shown two ways** — the label is derived from `kind` + the field schema:
 The label is a client-side affordance; only `kind` (`event | measurement | scheduled`) is in the
 contract. Reconciling which of the two vocabularies each screen shows is tracked as a decision in
 [[trackers]] — this table is the mapping the build must use.
+
+## Upcoming scheduled items (look-ahead)
+
+Fixtures for the [[home]] "Coming up" banner and the [[schedule]] look-ahead. In the contract a
+**scheduled item** attaches to a `scheduled`-kind tracker (`ScheduledItem.tracker_id` +
+`scheduled_for`), so these appointment-style entries are `scheduled` trackers on Eleanor. The list is
+**soonest-first, future-only**; the banner shows the single soonest item; the relative label is the
+whole-day delta ("Today" / "Tomorrow" / "in N days").
+
+| Scheduled tracker     | Hue    | `scheduled_for` (from now) | Relative label | Note (subtitle)            | Bucket    |
+| --------------------- | ------ | -------------------------- | -------------- | -------------------------- | --------- |
+| Physical therapy      | teal   | +1 day, 2:00 PM            | Tomorrow       | Riverside Clinic · 2:00 PM | This week |
+| Blood pressure review | cyan   | +3 days                    | in 3 days      | Dr. Chen                   | This week |
+| Cardiology check-up   | cyan   | +9 days                    | in 9 days      | Riverside Clinic           | Later     |
+| Dental cleaning       | violet | +16 days                   | in 16 days     | Dr. Alvarez                | Later     |
+| Flu shot              | teal   | +24 days                   | in 24 days     | Pharmacy                   | Later     |
+
+- **Banner shows the soonest** — with this set that's **Physical therapy · Tomorrow**. _Drift note:_ the
+  standalone Figma banner frame `64:2` still reads "Cardiology check-up · in 9 days" (it predates this
+  set); fold the banner text to the soonest item on the next Figma pass.
+- These are distinct from the roster's `Medication` (`scheduled`, a recurring checklist) — appointments
+  are their own `scheduled` trackers. Reuse the canonical hues (cyan/teal/violet); no amber (amber is the
+  banner's fixed attention accent, not a tracker hue).
+- Figma frames: look-ahead list `219:986`, empty state `223:1051` (see [[schedule]]).

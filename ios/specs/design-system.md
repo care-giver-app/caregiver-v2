@@ -33,6 +33,7 @@ StrideTrackerRow(name:subtitle:meta:hue:recency:badge:) // full-width Trackers-l
 StrideTimeframeSelector(selection:)            // selection: Binding<StrideTimeframe>; week | month | threeMonths | year | custom
 StrideChip(label:isSelected:action:)           // self-sizing filter/choice pill; single-select lives in the consumer
 StrideSectionHeader(title:actionLabel:action:) // tracked-uppercase section label + optional accent "See all ›"
+StrideComingUpBanner(title:relativeLabel:action:) // Home look-ahead banner (Figma 64:2); amber relative label → pushes [[schedule]]
 Toggle(…).toggleStyle(.stride)                 // StrideToggleStyle — Aurora capsule track on the system Toggle
 StrideSelectTile(name:hue:isSelected:action:)  // picker-grid tile: hue dot + name + check ring; selection in consumer
 StrideStatCard(label:value:delta:deltaColor:)  // Insights stat-strip card: tracked label + big stat + tinted delta
@@ -76,6 +77,7 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 | `StrideTimeframeSelector` | `StrideTimeframeSelector.swift` | segmented analytics-timeframe control — see below                   |
 | `StrideChip`              | `StrideChip.swift`              | filter/choice pill, selected/default — see below                    |
 | `StrideSectionHeader`     | `StrideSectionHeader.swift`     | uppercase section label + optional action — see below               |
+| `StrideComingUpBanner`    | `StrideComingUpBanner.swift`    | Home "Coming up" look-ahead banner — see below                      |
 | `StrideToggleStyle`       | `StrideToggle.swift`            | Aurora `ToggleStyle` (`.toggleStyle(.stride)`) — see below          |
 | `StrideSelectTile`        | `StrideSelectTile.swift`        | picker-grid tile: hue dot + check ring — see below                  |
 | `StrideStatCard`          | `StrideStatCard.swift`          | label + big stat + tinted delta — see below                         |
@@ -233,6 +235,17 @@ a small `chevron.right` (3pt gap), one tap target. Space-between layout, transpa
   natural-case strings ("Today" → "TODAY") so the treatment stays a component concern.
 - The action renders only when both `actionLabel` and `action` are provided; the title carries the
   `.isHeader` accessibility trait.
+
+### StrideComingUpBanner
+
+The Home "Coming up" banner (Figma `Stride` node `64:2`; consumed by [[home]], feeds [[schedule]]): a
+tappable full-width pill on the surface card treatment (radius 14, `surface` fill + 1px `border`,
+14pt padding) — an `exclamationmark.triangle.fill` glyph and the relative label both in `warning`
+amber, the item title in `textPrimary` (14pt medium), a trailing `chevron.right`
+(`textTertiary`). `StrideComingUpBanner(title:relativeLabel:action:)`; the whole pill is one
+`Button` with a combined accessibility label. Amber is the app's single attention cue for the
+look-ahead — everything on the [[schedule]] list stays calm (grey meta). Home renders it only when
+there's an upcoming item; the tap pushes the [[schedule]] look-ahead.
 
 ### StrideToggleStyle
 
@@ -450,6 +463,7 @@ night substrate. This retires the old pre-Aurora `.strideBackground()` gradient.
 | `StrideTimeframeSelector` + `StrideTimeframe`      | `ios/Caregiver/DesignSystem/StrideTimeframeSelector.swift` |
 | `StrideChip`                                       | `ios/Caregiver/DesignSystem/StrideChip.swift`              |
 | `StrideSectionHeader`                              | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
+| `StrideComingUpBanner`                             | `ios/Caregiver/DesignSystem/StrideComingUpBanner.swift`    |
 | `StrideToggleStyle`                                | `ios/Caregiver/DesignSystem/StrideToggle.swift`            |
 | `StrideSelectTile`                                 | `ios/Caregiver/DesignSystem/StrideSelectTile.swift`        |
 | `StrideStatCard`                                   | `ios/Caregiver/DesignSystem/StrideStatCard.swift`          |
