@@ -36,10 +36,15 @@ struct TrackerSummary: Identifiable, Equatable {
         return now.timeIntervalSince(lastOccurredAt) >= 7 * 24 * 3600
     }
 
-    /// "30m ago" / "2h ago" / "Yesterday" / "3d ago" / "Jun 12"; nil when never logged.
+    /// "30m ago" / "2h ago" / "Yesterday" / "3d ago" / "Jun 12"; "in 30m" / "in 2h" /
+    /// "Tomorrow" / "in 3d" for a future `occurred_at` (e.g. a Doctor Appointment
+    /// logged ahead of the visit); nil when never logged.
     func recencyText(now: Date = Date(), calendar: Calendar = .current) -> String? {
         guard let lastOccurredAt else { return nil }
         let seconds = now.timeIntervalSince(lastOccurredAt)
+        if seconds < 0 {
+            return Self.futureRecencyText(secondsUntil: -seconds, from: lastOccurredAt, now: now, calendar: calendar)
+        }
         if seconds < 3600 {
             return "\(max(1, Int(seconds / 60)))m ago"
         }
@@ -60,6 +65,30 @@ struct TrackerSummary: Identifiable, Equatable {
         formatter.timeZone = calendar.timeZone
         formatter.dateFormat = "MMM d"
         return formatter.string(from: lastOccurredAt)
+    }
+
+    /// Mirror of the past-date buckets in `recencyText`, for a future `occurred_at`.
+    private static func futureRecencyText(secondsUntil: TimeInterval, from date: Date, now: Date, calendar: Calendar) -> String {
+        if secondsUntil < 3600 {
+            return "in \(max(1, Int(secondsUntil / 60)))m"
+        }
+        let startToday = calendar.startOfDay(for: now)
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: startToday),
+           calendar.isDate(date, inSameDayAs: tomorrow) {
+            return "Tomorrow"
+        }
+        if secondsUntil < 24 * 3600 {
+            return "in \(Int(secondsUntil / 3600))h"
+        }
+        let days = Int(secondsUntil / 86400)
+        if days < 7 {
+            return "in \(max(1, days))d"
+        }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
     }
 }
 
