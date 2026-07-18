@@ -13,7 +13,7 @@ ios/specs/
   design-system.md   ← foundation: the ONE Stride component catalog + tokens + Theme.swift/Aurora state
   views/             ← one concise spec per screen or flow
     home · trackers · logging · insights · team · settings
-    receivers · add-tracker · activity-timeline · event-detail
+    receivers · add-tracker · activity-timeline · event-detail · schedule
 ```
 
 - **Foundation specs** (`sample-data.md`, `design-system.md`) live at the root — read them first; every

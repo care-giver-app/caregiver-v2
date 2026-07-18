@@ -16,6 +16,8 @@ struct HomeView: View {
     @State private var addTarget: AddTrackerTarget?
     @State private var selectedRef: EventRef?
     @State private var pushTrackers = false
+    @State private var pushSchedule = false
+    @State private var schedule = ScheduleModel()
     @State private var localRefresh = 0
 
     private var isAdminForActive: Bool {
@@ -27,6 +29,11 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
                 HomeHeaderView(me: me)
+                if let next = schedule.next {
+                    StrideComingUpBanner(title: next.name, relativeLabel: next.relativeLabel()) {
+                        pushSchedule = true
+                    }
+                }
                 snapshotSection
                 timelineSection
             }
@@ -47,6 +54,9 @@ struct HomeView: View {
         .navigationDestination(isPresented: $pushTrackers) {
             TrackersView(me: me)
         }
+        .navigationDestination(isPresented: $pushSchedule) {
+            ScheduleView(model: schedule)
+        }
         .fullScreenCover(item: $addTarget) { target in
             AddTrackerWizard(receiverId: target.id) {
                 Task { await reload() }
@@ -60,10 +70,12 @@ struct HomeView: View {
 
     private func reload() async {
         guard let id = context.activeReceiver?.receiverId else {
-            if context.isLoaded { summaries.reset() }
+            if context.isLoaded { summaries.reset(); schedule.reset() }
             return
         }
-        await summaries.load(receiverID: id, using: session)
+        async let loadSummaries: Void = summaries.load(receiverID: id, using: session)
+        async let loadSchedule: Void = schedule.load(receiverID: id, using: session)
+        _ = await (loadSummaries, loadSchedule)
     }
 
     // MARK: Tracker snapshot (home.md: 6 tiles, attention-first)
