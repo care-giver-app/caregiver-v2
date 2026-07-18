@@ -8,6 +8,7 @@ struct TrackerDetailView: View {
     let tracker: Components.Schemas.Tracker
     @State private var model = TrackerDetailModel()
     @State private var showLog = false
+    @State private var showSchedule = false
     @State private var showRename = false
 
     private var isAdmin: Bool { me.isAdmin(inCareGroup: tracker.careGroupId) }
@@ -15,6 +16,10 @@ struct TrackerDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             history
+            if tracker.kind == .scheduled {
+                StrideButton(title: "Schedule item", style: .secondary) { showSchedule = true }
+                    .padding(.horizontal, Theme.Spacing.md)
+            }
             StrideButton(title: "Log reading") { showLog = true }
                 .padding(Theme.Spacing.md)
         }
@@ -35,6 +40,9 @@ struct TrackerDetailView: View {
             LogEventView(tracker: tracker, existing: nil) {
                 Task { await model.load(trackerId: tracker.trackerId, using: session) }
             }
+        }
+        .sheet(isPresented: $showSchedule) {
+            ScheduleItemFormView(tracker: tracker, onScheduled: {})
         }
         .sheet(isPresented: $showRename) {
             RenameSheet(title: "Rename tracker", text: tracker.name) { newName in

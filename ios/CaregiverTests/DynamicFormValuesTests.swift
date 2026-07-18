@@ -19,6 +19,13 @@ final class DynamicFormValuesTests: XCTestCase {
         XCTAssertEqual(dict["mood"] as? String, "good")
     }
 
+    func testScheduledValuesPayloadCoercesScalarsByKind() throws {
+        var n = FieldInput(key: "doctor", label: "Doctor", kind: .text, unit: nil, isRequired: true, options: [])
+        n.textValue = "Dr. Lee"
+        let payload = try DynamicFormBuilder.scheduledValuesPayload(from: [n])
+        XCTAssertEqual(payload.additionalProperties.value["doctor"] as? String, "Dr. Lee")
+    }
+
     func testOptionalEmptyNumberIsOmitted() throws {
         var n = FieldInput(key: "weight", label: "Weight", kind: .number, unit: nil, isRequired: false, options: [])
         n.textValue = ""

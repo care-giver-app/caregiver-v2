@@ -99,7 +99,7 @@
   {
     "template_id": "doctor_appointment",
     "name": "Doctor Appointment",
-    "kind": "event",
+    "kind": "scheduled",
     "icon": "stethoscope",
     "color": "#0891B2",
     "fields": [

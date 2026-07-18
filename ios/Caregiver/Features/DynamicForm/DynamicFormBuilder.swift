@@ -54,10 +54,12 @@ enum DynamicFormBuilder {
         return errors
     }
 
-    /// Builds the EventWrite values payload from validated inputs. Optional empty
-    /// fields are omitted. datetime is encoded as an ISO8601 string (values is
-    /// free-form JSON). Call only after `validate` returns no errors.
-    static func valuesPayload(from inputs: [FieldInput]) throws -> Components.Schemas.EventWrite.ValuesPayload {
+    /// Coerces validated inputs into a raw values dict. Optional empty fields are
+    /// omitted. datetime is encoded as an ISO8601 string (values is free-form
+    /// JSON). Call only after `validate` returns no errors. Shared by both
+    /// `EventWrite` and `ScheduledItemWrite`, which carry structurally identical
+    /// but nominally distinct `values` payload types.
+    static func rawValues(from inputs: [FieldInput]) -> [String: (any Sendable)?] {
         var dict: [String: (any Sendable)?] = [:]
         let iso = ISO8601DateFormatter()
         for input in inputs {
@@ -73,7 +75,17 @@ enum DynamicFormBuilder {
                 dict[input.key] = iso.string(from: input.dateValue)
             }
         }
-        return .init(additionalProperties: try OpenAPIObjectContainer(unvalidatedValue: dict))
+        return dict
+    }
+
+    /// Builds the EventWrite values payload from validated inputs.
+    static func valuesPayload(from inputs: [FieldInput]) throws -> Components.Schemas.EventWrite.ValuesPayload {
+        .init(additionalProperties: try OpenAPIObjectContainer(unvalidatedValue: rawValues(from: inputs)))
+    }
+
+    /// Builds the ScheduledItemWrite values payload from validated inputs.
+    static func scheduledValuesPayload(from inputs: [FieldInput]) throws -> Components.Schemas.ScheduledItemWrite.ValuesPayload {
+        .init(additionalProperties: try OpenAPIObjectContainer(unvalidatedValue: rawValues(from: inputs)))
     }
 
     /// Re-hydrates inputs from an existing event's values (for editing).
