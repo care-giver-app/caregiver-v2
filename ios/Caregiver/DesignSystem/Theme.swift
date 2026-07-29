@@ -3,30 +3,30 @@ import UIKit
 
 enum Theme {
   enum Colors {
-    // Aurora palette (Figma `aurora/*` + `color/auth/*` variables — see ios/specs/design-system.md)
-    static let accent        = dynamic(light: "4dd6e6")
-    static let highlight     = dynamic(light: "98d4ff")
-    static let tertiary      = dynamic(light: "bac3e0")
+    // Stride palette (see ios/specs/design-system.md)
+    static let accent        = dynamic(light: "1c8fe0")
+    static let highlight     = dynamic(light: "8fc6ee")
+    static let tertiary      = dynamic(light: "c9dbea")
     static let ink           = dynamic(light: "0B0F08")  // shadow-only; not for text
-    static let textPrimary   = dynamic(light: "e8f0ff")
-    static let textSecondary = dynamic(light: "9db0d6")
-    static let textTertiary  = dynamic(light: "5e709c")
-    static let textOnAccent  = dynamic(light: "04121a")  // ink on cyan fills (FAB glyph, primary buttons)
-    static let surface       = dynamic(light: "0e1c4a")
-    static let surfaceHi     = dynamic(light: "16285c")  // raised surface (toggle off-track)
-    static let background    = dynamic(light: "050b2e")
-    static let border        = dynamic(light: "294272")
-    static let muted         = dynamic(light: "5A6E9E")
-    static let alert         = dynamic(light: "ff4d6a")  // reserved: C2 breach badge
-    static let success       = dynamic(light: "3dd68c")
-    static let warning       = dynamic(light: "FCD34D")
-    static let informational = dynamic(light: "93C5FD")
+    static let textPrimary   = dynamic(light: "14273f")
+    static let textSecondary = dynamic(light: "4a6480")
+    static let textTertiary  = dynamic(light: "7f97b0")
+    static let textOnAccent  = dynamic(light: "f2fcfd")  // ink on accent fills (FAB glyph, primary buttons)
+    static let surface       = dynamic(light: "ffffff")
+    static let surfaceHi     = dynamic(light: "e7f1f9")  // raised surface (toggle off-track)
+    static let background    = dynamic(light: "eef5fb")
+    static let border        = dynamic(light: "cfe0ee")
+    static let muted         = dynamic(light: "7c93ac")
+    static let alert         = dynamic(light: "d6304f")  // reserved: C2 breach badge
+    static let success       = dynamic(light: "1f9d6c")
+    static let warning       = dynamic(light: "c2790a")
+    static let informational = dynamic(light: "5b76b3")
 
     // Tracker hues (per-entity recognition; amber/red is the status layer, never a base hue).
     // info-blue trackers reuse `informational`. Hue map per receiver: ios/specs/sample-data.md.
-    static let trackerCyan   = dynamic(light: "4dd6e6")
-    static let trackerTeal   = dynamic(light: "3db8c4")
-    static let trackerViolet = dynamic(light: "7c6ff0")
+    static let trackerCyan   = dynamic(light: "1c8fe0")
+    static let trackerTeal   = dynamic(light: "0d8c86")
+    static let trackerViolet = dynamic(light: "6f5fe0")
 
     /// A dynamic color. `dark` defaults to `light` until a dark palette variant is designed;
     /// because everything references these tokens, adding dark values is purely additive.
@@ -68,7 +68,7 @@ private struct StrideBackgroundModifier: ViewModifier {
   func body(content: Content) -> some View {
     ZStack {
       LinearGradient(
-        colors: [Theme.Colors.background, Color(hex: "0a1640")],
+        colors: [Theme.Colors.background, Color(hex: "e4edf9")],
         startPoint: .top, endPoint: .bottom
       )
       .ignoresSafeArea()
