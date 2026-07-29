@@ -35,7 +35,11 @@ final class AddTrackerTests: XCTestCase {
         XCTAssertEqual(AddTrackerLogic.hue(forTemplateID: "blood_pressure"), .cyan)
         XCTAssertEqual(AddTrackerLogic.hue(forTemplateID: "weight"), .teal)
         XCTAssertEqual(AddTrackerLogic.hue(forTemplateID: "medication"), .violet)
-        XCTAssertEqual(AddTrackerLogic.hue(forTemplateID: "temperature"), .infoBlue)
+        XCTAssertEqual(AddTrackerLogic.hue(forTemplateID: "walk"), .teal)
+        XCTAssertEqual(AddTrackerLogic.hue(forTemplateID: "doctor_appointment"), .infoBlue)
+        XCTAssertEqual(AddTrackerLogic.hue(forTemplateID: "urination"), .cyan)
+        XCTAssertEqual(AddTrackerLogic.hue(forTemplateID: "bowel_movement"), .violet)
+        XCTAssertEqual(AddTrackerLogic.hue(forTemplateID: "shower"), .teal)
     }
 
     func testHueMapFallsBackToCyanForUnknown() {

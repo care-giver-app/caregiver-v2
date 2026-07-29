@@ -18,14 +18,23 @@ final class DynamicFormBuilderTests: XCTestCase {
         XCTAssertFalse(inputs[1].isRequired) // nil required -> false
     }
 
-    func testEnumFieldCarriesOptionsAndDefaultsToFirst() {
+    func testRequiredEnumFieldDefaultsToFirstOption() {
         let fields: [Field] = [
-            .init(key: "mood", label: "Mood", _type: ._enum, options: ["good", "ok", "bad"]),
+            .init(key: "mood", label: "Mood", _type: ._enum, required: true, options: ["good", "ok", "bad"]),
         ]
         let inputs = DynamicFormBuilder.inputs(for: fields)
         XCTAssertEqual(inputs[0].kind, .enumeration)
         XCTAssertEqual(inputs[0].options, ["good", "ok", "bad"])
         XCTAssertEqual(inputs[0].textValue, "good") // first option preselected
+    }
+
+    func testOptionalEnumFieldStartsBlank() {
+        let fields: [Field] = [
+            .init(key: "amount", label: "Amount", _type: ._enum, required: false, options: ["small", "normal", "large"]),
+        ]
+        let inputs = DynamicFormBuilder.inputs(for: fields)
+        XCTAssertEqual(inputs[0].kind, .enumeration)
+        XCTAssertEqual(inputs[0].textValue, "") // no preselection — user must opt in
     }
 
     func testBooleanAndDatetimeKinds() {

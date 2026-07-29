@@ -92,13 +92,16 @@ struct QuickLogSelectStep: View {
 
     private var timePickerSheet: some View {
         VStack(spacing: Theme.Spacing.md) {
-            DatePicker("When", selection: $model.occurredAt, in: ...Date())
+            DatePicker("When", selection: $model.occurredAt)
                 .datePickerStyle(.graphical)
+                .tint(Theme.Colors.accent)
+                .colorScheme(.dark)
             StrideButton(title: "Done") { showTimePicker = false }
         }
         .padding(Theme.Spacing.lg)
         .strideBackground()
-        .presentationDetents([.medium])
+        .presentationDetents([.fraction(0.75)])
+        .presentationDragIndicator(.visible)
     }
 }
 

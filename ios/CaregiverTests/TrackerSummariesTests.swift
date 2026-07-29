@@ -119,6 +119,25 @@ final class TrackerSummariesTests: XCTestCase {
             .recencyText(now: now, calendar: calendar), "Yesterday")
     }
 
+    /// A future `occurred_at` (e.g. a Doctor Appointment logged ahead of the visit,
+    /// ios/specs/views/add-tracker.md decision 17) must not read as if it already
+    /// happened — mirrors the past-date buckets instead of showing "-Xm ago".
+    func testRecencyTextFutureBuckets() {
+        let now = Date()
+        let t = tracker(kind: .event)
+        XCTAssertEqual(summary(t, lastAt: now.addingTimeInterval(30 * 60)).recencyText(now: now), "in 30m")
+        XCTAssertEqual(summary(t, lastAt: now.addingTimeInterval(2 * 3600)).recencyText(now: now), "in 2h")
+        XCTAssertEqual(summary(t, lastAt: now.addingTimeInterval(3 * 86400)).recencyText(now: now), "in 3d")
+    }
+
+    func testRecencyTextTomorrow() {
+        let calendar = Calendar.current
+        let now = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: Date())!
+        let tomorrow = calendar.date(byAdding: .hour, value: 20, to: now)!  // <24h but next calendar day
+        XCTAssertEqual(summary(tracker(kind: .event), lastAt: tomorrow)
+            .recencyText(now: now, calendar: calendar), "Tomorrow")
+    }
+
     // MARK: attention-first ordering (home.md snapshot)
 
     func testAttentionFirstOrdering() {
