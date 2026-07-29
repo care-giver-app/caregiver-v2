@@ -12,12 +12,13 @@
 > token/`Theme.swift` state. The old browser gallery (`ios/design-gallery/`) and its `tokens.json`/
 > parity-test approach were removed once Figma took over that role.
 >
-> **2026-07-29: light-theme migration underway.** Aurora (cyan-on-navy) is being retired in favor of a
+> **2026-07-29: light-theme migration complete.** Aurora (cyan-on-navy) was retired in favor of a
 > bright, true-light "arctic" theme — a full replace, not an added toggle (the no-runtime-switching
 > non-goal below is unchanged). Palette codenames are retired going forward: **Stride names the system,
 > never the palette** — token names stay role-based (`accent`, `background`, …) so future recolors
-> don't force another rename sweep. See "Tokens & the light-theme migration" below for the plan;
-> `Theme.swift` and this doc's hex values still reflect Aurora until that work lands.
+> don't force another rename sweep. `Theme.swift` and this doc's hex values now reflect the arctic
+> palette; see "Tokens & the light-theme migration" below for the approved values and how the migration
+> was carried out.
 
 ## Stride naming conventions
 
@@ -41,7 +42,7 @@ StrideTimeframeSelector(selection:)            // selection: Binding<StrideTimef
 StrideChip(label:isSelected:action:)           // self-sizing filter/choice pill; single-select lives in the consumer
 StrideSectionHeader(title:actionLabel:action:) // tracked-uppercase section label + optional accent "See all ›"
 StrideComingUpBanner(title:relativeLabel:action:) // Home look-ahead banner (Figma 64:2); amber relative label → pushes [[schedule]]
-Toggle(…).toggleStyle(.stride)                 // StrideToggleStyle — Aurora capsule track on the system Toggle
+Toggle(…).toggleStyle(.stride)                 // StrideToggleStyle — capsule track on the system Toggle
 StrideSelectTile(name:hue:isSelected:action:)  // picker-grid tile: hue dot + name + check ring; selection in consumer
 StrideStatCard(label:value:delta:deltaColor:)  // Insights stat-strip card: tracked label + big stat + tinted delta
 StrideInsightCard(name:hue:count:countCaption:latest:sparkline:) // Insights overview card w/ mini sparkline
@@ -85,7 +86,7 @@ Settings, Insights, Activity, Trackers, Dashboard, …):
 | `StrideChip`              | `StrideChip.swift`              | filter/choice pill, selected/default — see below                    |
 | `StrideSectionHeader`     | `StrideSectionHeader.swift`     | uppercase section label + optional action — see below               |
 | `StrideComingUpBanner`    | `StrideComingUpBanner.swift`    | Home "Coming up" look-ahead banner — see below                      |
-| `StrideToggleStyle`       | `StrideToggle.swift`            | Aurora `ToggleStyle` (`.toggleStyle(.stride)`) — see below          |
+| `StrideToggleStyle`       | `StrideToggle.swift`            | `ToggleStyle` (`.toggleStyle(.stride)`) — see below                 |
 | `StrideSelectTile`        | `StrideSelectTile.swift`        | picker-grid tile: hue dot + check ring — see below                  |
 | `StrideStatCard`          | `StrideStatCard.swift`          | label + big stat + tinted delta — see below                         |
 | `StrideInsightCard`       | `StrideInsightCard.swift`       | Insights overview card + `StrideSparkline` — see below              |
@@ -148,9 +149,9 @@ activity-timeline consumer uses it).
 ### StrideTabBar
 
 The post-login spine (Figma `Stride/Tab Bar`, set `112:196`): **Home · Insights · ⊕ · Team ·
-Settings**. A **custom bar, not `TabView`** — the design deviates from the system bar (Aurora navy
-surface, hairline top border, and a raised 58pt cyan quick-log FAB overhanging the bar by 14pt with
-an accent glow), which a system `TabView` can't host.
+Settings**. A **custom bar, not `TabView`** — the design deviates from the system bar (a `surface`
+(now white) fill, hairline top border, and a raised 58pt accent quick-log FAB overhanging the bar by
+14pt with an accent glow), which a system `TabView` can't host.
 
 - `StrideTab` — `home | insights | team | settings` (`CaseIterable`, tab-bar order). Owns each tab's
   title + SF Symbol name.
@@ -210,7 +211,7 @@ are 13pt medium `textSecondary`. Selection changes slide the pill via `matchedGe
 - **`StrideTimeframe`** — `week | month | threeMonths | year | custom` (`CaseIterable`, display
   order). Owns each segment's label ("Week" · "Month" · "3M" · "Year" · "Custom"). What `.custom`
   triggers (a date-range sheet) belongs to the consumer; the selector only reports selection.
-- **Custom, not `Picker(.segmented)`** — the Aurora track/pill/typography deviate from the system
+- **Custom, not `Picker(.segmented)`** — the Stride track/pill/typography deviate from the system
   segmented control on every axis, and SwiftUI can't restyle it that far without global
   `UISegmentedControl.appearance()` hacks (same rationale as `StrideTabBar`).
 - Concrete `StrideTimeframe` type per the role-naming convention, not a generic segmented control —
@@ -234,7 +235,7 @@ fill + 1px `accent` border, semibold `accent` label.
 ### StrideSectionHeader
 
 The section label row used across the post-login screens (Figma `Stride/Section Header`, `90:92`):
-an uppercase 12pt semibold `textTertiary` title with 0.96pt tracking (the wide-tracked Aurora label
+an uppercase 12pt semibold `textTertiary` title with 0.96pt tracking (the wide-tracked Stride label
 signature) on the left, and an optional accent action on the right — 12pt semibold `accent` label +
 a small `chevron.right` (3pt gap), one tap target. Space-between layout, transparent background.
 
@@ -256,14 +257,24 @@ there's an upcoming item; the tap pushes the [[schedule]] look-ahead.
 
 ### StrideToggleStyle
 
-The Aurora switch treatment (Figma `Stride/Toggle`, set `156:572`; consumed by [[settings]]),
-implemented as a **`ToggleStyle` on the system `Toggle`** rather than a custom view — call sites keep
-the system semantics (label layout, tap target, VoiceOver on/off announcement) and only the drawing
-is custom: a 46×28 capsule track (`accent` on / `surfaceHi` off) with a 22pt `textPrimary` snow
-thumb sliding on a spring. Usage: `Toggle("Reminders", isOn: $flag).toggleStyle(.stride)`.
+The switch treatment (Figma `Stride/Toggle`, set `156:572`; consumed by [[settings]]), implemented
+as a **`ToggleStyle` on the system `Toggle`** rather than a custom view — call sites keep the system
+semantics (label layout, tap target, VoiceOver on/off announcement) and only the drawing is custom:
+a 46×28 capsule track (`accent` on / `surfaceHi` off, plus a 1px `border` hairline on the off-track
+— see below) with a 22pt `textPrimary` thumb sliding on a spring. Usage:
+`Toggle("Reminders", isOn: $flag).toggleStyle(.stride)`.
 
-Added the **`surfaceHi` token** (`#16285c`, the live `color/auth/surface-hi` variable) for the
-off-track — the first component to need the raised-surface value.
+Added the **`surfaceHi` token** (originally `#16285c`, the Aurora-era `color/auth/surface-hi`
+variable; now the arctic-light value in the approved-values table above) for the off-track — the
+first component to need the raised-surface value.
+
+**Light-theme gap found in task-9 verification (2026-07-29):** the off-track's `surfaceHi` fill and
+the page `background` are close enough in luminance on the arctic palette (unlike Aurora's dark
+substrate, where the raised fill alone read clearly) that an off toggle rendered as a bare floating
+thumb with no visible capsule boundary — missed by the punch list because `StrideToggle.swift` was
+never touched by the palette cascade. Fixed by adding a 1px `border`-stroke overlay on the off-track,
+mirroring the border-plus-fill pattern `StrideChip`/tracker cards already use for the same
+low-contrast-fill problem.
 
 ### Icons: `Stride/Icon` + `Stride/Tracker Icon` — no Swift component
 
@@ -312,7 +323,7 @@ values to its bounds. The full-size Insights charts are separate Swift-Charts co
 The full-size [[insights]] charts (Figma `Stride/Chart/Line` `117:196`, `Scatter` `118:206`, `Bar`
 `118:247`), built on **Swift Charts** (never hand-drawn rectangles) over a shared model —
 `StrideChartPoint(date:value:)` and, for multi-line, `StrideChartSeries(name:hue:points:)`. All
-three share the Aurora chart chrome (private `StrideChartCard` modifier): surface card radius 14,
+three share the same chart chrome (private `StrideChartCard` modifier): surface card radius 14,
 16pt padding, **horizontal-only** `border` gridlines, 10pt `textTertiary` labels both axes, 150pt
 plot height.
 
@@ -410,16 +421,23 @@ site (auth, onboarding, Home, tracker detail) picks the restyle up for free:
 **Auth icons** (Figma `Stride/Icon/Person·Lock·Envelope·Hash`, `33:9`–`33:15`) follow the standing
 SF-Symbols decision: `person` · `lock` · `envelope` · `number`, passed as `StrideField`'s `icon:`.
 
-### `.strideAuroraBackground()`
+### `.strideAuthBackground()`
 
-The Aurora screen substrate (the auth frames' background, `StrideAuroraBackground.swift`): a
-vertical `background → #0a1640` night gradient with two soft glows bleeding in from the top —
-`accent` @ 22% top-leading (560×300, blur 70) and `trackerViolet` @ 16% upper-trailing (420×220,
-blur 60). Figma draws the glows as pre-blurred ellipse PNGs; the modifier draws blurred `Ellipse`s
-instead so no raster asset ships (an eye-tuned approximation). Used by the [[auth]] screens.
-**Post-login screens** (from the [[shell]] assembly pass, 2026-07-05) use the same night gradient
-**without the glow ellipses** — the glows are an auth-screen signature; app frames sit on the plain
-night substrate. This retires the old pre-Aurora `.strideBackground()` gradient.
+The auth screen substrate (`StrideAuthBackground.swift`; the [[auth]] screens' background): a flat
+vertical `background → e4edf9` arctic-light gradient, no glow accents — see "Tokens & the
+light-theme migration" below for the approved light-theme treatment and why the glow ellipses were
+dropped rather than recolored. **Post-login screens** (`.strideBackground()`, `Theme.swift`) use the
+same two-stop gradient without any auth-specific styling — app frames and auth frames share one
+flat substrate.
+
+**Historical (Aurora, 2026-07-04 → 2026-07-29):** the substrate was a vertical `background →
+#0a1640` night gradient with two soft glows bleeding in from the top — `accent` @ 22% top-leading
+(560×300, blur 70) and `trackerViolet` @ 16% upper-trailing (420×220, blur 60), drawn as blurred
+`Ellipse`s (Figma used pre-blurred ellipse PNGs) rather than a raster asset. The component was named
+`StrideAuroraBackground.swift` / `.strideAuroraBackground()` for this era; both the file and the
+glow ellipses were retired in the light-theme migration (see below), not recolored — a flat gradient
+read as clean daylight arctic in the proof frames and the glow concept had no light-mode equivalent
+worth preserving.
 
 ## Tokens & the light-theme migration
 
@@ -440,7 +458,7 @@ night substrate. This retires the old pre-Aurora `.strideBackground()` gradient.
   (`tertiary`-based; Aurora cards are `surface` + 1px `border`). The old `tokens.json` parity-test idea
   is retired with the gallery — Figma is the source of truth now.
 
-**Light-theme migration (in progress, from 2026-07-29):**
+**Light-theme migration (2026-07-29):**
 
 - **Full replace, not a toggle** — same single-palette-at-a-time model as the Aurora migration; no
   runtime light/dark switching (see Non-goals).
@@ -531,36 +549,36 @@ a soft shadow for subtle lift; no distinct plaque fill/border.
 
 ## Where it lives
 
-| Concept                                                  | File                                                       |
-| -------------------------------------------------------- | ---------------------------------------------------------- |
-| `StrideButton`                                           | `ios/Caregiver/DesignSystem/StrideButton.swift`            |
-| `StrideField`                                            | `ios/Caregiver/DesignSystem/StrideField.swift`             |
-| `.strideCard()`                                          | `ios/Caregiver/DesignSystem/StrideCard.swift`              |
-| state views                                              | `ios/Caregiver/DesignSystem/StrideStateViews.swift`        |
-| `StrideBadge`                                            | `ios/Caregiver/DesignSystem/StrideBadge.swift`             |
-| `StrideTimeline` + `TimelineNode`                        | `ios/Caregiver/DesignSystem/StrideTimeline.swift`          |
-| `StrideDialog`                                           | `ios/Caregiver/DesignSystem/StrideDialog.swift`            |
-| `StrideTabBar` + `StrideTab`                             | `ios/Caregiver/DesignSystem/StrideTabBar.swift`            |
-| `StrideTrackerTile` + `StrideTrackerRecency`             | `ios/Caregiver/DesignSystem/StrideTrackerTile.swift`       |
-| `StrideTrackerRow`                                       | `ios/Caregiver/DesignSystem/StrideTrackerRow.swift`        |
-| `StrideTimeframeSelector` + `StrideTimeframe`            | `ios/Caregiver/DesignSystem/StrideTimeframeSelector.swift` |
-| `StrideChip`                                             | `ios/Caregiver/DesignSystem/StrideChip.swift`              |
-| `StrideSectionHeader`                                    | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
-| `StrideComingUpBanner`                                   | `ios/Caregiver/DesignSystem/StrideComingUpBanner.swift`    |
-| `StrideToggleStyle`                                      | `ios/Caregiver/DesignSystem/StrideToggle.swift`            |
-| `StrideSelectTile`                                       | `ios/Caregiver/DesignSystem/StrideSelectTile.swift`        |
-| `StrideStatCard`                                         | `ios/Caregiver/DesignSystem/StrideStatCard.swift`          |
-| `StrideInsightCard` + `StrideSparkline`                  | `ios/Caregiver/DesignSystem/StrideInsightCard.swift`       |
-| charts + `StrideChartPoint`/`StrideChartSeries`          | `ios/Caregiver/DesignSystem/StrideCharts.swift`            |
-| `StrideMemberRow`                                        | `ios/Caregiver/DesignSystem/StrideMemberRow.swift`         |
-| `StrideInviteCard`                                       | `ios/Caregiver/DesignSystem/StrideInviteCard.swift`        |
-| `StrideReceiverRow`                                      | `ios/Caregiver/DesignSystem/StrideReceiverRow.swift`       |
-| `StrideSettingsRow`                                      | `ios/Caregiver/DesignSystem/StrideSettingsRow.swift`       |
-| `StrideTemplateCard`                                     | `ios/Caregiver/DesignSystem/StrideTemplateCard.swift`      |
-| `StrideBrand`                                            | `ios/Caregiver/DesignSystem/StrideBrand.swift`             |
-| `StrideCodeInput`                                        | `ios/Caregiver/DesignSystem/StrideCodeInput.swift`         |
-| Tokens (values = Aurora, migrating to light — see above) | `ios/Caregiver/DesignSystem/Theme.swift`                   |
-| Design source of truth                                   | Figma `qoiOteGuzktJPB6WKRbGHt`                             |
+| Concept                                         | File                                                       |
+| ----------------------------------------------- | ---------------------------------------------------------- |
+| `StrideButton`                                  | `ios/Caregiver/DesignSystem/StrideButton.swift`            |
+| `StrideField`                                   | `ios/Caregiver/DesignSystem/StrideField.swift`             |
+| `.strideCard()`                                 | `ios/Caregiver/DesignSystem/StrideCard.swift`              |
+| state views                                     | `ios/Caregiver/DesignSystem/StrideStateViews.swift`        |
+| `StrideBadge`                                   | `ios/Caregiver/DesignSystem/StrideBadge.swift`             |
+| `StrideTimeline` + `TimelineNode`               | `ios/Caregiver/DesignSystem/StrideTimeline.swift`          |
+| `StrideDialog`                                  | `ios/Caregiver/DesignSystem/StrideDialog.swift`            |
+| `StrideTabBar` + `StrideTab`                    | `ios/Caregiver/DesignSystem/StrideTabBar.swift`            |
+| `StrideTrackerTile` + `StrideTrackerRecency`    | `ios/Caregiver/DesignSystem/StrideTrackerTile.swift`       |
+| `StrideTrackerRow`                              | `ios/Caregiver/DesignSystem/StrideTrackerRow.swift`        |
+| `StrideTimeframeSelector` + `StrideTimeframe`   | `ios/Caregiver/DesignSystem/StrideTimeframeSelector.swift` |
+| `StrideChip`                                    | `ios/Caregiver/DesignSystem/StrideChip.swift`              |
+| `StrideSectionHeader`                           | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
+| `StrideComingUpBanner`                          | `ios/Caregiver/DesignSystem/StrideComingUpBanner.swift`    |
+| `StrideToggleStyle`                             | `ios/Caregiver/DesignSystem/StrideToggle.swift`            |
+| `StrideSelectTile`                              | `ios/Caregiver/DesignSystem/StrideSelectTile.swift`        |
+| `StrideStatCard`                                | `ios/Caregiver/DesignSystem/StrideStatCard.swift`          |
+| `StrideInsightCard` + `StrideSparkline`         | `ios/Caregiver/DesignSystem/StrideInsightCard.swift`       |
+| charts + `StrideChartPoint`/`StrideChartSeries` | `ios/Caregiver/DesignSystem/StrideCharts.swift`            |
+| `StrideMemberRow`                               | `ios/Caregiver/DesignSystem/StrideMemberRow.swift`         |
+| `StrideInviteCard`                              | `ios/Caregiver/DesignSystem/StrideInviteCard.swift`        |
+| `StrideReceiverRow`                             | `ios/Caregiver/DesignSystem/StrideReceiverRow.swift`       |
+| `StrideSettingsRow`                             | `ios/Caregiver/DesignSystem/StrideSettingsRow.swift`       |
+| `StrideTemplateCard`                            | `ios/Caregiver/DesignSystem/StrideTemplateCard.swift`      |
+| `StrideBrand`                                   | `ios/Caregiver/DesignSystem/StrideBrand.swift`             |
+| `StrideCodeInput`                               | `ios/Caregiver/DesignSystem/StrideCodeInput.swift`         |
+| Tokens (values = arctic light — see above)      | `ios/Caregiver/DesignSystem/Theme.swift`                   |
+| Design source of truth                          | Figma `qoiOteGuzktJPB6WKRbGHt`                             |
 
 ## Non-goals
 
