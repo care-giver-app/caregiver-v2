@@ -2,15 +2,22 @@
 
 - **Module:** ios
 - **Status:** Current — the app's reusable SwiftUI components + tokens. (Superseded the standalone browser **design-gallery** tool, removed 2026-07-01 now that Figma is the design source of truth.)
-- **Last updated:** 2026-07-05
+- **Last updated:** 2026-07-29
 - **Contract:** none (no backend interaction).
 - **Related specs:** every ios screen spec consumes these components; [[sample-data]] (canonical fixtures + tracker hue map), [[insights]] (Aurora palette substrate table), [[activity-timeline]] (the `StrideTimeline` consumer)
 
 > Living reference for **Stride**, the app's SwiftUI design system in `ios/Caregiver/DesignSystem/`.
-> **Design now happens in Figma** (file `qoiOteGuzktJPB6WKRbGHt`, the Aurora cyan-on-navy system) and
-> leads the Swift build; this spec documents the **Swift side** — naming conventions, the reusable
-> component set, and the token/`Theme.swift` state. The old browser gallery (`ios/design-gallery/`) and
-> its `tokens.json`/parity-test approach were removed once Figma took over that role.
+> **Design now happens in Figma** (file `qoiOteGuzktJPB6WKRbGHt`) and leads the Swift build; this spec
+> documents the **Swift side** — naming conventions, the reusable component set, and the
+> token/`Theme.swift` state. The old browser gallery (`ios/design-gallery/`) and its `tokens.json`/
+> parity-test approach were removed once Figma took over that role.
+>
+> **2026-07-29: light-theme migration underway.** Aurora (cyan-on-navy) is being retired in favor of a
+> bright, true-light "arctic" theme — a full replace, not an added toggle (the no-runtime-switching
+> non-goal below is unchanged). Palette codenames are retired going forward: **Stride names the system,
+> never the palette** — token names stay role-based (`accent`, `background`, …) so future recolors
+> don't force another rename sweep. See "Tokens & the light-theme migration" below for the plan;
+> `Theme.swift` and this doc's hex values still reflect Aurora until that work lands.
 
 ## Stride naming conventions
 
@@ -414,7 +421,9 @@ instead so no raster asset ships (an eye-tuned approximation). Used by the [[aut
 **without the glow ellipses** — the glows are an auth-screen signature; app frames sit on the plain
 night substrate. This retires the old pre-Aurora `.strideBackground()` gradient.
 
-## Tokens & the Aurora migration
+## Tokens & the light-theme migration
+
+**Aurora (cyan-on-navy), 2026-07-04 → 2026-07-29 — historical:**
 
 - **Canonical palette = Aurora** (cyan-on-navy) — defined in **Figma** and mirrored in the [[insights]]
   substrate table (accent `#4dd6e6`, bg `#050b2e → #0a1640`, tracker hues cyan/teal/violet, status
@@ -428,59 +437,135 @@ night substrate. This retires the old pre-Aurora `.strideBackground()` gradient.
 - **Still pending from the sync:** status-token review, the `alert → failure` rename,
   and the non-token treatments — `highlight`/`Gradients.stride` (the old overlay gradient; Aurora
   screens use a plain `#050b2e → #0a1640` vertical + glow ellipses) and the `.strideCard()` fill
-  (`tertiary`-based; Aurora cards are `surface` + 1px `border`). Migrate these as components need them.
-  The old `tokens.json` parity-test idea is retired with the gallery — Figma is the source of truth now.
+  (`tertiary`-based; Aurora cards are `surface` + 1px `border`). The old `tokens.json` parity-test idea
+  is retired with the gallery — Figma is the source of truth now.
+
+**Light-theme migration (in progress, from 2026-07-29):**
+
+- **Full replace, not a toggle** — same single-palette-at-a-time model as the Aurora migration; no
+  runtime light/dark switching (see Non-goals).
+- **Process:** (1) settle palette values in **Figma** against 3 proof frames — Home, Insights (chart
+  glow-dot legibility + tracker-hue distinguishability against a light plot), and an Auth screen
+  (glow-ellipse substrate + `StrideBrand`'s "ice chip" concept, moot once the app itself is light) —
+  before any Swift changes; update the shared Figma variable collection in place rather than adding a
+  parallel one. (2) Mirror the approved values into `Theme.Colors` **1:1 by role name** — a
+  values-only edit, no signature changes, since token names are already role-based rather than
+  Aurora-named. (3) Rework the punch-list components below individually, since their effects are
+  hand-tuned for a dark substrate and won't just fall out of a token swap. (4) Verify with a live
+  simulator run-through across Home/Insights/Team/Settings/Auth — no automated visual-regression
+  tooling exists here (see Non-goals).
+- **Punch list — hand-tuned, non-token effects that need individual rework, not a value swap:**
+  `StrideAuroraBackground.swift` + the private `StrideBackgroundModifier` (the night-gradient +
+  glow-ellipse substrate assumes dark), `StrideBrand.swift` (the light "ice chip on navy" plaque is
+  moot once the surroundings are light), the `StrideButton`/`StrideField` cyan glow shadows,
+  `StrideInviteCard`'s glow treatment, the chart glow-dots (`StrideCharts.swift`), and
+  `StrideCodeInput`'s "frost hairline" — all tuned for legibility on dark, need a contrast check on
+  light.
+- **Naming cleanup:** anything with "Aurora" literally in its name (`StrideAuroraBackground`, the
+  `.strideAuroraBackground()` modifier, comments/spec references) gets renamed as part of the
+  punch-list work on that component — no new palette codename replaces it (see the naming decision
+  below).
+
+**Approved values (2026-07-29):** settled live in Figma (file `qoiOteGuzktJPB6WKRbGHt`) against the
+Home, Insights, and Sign In proof frames, including 4 accent candidates screenshotted side-by-side
+(Glacier Cyan, Ice Blue, Cobalt, Turquoise) — Trevor picked **Ice Blue**.
+
+| Token                             | Aurora (old) | Arctic light (new)    | Note                                                                                                                                                                                                                        |
+| --------------------------------- | ------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `accent`                          | `#4dd6e6`    | `#1c8fe0`             | Ice Blue — chosen over Glacier Cyan/Cobalt/Turquoise                                                                                                                                                                        |
+| `highlight`                       | `#98d4ff`    | `#8fc6ee`             | Unused in Swift today — light tint of accent for consistency, not visually tuned                                                                                                                                            |
+| `tertiary`                        | `#bac3e0`    | `#c9dbea`             | Unused in Swift today — near `border`, not visually tuned                                                                                                                                                                   |
+| `ink`                             | `#0B0F08`    | `#0B0F08` (unchanged) | Shadow-only (`StrideDialog`'s drop shadow) — a near-black shadow reads fine on any background, no change needed                                                                                                             |
+| `textPrimary`                     | `#e8f0ff`    | `#14273f`             |                                                                                                                                                                                                                             |
+| `textSecondary`                   | `#9db0d6`    | `#4a6480`             |                                                                                                                                                                                                                             |
+| `textTertiary`                    | `#5e709c`    | `#7f97b0`             |                                                                                                                                                                                                                             |
+| `textOnAccent`                    | `#04121a`    | `#f2fcfd`             | **Flipped** dark→light ink: Aurora's accent was a pale cyan (needed dark ink on top); the new accent is a saturated mid-tone blue, so it needs light ink on top instead — same "ink on accent" role, opposite literal color |
+| `surface`                         | `#0e1c4a`    | `#ffffff`             |                                                                                                                                                                                                                             |
+| `surfaceHi`                       | `#16285c`    | `#e7f1f9`             |                                                                                                                                                                                                                             |
+| `background`                      | `#050b2e`    | `#eef5fb`             | top gradient stop (token); bottom stop is a code literal, see below                                                                                                                                                         |
+| background (bottom stop, literal) | `#0a1640`    | `#e4edf9`             | Not a token — hardcoded in `StrideBackgroundModifier`/`StrideAuthBackgroundModifier`'s gradient, per existing pattern                                                                                                       |
+| `border`                          | `#294272`    | `#cfe0ee`             |                                                                                                                                                                                                                             |
+| `muted`                           | `#5A6E9E`    | `#7c93ac`             |                                                                                                                                                                                                                             |
+| `alert`/failure                   | `#ff4d6a`    | `#d6304f`             | Deepened for contrast on light                                                                                                                                                                                              |
+| `success`                         | `#3dd68c`    | `#1f9d6c`             | Deepened for contrast on light                                                                                                                                                                                              |
+| `warning`                         | `#FCD34D`    | `#c2790a`             | Deepened — the old value was a pale yellow, illegible as text on light                                                                                                                                                      |
+| `informational`                   | `#93C5FD`    | `#5b76b3`             | Muted toward indigo — a light blue here would visually compete with the new blue `accent`                                                                                                                                   |
+| `trackerCyan`                     | `#4dd6e6`    | `#1c8fe0`             | Same primitive as `accent` (as in Aurora)                                                                                                                                                                                   |
+| `trackerTeal`                     | `#3db8c4`    | `#0d8c86`             |                                                                                                                                                                                                                             |
+| `trackerViolet`                   | `#7c6ff0`    | `#6f5fe0`             | Slightly deepened                                                                                                                                                                                                           |
+
+**Substrate:** both `.strideAuthBackground()` (renamed from `.strideAuroraBackground()`) and
+`.strideBackground()` become a flat top-to-bottom 2-stop gradient (`background` → the bottom-stop
+literal above) with **no glow ellipses** — the two "Aurora Glow" ellipses on every frame were
+hardcoded literal fills in Figma (not bound to any variable), confirming they need direct removal,
+not a value swap. A flat ice gradient read as clean daylight arctic in the proof frames; the glow
+concept was dark-mode-specific and didn't have an equivalent worth preserving.
+
+**Elevated glow:** the Aurora glow-shadow language (large blur, high opacity, tuned to pop against
+navy) needs to shrink substantially against a light substrate — start each punch-list component
+(Task 5-8) from roughly half the old opacity and a smaller blur radius, then verify visually per
+component; no single number carries across all of them since each shadow's surrounding contrast
+differs (button fill vs. card border vs. focus ring vs. chart dot).
+
+**StrideBrand:** drop the light "ice chip" plaque — the Sign In proof frame shows the plaque
+visually disappearing into the new light background (both are near-white), confirming the plaque's
+only reason to exist (contrast against dark) no longer applies. Keep the logo alone, optionally with
+a soft shadow for subtle lift; no distinct plaque fill/border.
 
 ## Key decisions
 
-| Decision               | Choice                                                                             | Why                                                                                           |
-| ---------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Design source of truth | **Figma** (Aurora system) leads; this spec documents the Swift mirror              | 2026-07-01: the browser gallery + `tokens.json` were removed once Figma took over.            |
-| Naming                 | **Stride** prefix, role-based names; `style:` param over separate types            | Decouples component identity from visual style; name survives aesthetic changes.              |
-| Button consolidation   | Single `StrideButton(style:)` (replaced Primary/Secondary/GlassButton)             | Three types for one component was a smell.                                                    |
-| Badge / Timeline       | `StrideBadge(status:style:)` + `StrideTimeline([TimelineNode])`, both implemented  | Reusable primitives; Timeline node model adapts to varied consumers with graceful omission.   |
-| Palette history        | earthy → single arctic `light` → **Aurora** (current)                              | Arctic was an interim; Aurora (Figma) is the real direction. `Theme.swift` sync is deferred.  |
-| Aurora token sync      | Core `Theme.Colors` values flipped to Aurora with the first Aurora component       | 2026-07-04: components bind to tokens; shipping `StrideTabBar` on old-blue would ship wrong.  |
-| Tab bar                | Custom `StrideTabBar`, not system `TabView`                                        | The raised glowing ⊕ FAB + navy surface deviate from the system bar; `TabView` can't host it. |
-| Tab bar icons          | SF Symbols (`house`, `chart.bar`, `person.2`, `gearshape`, `plus`), not SVG assets | 2026-07-04 (Trevor): near-identical glyphs + Dynamic Type/weight for free, no assets to keep. |
-| Code input             | Interactive (one hidden one-time-code field), not a dumb cell row                  | 2026-07-05: autofill + number pad need a real field; per-cell fields fight iOS autofill.      |
-| Button/Field reconcile | Restyled in place to the Figma sets; APIs unchanged                                | 2026-07-05: every pre-Aurora call site inherits the restyle with zero call-site churn.        |
+| Decision               | Choice                                                                                                                                          | Why                                                                                                                                                           |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design source of truth | **Figma** leads; this spec documents the Swift mirror                                                                                           | 2026-07-01: the browser gallery + `tokens.json` were removed once Figma took over.                                                                            |
+| Naming                 | **Stride** prefix, role-based names; `style:` param over separate types                                                                         | Decouples component identity from visual style; name survives aesthetic changes.                                                                              |
+| Button consolidation   | Single `StrideButton(style:)` (replaced Primary/Secondary/GlassButton)                                                                          | Three types for one component was a smell.                                                                                                                    |
+| Badge / Timeline       | `StrideBadge(status:style:)` + `StrideTimeline([TimelineNode])`, both implemented                                                               | Reusable primitives; Timeline node model adapts to varied consumers with graceful omission.                                                                   |
+| Palette history        | earthy → arctic `light` → Aurora → **arctic `light`, take 2** (current direction)                                                               | 2026-07-29 (Trevor): Aurora's dark navy read as too cool/heavy; back to a true light arctic theme, this time as the settled direction rather than an interim. |
+| Palette codename       | **None** — Stride names the system only, never the palette                                                                                      | 2026-07-29 (Trevor): decoupling the two means recoloring again later doesn't force another rename sweep across specs/code/Figma.                              |
+| Light-theme rollout    | Tokens-first cascade (Figma variables → `Theme.Colors`) + a targeted punch list, not a full Figma redesign or blind component-by-component pass | Most components already bind to role-based tokens, so a value swap covers them for free; only hand-tuned dark-substrate effects need individual rework.       |
+| Aurora token sync      | Core `Theme.Colors` values flipped to Aurora with the first Aurora component                                                                    | 2026-07-04: components bind to tokens; shipping `StrideTabBar` on old-blue would ship wrong.                                                                  |
+| Tab bar                | Custom `StrideTabBar`, not system `TabView`                                                                                                     | The raised glowing ⊕ FAB + navy surface deviate from the system bar; `TabView` can't host it.                                                                 |
+| Tab bar icons          | SF Symbols (`house`, `chart.bar`, `person.2`, `gearshape`, `plus`), not SVG assets                                                              | 2026-07-04 (Trevor): near-identical glyphs + Dynamic Type/weight for free, no assets to keep.                                                                 |
+| Code input             | Interactive (one hidden one-time-code field), not a dumb cell row                                                                               | 2026-07-05: autofill + number pad need a real field; per-cell fields fight iOS autofill.                                                                      |
+| Button/Field reconcile | Restyled in place to the Figma sets; APIs unchanged                                                                                             | 2026-07-05: every pre-Aurora call site inherits the restyle with zero call-site churn.                                                                        |
 
 ## Where it lives
 
-| Concept                                            | File                                                       |
-| -------------------------------------------------- | ---------------------------------------------------------- |
-| `StrideButton`                                     | `ios/Caregiver/DesignSystem/StrideButton.swift`            |
-| `StrideField`                                      | `ios/Caregiver/DesignSystem/StrideField.swift`             |
-| `.strideCard()`                                    | `ios/Caregiver/DesignSystem/StrideCard.swift`              |
-| state views                                        | `ios/Caregiver/DesignSystem/StrideStateViews.swift`        |
-| `StrideBadge`                                      | `ios/Caregiver/DesignSystem/StrideBadge.swift`             |
-| `StrideTimeline` + `TimelineNode`                  | `ios/Caregiver/DesignSystem/StrideTimeline.swift`          |
-| `StrideDialog`                                     | `ios/Caregiver/DesignSystem/StrideDialog.swift`            |
-| `StrideTabBar` + `StrideTab`                       | `ios/Caregiver/DesignSystem/StrideTabBar.swift`            |
-| `StrideTrackerTile` + `StrideTrackerRecency`       | `ios/Caregiver/DesignSystem/StrideTrackerTile.swift`       |
-| `StrideTrackerRow`                                 | `ios/Caregiver/DesignSystem/StrideTrackerRow.swift`        |
-| `StrideTimeframeSelector` + `StrideTimeframe`      | `ios/Caregiver/DesignSystem/StrideTimeframeSelector.swift` |
-| `StrideChip`                                       | `ios/Caregiver/DesignSystem/StrideChip.swift`              |
-| `StrideSectionHeader`                              | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
-| `StrideComingUpBanner`                             | `ios/Caregiver/DesignSystem/StrideComingUpBanner.swift`    |
-| `StrideToggleStyle`                                | `ios/Caregiver/DesignSystem/StrideToggle.swift`            |
-| `StrideSelectTile`                                 | `ios/Caregiver/DesignSystem/StrideSelectTile.swift`        |
-| `StrideStatCard`                                   | `ios/Caregiver/DesignSystem/StrideStatCard.swift`          |
-| `StrideInsightCard` + `StrideSparkline`            | `ios/Caregiver/DesignSystem/StrideInsightCard.swift`       |
-| charts + `StrideChartPoint`/`StrideChartSeries`    | `ios/Caregiver/DesignSystem/StrideCharts.swift`            |
-| `StrideMemberRow`                                  | `ios/Caregiver/DesignSystem/StrideMemberRow.swift`         |
-| `StrideInviteCard`                                 | `ios/Caregiver/DesignSystem/StrideInviteCard.swift`        |
-| `StrideReceiverRow`                                | `ios/Caregiver/DesignSystem/StrideReceiverRow.swift`       |
-| `StrideSettingsRow`                                | `ios/Caregiver/DesignSystem/StrideSettingsRow.swift`       |
-| `StrideTemplateCard`                               | `ios/Caregiver/DesignSystem/StrideTemplateCard.swift`      |
-| `StrideBrand`                                      | `ios/Caregiver/DesignSystem/StrideBrand.swift`             |
-| `StrideCodeInput`                                  | `ios/Caregiver/DesignSystem/StrideCodeInput.swift`         |
-| Tokens (core values = Aurora; hues/status pending) | `ios/Caregiver/DesignSystem/Theme.swift`                   |
-| Design source of truth                             | Figma `qoiOteGuzktJPB6WKRbGHt` (Aurora system)             |
+| Concept                                                  | File                                                       |
+| -------------------------------------------------------- | ---------------------------------------------------------- |
+| `StrideButton`                                           | `ios/Caregiver/DesignSystem/StrideButton.swift`            |
+| `StrideField`                                            | `ios/Caregiver/DesignSystem/StrideField.swift`             |
+| `.strideCard()`                                          | `ios/Caregiver/DesignSystem/StrideCard.swift`              |
+| state views                                              | `ios/Caregiver/DesignSystem/StrideStateViews.swift`        |
+| `StrideBadge`                                            | `ios/Caregiver/DesignSystem/StrideBadge.swift`             |
+| `StrideTimeline` + `TimelineNode`                        | `ios/Caregiver/DesignSystem/StrideTimeline.swift`          |
+| `StrideDialog`                                           | `ios/Caregiver/DesignSystem/StrideDialog.swift`            |
+| `StrideTabBar` + `StrideTab`                             | `ios/Caregiver/DesignSystem/StrideTabBar.swift`            |
+| `StrideTrackerTile` + `StrideTrackerRecency`             | `ios/Caregiver/DesignSystem/StrideTrackerTile.swift`       |
+| `StrideTrackerRow`                                       | `ios/Caregiver/DesignSystem/StrideTrackerRow.swift`        |
+| `StrideTimeframeSelector` + `StrideTimeframe`            | `ios/Caregiver/DesignSystem/StrideTimeframeSelector.swift` |
+| `StrideChip`                                             | `ios/Caregiver/DesignSystem/StrideChip.swift`              |
+| `StrideSectionHeader`                                    | `ios/Caregiver/DesignSystem/StrideSectionHeader.swift`     |
+| `StrideComingUpBanner`                                   | `ios/Caregiver/DesignSystem/StrideComingUpBanner.swift`    |
+| `StrideToggleStyle`                                      | `ios/Caregiver/DesignSystem/StrideToggle.swift`            |
+| `StrideSelectTile`                                       | `ios/Caregiver/DesignSystem/StrideSelectTile.swift`        |
+| `StrideStatCard`                                         | `ios/Caregiver/DesignSystem/StrideStatCard.swift`          |
+| `StrideInsightCard` + `StrideSparkline`                  | `ios/Caregiver/DesignSystem/StrideInsightCard.swift`       |
+| charts + `StrideChartPoint`/`StrideChartSeries`          | `ios/Caregiver/DesignSystem/StrideCharts.swift`            |
+| `StrideMemberRow`                                        | `ios/Caregiver/DesignSystem/StrideMemberRow.swift`         |
+| `StrideInviteCard`                                       | `ios/Caregiver/DesignSystem/StrideInviteCard.swift`        |
+| `StrideReceiverRow`                                      | `ios/Caregiver/DesignSystem/StrideReceiverRow.swift`       |
+| `StrideSettingsRow`                                      | `ios/Caregiver/DesignSystem/StrideSettingsRow.swift`       |
+| `StrideTemplateCard`                                     | `ios/Caregiver/DesignSystem/StrideTemplateCard.swift`      |
+| `StrideBrand`                                            | `ios/Caregiver/DesignSystem/StrideBrand.swift`             |
+| `StrideCodeInput`                                        | `ios/Caregiver/DesignSystem/StrideCodeInput.swift`         |
+| Tokens (values = Aurora, migrating to light — see above) | `ios/Caregiver/DesignSystem/Theme.swift`                   |
+| Design source of truth                                   | Figma `qoiOteGuzktJPB6WKRbGHt`                             |
 
 ## Non-goals
 
-- No runtime theme switching in the app (single Aurora theme; devs re-theme in one place).
+- No runtime theme switching in the app (single Stride theme at a time; devs re-theme in one place).
 - No browser gallery / `tokens.json` / parity test — removed 2026-07-01 (Figma replaces it).
 - No automated component-visual test.
+- No palette codename replacing "Aurora" — token names stay role-based so future recolors don't
+  require another rename sweep (see the naming decision above).
