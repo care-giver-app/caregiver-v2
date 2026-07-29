@@ -23,6 +23,16 @@ struct StrideToggleStyle: ToggleStyle {
                 Capsule()
                     .fill(configuration.isOn ? Theme.Colors.accent : Theme.Colors.surfaceHi)
                     .frame(width: Metrics.trackSize.width, height: Metrics.trackSize.height)
+                    .overlay {
+                        // The off-track (`surfaceHi`) is barely distinguishable from the
+                        // light `background` it sits on — unlike Aurora's dark substrate,
+                        // where the raised fill alone read clearly. A hairline border keeps
+                        // the capsule shape visible in both states (missed by the light-theme
+                        // punch list; caught in task-9 verification).
+                        if !configuration.isOn {
+                            Capsule().stroke(Theme.Colors.border, lineWidth: 1)
+                        }
+                    }
                     .overlay(alignment: configuration.isOn ? .trailing : .leading) {
                         Circle()
                             .fill(Theme.Colors.textPrimary)
