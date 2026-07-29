@@ -11,7 +11,6 @@ struct QuickLogDetailStep: View {
 
     private enum Metrics {
         static let navButton: CGFloat = 32
-        static let boxRadius: CGFloat = 14
     }
 
     private var detail: QuickLogDetail { model.details[index] }
@@ -35,7 +34,7 @@ struct QuickLogDetailStep: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.md) {
                     ForEach($model.details[index].inputs) { $input in
-                        fieldRow($input)
+                        DynamicFieldRow(input: $input, error: model.fieldErrors[input.key])
                     }
                     noteBox
                 }
@@ -89,99 +88,8 @@ struct QuickLogDetailStep: View {
         }
     }
 
-    // MARK: field inputs (spec decision 8)
-
-    @ViewBuilder
-    private func fieldRow(_ input: Binding<FieldInput>) -> some View {
-        let error = model.fieldErrors[input.wrappedValue.key]
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            switch input.wrappedValue.kind {
-            case .enumeration:
-                Text(input.wrappedValue.label)
-                    .font(Theme.Typography.body)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                scaleTiles(input)
-            case .number:
-                surfaceBox {
-                    HStack {
-                        TextField(input.wrappedValue.label, text: input.textValue)
-                            .keyboardType(.decimalPad)
-                        if let unit = input.wrappedValue.unit {
-                            Text(unit).foregroundStyle(Theme.Colors.textSecondary)
-                        }
-                    }
-                }
-            case .text:
-                surfaceBox {
-                    TextField(input.wrappedValue.label, text: input.textValue)
-                }
-            case .boolean:
-                Toggle(input.wrappedValue.label, isOn: input.boolValue)
-                    .toggleStyle(.stride)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-            case .datetime:
-                DatePicker(input.wrappedValue.label, selection: input.dateValue,
-                           displayedComponents: [.date, .hourAndMinute])
-                    .datePickerStyle(.compact)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .tint(Theme.Colors.accent)
-            }
-            if let error {
-                Text(error).font(Theme.Typography.caption).foregroundStyle(Theme.Colors.alert)
-            }
-        }
-    }
-
-    /// Equal-width scale tiles for `.enumeration` fields — one tap selects, mirrors
-    /// `StrideSelectTile`'s selected treatment (accent fill + accent border).
-    private func scaleTiles(_ input: Binding<FieldInput>) -> some View {
-        HStack(spacing: 10) {
-            ForEach(input.wrappedValue.options, id: \.self) { option in
-                let isSelected = input.wrappedValue.textValue == option
-                Button {
-                    input.wrappedValue.textValue = option
-                } label: {
-                    Text(option)
-                        .font(Theme.Typography.body.weight(.semibold))
-                        .foregroundStyle(isSelected ? Theme.Colors.textOnAccent : Theme.Colors.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background {
-                            RoundedRectangle(cornerRadius: Metrics.boxRadius)
-                                .fill(isSelected ? Theme.Colors.accent : Theme.Colors.surface)
-                        }
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Metrics.boxRadius)
-                                .stroke(isSelected ? Theme.Colors.accent : Theme.Colors.border,
-                                        lineWidth: isSelected ? 1.5 : 1)
-                        }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
     private var noteBox: some View {
-        surfaceBox {
-            TextField("Add a note (optional)", text: $model.details[index].note, axis: .vertical)
-        }
-    }
-
-    @ViewBuilder
-    private func surfaceBox<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
-            .foregroundStyle(Theme.Colors.textPrimary)
-            .tint(Theme.Colors.accent)
-            .padding(.horizontal, Theme.Spacing.md)
-            .frame(minHeight: 52)
-            .background {
-                RoundedRectangle(cornerRadius: Metrics.boxRadius)
-                    .fill(Theme.Colors.surface)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: Metrics.boxRadius)
-                    .stroke(Theme.Colors.border, lineWidth: 1)
-            }
+        StrideField(placeholder: "Add a note (optional)", text: $model.details[index].note)
     }
 }
 
