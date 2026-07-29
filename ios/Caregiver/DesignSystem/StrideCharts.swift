@@ -109,7 +109,7 @@ struct StrideLineChart: View {
                             Circle()
                                 .fill(s.hue)
                                 .frame(width: 9, height: 9)
-                                .shadow(color: s.hue.opacity(0.9), radius: 4)
+                                .shadow(color: s.hue.opacity(0.45), radius: 3)
                         }
                     }
                 }
@@ -144,7 +144,7 @@ struct StrideScatterChart: View {
                 Circle()
                     .fill(hue.opacity(isLatest ? 1 : 0.8))
                     .frame(width: isLatest ? 9 : 7, height: isLatest ? 9 : 7)
-                    .shadow(color: isLatest ? hue.opacity(0.9) : .clear, radius: 4)
+                    .shadow(color: isLatest ? hue.opacity(0.45) : .clear, radius: 3)
             }
         }
         .chartYScale(domain: [24, 0])
