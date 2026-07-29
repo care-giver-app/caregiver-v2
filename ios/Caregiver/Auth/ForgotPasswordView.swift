@@ -57,7 +57,7 @@ struct ForgotPasswordView: View {
             Spacer()
         }
         .padding(Theme.Spacing.lg)
-        .strideAuroraBackground()
+        .strideAuthBackground()
         .presentationDetents([.medium, .large])
         .presentationCornerRadius(24)
         .onAppear {
