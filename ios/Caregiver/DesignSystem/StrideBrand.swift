@@ -1,13 +1,12 @@
 import SwiftUI
 
-/// The CareToSher brand plaque (Figma `Stride/Brand`): the dark logo on a light
-/// "ice chip" slab so the mark stays legible on the Aurora navy background.
-/// Fixed-size — every auth screen top-anchors the same instance.
+/// The CareToSher brand mark (Figma `Stride/Brand`): the logo alone — the light
+/// "ice chip" plaque from the Aurora era is retired now that the app substrate
+/// itself is light (see ios/specs/design-system.md).
 struct StrideBrand: View {
     private enum Metrics {
         static let logoWidth: CGFloat = 220
         static let logoHeight: CGFloat = 140
-        static let radius: CGFloat = 20
     }
 
     var body: some View {
@@ -15,16 +14,6 @@ struct StrideBrand: View {
             .resizable()
             .scaledToFit()
             .frame(width: Metrics.logoWidth, height: Metrics.logoHeight)
-            .background {
-                RoundedRectangle(cornerRadius: Metrics.radius)
-                    .fill(Color(hex: "f1f6ff").opacity(0.96))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: Metrics.radius)
-                    .stroke(.white.opacity(0.7), lineWidth: 1)
-            }
-            .shadow(color: Theme.Colors.accent.opacity(0.35), radius: 11)
-            .shadow(color: Color(hex: "000d26").opacity(0.45), radius: 12, y: 8)
             .accessibilityLabel("CareToSher")
     }
 }

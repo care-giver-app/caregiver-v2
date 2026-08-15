@@ -41,7 +41,7 @@ struct ConfirmCodeView: View {
             Spacer()
         }
         .padding(Theme.Spacing.lg)
-        .strideAuroraBackground()
+        .strideAuthBackground()
         .presentationDetents([.medium])
         .presentationCornerRadius(24)
     }

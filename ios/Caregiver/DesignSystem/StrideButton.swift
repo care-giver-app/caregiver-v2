@@ -43,12 +43,12 @@ struct StrideButton: View {
                     .overlay {
                         RoundedRectangle(cornerRadius: Metrics.radius)
                             .fill(LinearGradient(
-                                colors: [.white.opacity(0.15), .clear],
+                                colors: [.white.opacity(0.22), .clear],
                                 startPoint: .top, endPoint: .center
                             ))
                     }
             }
-            .shadow(color: Theme.Colors.accent.opacity(0.45), radius: 4.5, y: 4)
+            .shadow(color: Theme.Colors.accent.opacity(0.22), radius: 3.5, y: 3)
         }
         .buttonStyle(StridePressStyle())
         .disabled(isLoading)

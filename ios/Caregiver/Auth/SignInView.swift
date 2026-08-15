@@ -74,7 +74,7 @@ struct SignInView: View {
             .padding(Theme.Spacing.lg)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .strideAuroraBackground()
+        .strideAuthBackground()
         .onAppear { if !savedEmail.isEmpty { model.email = savedEmail } }
         .sheet(isPresented: $model.needsConfirmation) { ConfirmCodeView(model: model) }
         .sheet(isPresented: $showForgotPassword) { ForgotPasswordView(model: model) }

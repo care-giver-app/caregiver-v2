@@ -28,7 +28,7 @@ struct AuthLandingView: View {
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.top, Theme.Spacing.lg)
         .padding(.bottom, Theme.Spacing.md)
-        .strideAuroraBackground()
+        .strideAuthBackground()
     }
 }
 

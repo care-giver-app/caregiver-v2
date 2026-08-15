@@ -85,7 +85,7 @@ private struct StrideCodeDigit: View {
                     RoundedRectangle(cornerRadius: Metrics.radius)
                         .stroke(Theme.Colors.accent, lineWidth: 1.5)
                         .padding(-1)
-                        .shadow(color: Theme.Colors.accent.opacity(0.5), radius: 3.5)
+                        .shadow(color: Theme.Colors.accent.opacity(0.4), radius: 3.5)
                 }
             }
     }

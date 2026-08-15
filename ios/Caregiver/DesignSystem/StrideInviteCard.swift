@@ -43,7 +43,7 @@ struct StrideInviteCard: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(Theme.Colors.accent, lineWidth: 1)
         }
-        .shadow(color: Theme.Colors.accent.opacity(0.2), radius: 12)
+        .shadow(color: Theme.Colors.accent.opacity(0.28), radius: 10)
     }
 }
 

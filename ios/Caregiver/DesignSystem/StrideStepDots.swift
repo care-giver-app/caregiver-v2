@@ -35,5 +35,5 @@ struct StrideStepDots: View {
         StrideStepDots(count: 3, current: 2)
     }
     .padding()
-    .strideAuroraBackground()
+    .strideAuthBackground()
 }

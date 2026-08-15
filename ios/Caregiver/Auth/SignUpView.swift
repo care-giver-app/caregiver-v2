@@ -56,7 +56,7 @@ struct SignUpView: View {
             .padding(Theme.Spacing.lg)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .strideAuroraBackground()
+        .strideAuthBackground()
         .sheet(isPresented: $model.needsConfirmation) { ConfirmCodeView(model: model) }
     }
 }
