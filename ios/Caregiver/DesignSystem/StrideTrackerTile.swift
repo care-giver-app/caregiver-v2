@@ -1,16 +1,9 @@
 import SwiftUI
 
-/// Recency of a tracker's last event — the "recency-as-luminance" signature.
-/// Fresh trackers glow, stale ones sit quiet, overdue ones go amber.
 enum StrideTrackerRecency: Equatable {
     case fresh, normal, overdue
 }
 
-/// A compact tracker snapshot cell (Figma `Stride/Tracker Tile`): hue dot + name +
-/// last-logged line, laid out for the Home snapshot's two-column grid. The dot carries
-/// the tracker's identity hue; `.overdue` swaps it to the warning amber (status is a
-/// layer over the hue, never a hue itself). Status text ("Due", "Missed", …) is a
-/// `StrideBadge` in the second line, beside or in place of the subtitle.
 struct StrideTrackerTile: View {
     let name: String
     var subtitle: String? = nil
@@ -20,7 +13,6 @@ struct StrideTrackerTile: View {
 
     private enum Metrics {
         static let dotSize: CGFloat = 10
-        static let glowRadius: CGFloat = 3
         static let padding: CGFloat = 12
         static let radius: CGFloat = 14
         // Badge height; fixed for the whole line so badged and plain tiles grid-align.
@@ -36,10 +28,6 @@ struct StrideTrackerTile: View {
             Circle()
                 .fill(dotColor)
                 .frame(width: Metrics.dotSize, height: Metrics.dotSize)
-                .shadow(
-                    color: recency == .fresh ? dotColor.opacity(0.95) : .clear,
-                    radius: Metrics.glowRadius
-                )
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.system(size: 14, weight: .semibold))

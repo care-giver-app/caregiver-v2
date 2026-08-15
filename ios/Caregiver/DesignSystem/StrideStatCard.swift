@@ -1,10 +1,5 @@
 import SwiftUI
 
-/// A compact headline-stat card (Figma `Stride/Stat Card`): tracked-uppercase label,
-/// big stat value, optional tinted delta line ("↓ 3 vs last"), on a surface card.
-/// The Insights detail screen lays several in a stat strip. Delta tint defaults to
-/// `success`; pass `warning`/`alert`/`textTertiary` for adverse or neutral deltas —
-/// direction arrows travel inside the `delta` string.
 struct StrideStatCard: View {
     let label: String
     let value: String

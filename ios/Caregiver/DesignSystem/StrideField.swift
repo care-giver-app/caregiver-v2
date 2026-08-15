@@ -13,7 +13,7 @@ struct StrideField: View {
     }
 
     var body: some View {
-        HStack(spacing: Theme.Spacing.md - 4) {
+        HStack(spacing: Theme.Spacing.md) {
             if let icon {
                 Image(systemName: icon)
                     .font(.system(size: 16))
@@ -45,7 +45,6 @@ struct StrideField: View {
             RoundedRectangle(cornerRadius: Metrics.radius)
                 .stroke(Theme.Colors.textSecondary.opacity(0.4), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.28), radius: 2.5, y: 3)
     }
 }
 

@@ -40,8 +40,6 @@ struct StrideTimeline: View {
         }
     }
 
-    // Aurora node treatment (Figma `Stride/Timeline Node`, 93:144): right-aligned time
-    // gutter, top-aligned glowing dot with the rail running down from it, 14/12pt text.
     private func row(_ node: StrideTimelineNode, isFirst: Bool, isLast: Bool) -> some View {
         HStack(alignment: .top, spacing: 10) {
             // Gutter: optional icon over the right-aligned time label

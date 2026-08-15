@@ -1,11 +1,5 @@
 import SwiftUI
 
-/// The Trackers view's full-width list row (Figma `Stride/Tracker Row`): hue rail +
-/// name over a "Kind · value" subtitle, with meta text ("2h ago") and a chevron
-/// pinned to the trailing edge. The rail carries the
-/// tracker's identity hue; `.overdue` swaps it to the warning amber (status is a
-/// layer over the hue, never a hue itself). Status text ("Due", "Missed", …) is a
-/// `StrideBadge` in the trailing slot, typically in place of `meta`.
 struct StrideTrackerRow: View {
     let name: String
     var subtitle: String? = nil
@@ -17,7 +11,6 @@ struct StrideTrackerRow: View {
     private enum Metrics {
         static let railSize = CGSize(width: 4, height: 40)
         static let railRadius: CGFloat = 2
-        static let glowRadius: CGFloat = 4
         static let itemSpacing: CGFloat = 14
         static let padding: CGFloat = 14
         static let radius: CGFloat = 16
@@ -32,10 +25,6 @@ struct StrideTrackerRow: View {
             RoundedRectangle(cornerRadius: Metrics.railRadius)
                 .fill(railColor)
                 .frame(width: Metrics.railSize.width, height: Metrics.railSize.height)
-                .shadow(
-                    color: recency == .fresh ? railColor.opacity(0.9) : .clear,
-                    radius: Metrics.glowRadius
-                )
             VStack(alignment: .leading, spacing: 3) {
                 Text(name)
                     .font(Theme.Typography.headline)

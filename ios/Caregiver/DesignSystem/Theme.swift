@@ -61,9 +61,6 @@ enum Theme {
   }
 }
 
-/// The post-login substrate: the same arctic-light gradient as
-/// `.strideAuthBackground()` — see ios/specs/design-system.md for the
-/// approved light-theme treatment.
 private struct StrideBackgroundModifier: ViewModifier {
   func body(content: Content) -> some View {
     ZStack {

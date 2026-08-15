@@ -1,9 +1,5 @@
 import SwiftUI
 
-/// A Settings list row (Figma `Stride/Settings Row`, set `158:620`): 20pt SF Symbol
-/// + 15pt medium label + one of five trailing accessories. Navigation/selection
-/// taps belong to the consumer (wrap the row in a `Button`); only `.toggle` is
-/// interactive by itself, binding through `StrideToggleStyle`.
 struct StrideSettingsRow: View {
     enum Trailing {
         case none

@@ -1,8 +1,5 @@
 import SwiftUI
 
-/// The CareToSher brand mark (Figma `Stride/Brand`): the logo alone — the light
-/// "ice chip" plaque from the Aurora era is retired now that the app substrate
-/// itself is light (see ios/specs/design-system.md).
 struct StrideBrand: View {
     private enum Metrics {
         static let logoWidth: CGFloat = 220

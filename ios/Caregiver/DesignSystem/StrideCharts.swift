@@ -9,7 +9,6 @@ struct StrideChartPoint: Identifiable {
     let value: Double
 }
 
-/// One named line on `StrideLineChart` (e.g. Systolic / Diastolic).
 struct StrideChartSeries: Identifiable {
     let id = UUID()
     let name: String
@@ -19,9 +18,6 @@ struct StrideChartSeries: Identifiable {
 
 // MARK: - Shared chrome
 
-/// Card + axis treatment shared by the three chart components (Figma
-/// `Stride/Chart/*`): surface card (radius 14, 16pt padding), horizontal-only
-/// `border` gridlines, 10pt `textTertiary` labels on both axes.
 private struct StrideChartCard: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -56,10 +52,6 @@ private func strideYAxis(values: AxisMarkValues = .automatic(desiredCount: 4)) -
 
 // MARK: - Line
 
-/// Value-vs-time line chart (Figma `Stride/Chart/Line`): one `LineMark` per series
-/// with a glowing dot on each latest point, a gradient area fill under the first
-/// series, and a custom dot legend (Charts' own legend is hidden — it can't match
-/// the Aurora treatment).
 struct StrideLineChart: View {
     let series: [StrideChartSeries]
 
@@ -124,9 +116,6 @@ struct StrideLineChart: View {
 
 // MARK: - Scatter
 
-/// Hour-of-day × date scatter (Figma `Stride/Chart/Scatter`) — the adherence view:
-/// point `value` = hour (0–24), midnight at the top like the Figma plot, labels
-/// 12a · 6a · 12p · 6p. The latest date's points draw bigger with a glow.
 struct StrideScatterChart: View {
     let points: [StrideChartPoint]
     let hue: Color
@@ -168,10 +157,8 @@ struct StrideScatterChart: View {
 
 // MARK: - Bar
 
-/// Count-per-bucket bar trend (Figma `Stride/Chart/Bar`): hue bars with 4pt top
-/// radii. Known drift: the Figma glows the latest bar; `BarMark` can't take a
-/// per-mark shadow, so the latest bar draws at full hue and the rest slightly
-/// dimmed instead.
+// Known drift: the Figma glows the latest bar; `BarMark` can't take a per-mark
+// shadow, so the latest bar draws at full hue and the rest slightly dimmed instead.
 struct StrideBarChart: View {
     let points: [StrideChartPoint]
     let hue: Color

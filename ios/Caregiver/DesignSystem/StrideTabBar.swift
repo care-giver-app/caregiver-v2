@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// The app's post-login destinations, in tab-bar order.
 enum StrideTab: String, CaseIterable, Identifiable {
     case home = "Home"
     case insights = "Insights"
@@ -10,7 +9,6 @@ enum StrideTab: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String { rawValue }
 
-    /// SF Symbol counterpart of the Figma `Stride/Icon/*` glyph.
     var systemImage: String {
         switch self {
         case .home: "house"
@@ -21,9 +19,6 @@ enum StrideTab: String, CaseIterable, Identifiable {
     }
 }
 
-/// The Stride tab bar (Figma `Stride/Tab Bar`): four destinations split around a raised
-/// quick-log ⊕ FAB. Custom rather than `TabView` because the design deviates from the
-/// system bar — Aurora navy surface, hairline top border, and the overhanging glowing FAB.
 struct StrideTabBar: View {
     @Binding var selection: StrideTab
     let onQuickLog: () -> Void

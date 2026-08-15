@@ -1,9 +1,5 @@
 import SwiftUI
 
-/// A Team roster row (Figma `Stride/Member Row`, set `144:427`). Two structurally
-/// different states, so they're an enum: `.active` = monogram avatar (accent ring
-/// when it's you) + name + optional "You" tag + accent role badge; `.pending` =
-/// envelope avatar + invite email over expiry meta + muted role badge + revoke ✕.
 struct StrideMemberRow: View {
     enum MemberState {
         case active(name: String, initial: String, isYou: Bool = false)
@@ -33,19 +29,11 @@ struct StrideMemberRow: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Theme.Colors.textPrimary)
                     if isYou {
-                        Text("You")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Theme.Colors.accent)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Theme.Colors.accent.opacity(0.15))
-                            }
+                      StrideBadge(status: .informational, label: "You")
                     }
                 }
                 Spacer(minLength: Theme.Spacing.sm)
-                roleBadge(tint: Theme.Colors.accent)
+                StrideBadge(status: .informational, label: role)
 
             case .pending(let email, let meta, let onRevoke):
                 avatar(isYou: false) {
@@ -63,7 +51,7 @@ struct StrideMemberRow: View {
                 }
                 Spacer(minLength: Theme.Spacing.sm)
                 HStack(spacing: 10) {
-                    roleBadge(tint: Theme.Colors.textSecondary)
+                  StrideBadge(status: .muted, label: role)
                     if let onRevoke {
                         Button(action: onRevoke) {
                             Image(systemName: "xmark")
@@ -101,15 +89,6 @@ struct StrideMemberRow: View {
                     Circle().stroke(Theme.Colors.accent, lineWidth: 1.5)
                 }
             }
-    }
-
-    private func roleBadge(tint: Color) -> some View {
-        Text(role)
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(tint)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background { Capsule().fill(Theme.Colors.surfaceHi) }
     }
 }
 

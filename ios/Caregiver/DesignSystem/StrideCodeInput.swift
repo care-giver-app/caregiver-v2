@@ -1,10 +1,5 @@
 import SwiftUI
 
-/// The segmented one-time-code entry (Figma `Stride/Code Input`, 6 `Stride/Code
-/// Digit` cells). Interactive: one hidden text field drives the whole row, so the
-/// system number pad and one-time-code autofill work while the cells stay purely
-/// visual. The consumer owns the `code` string; input is sanitized to digits and
-/// capped at `length`. The focus ring sits on the next empty cell.
 struct StrideCodeInput: View {
     @Binding var code: String
     var length: Int = 6
@@ -54,8 +49,6 @@ struct StrideCodeInput: View {
     }
 }
 
-/// One cell of the code input: `surface` slab, frost hairline, 22pt digit; the
-/// focused cell adds a glowing accent ring.
 private struct StrideCodeDigit: View {
     let digit: String
     let isFocused: Bool
@@ -79,7 +72,6 @@ private struct StrideCodeDigit: View {
                 RoundedRectangle(cornerRadius: Metrics.radius)
                     .stroke(Theme.Colors.textSecondary.opacity(0.4), lineWidth: 1)
             }
-            .shadow(color: .black.opacity(0.28), radius: 2.5, y: 3)
             .overlay {
                 if isFocused {
                     RoundedRectangle(cornerRadius: Metrics.radius)

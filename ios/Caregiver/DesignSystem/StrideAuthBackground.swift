@@ -1,8 +1,5 @@
 import SwiftUI
 
-/// The auth-screen substrate (Figma auth frames `29:4`/`18:3`/…): a vertical
-/// `background → #e4edf9` arctic-light gradient, no glow accents — see
-/// ios/specs/design-system.md for the approved light-theme treatment.
 private struct StrideAuthBackgroundModifier: ViewModifier {
     func body(content: Content) -> some View {
         ZStack {
