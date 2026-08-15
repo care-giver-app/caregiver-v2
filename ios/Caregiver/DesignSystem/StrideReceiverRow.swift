@@ -1,9 +1,5 @@
 import SwiftUI
 
-/// A care-receiver row for the switch/add sheets (Figma `Stride/Receiver Row`, set
-/// `166:768`): 40pt hue-tinted monogram avatar + name over an age/detail line, with
-/// an accent checkmark when this receiver is the active one. Dumb row — the switch
-/// sheet wraps it in a `Button`.
 struct StrideReceiverRow: View {
     let name: String
     let detail: String

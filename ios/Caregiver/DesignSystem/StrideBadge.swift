@@ -22,7 +22,6 @@ struct StrideBadge: View {
     var icon: String? = nil
     let label: String
 
-    // Figma `Stride/Status Badge` (90:78): 11pt semibold on a 15% tint, radius 8.
     private static let shape = RoundedRectangle(cornerRadius: 8)
 
     var body: some View {

@@ -1,8 +1,5 @@
 import SwiftUI
 
-/// Wizard progress dots (Figma `StepDots`, frames 75:2/80:2/81:2): one pill per
-/// step, the current step elongated (20×6 capsule) and accent-filled, the rest
-/// 6×6 muted dots. Purely visual — step state lives in the consumer.
 struct StrideStepDots: View {
     let count: Int
     let current: Int

@@ -1,10 +1,5 @@
 import SwiftUI
 
-/// An add-tracker template picker card (Figma `Stride/Template Card`, set `174:948`),
-/// laid in a 2-column grid by the [[add-tracker]] wizard's choose-template step.
-/// `.template` = hue-tinted icon square + name + kind badge on a surface card;
-/// `.custom` = dashed-border card with a centered accent ⊕ "Custom". Fixed 146pt
-/// height so grid rows align. Dumb card — the wizard wraps it in a `Button`.
 struct StrideTemplateCard: View {
     enum Style {
         case template(name: String, kind: String, icon: String, hue: Color)

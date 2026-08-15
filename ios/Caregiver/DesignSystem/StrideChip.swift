@@ -1,9 +1,5 @@
 import SwiftUI
 
-/// A self-sizing filter/choice pill (Figma `Stride/Chip`): capsule with a 13pt label
-/// that hugs its width. Selected = accent-tinted fill + accent border/text; default =
-/// surface + border. A dumb pill — "exactly one selected" lives in the consumer row
-/// (Trackers filters, invite-sheet role picker), not here.
 struct StrideChip: View {
     let label: String
     var isSelected: Bool = false

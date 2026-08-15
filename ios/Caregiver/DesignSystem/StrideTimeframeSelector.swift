@@ -1,8 +1,5 @@
 import SwiftUI
 
-/// The analytics timeframes the Insights screen offers. Display order = declaration
-/// order. What `.custom` triggers (a date-range sheet) belongs to the consumer —
-/// the selector only reports selection.
 enum StrideTimeframe: CaseIterable {
     case week, month, threeMonths, year, custom
 
@@ -17,10 +14,6 @@ enum StrideTimeframe: CaseIterable {
     }
 }
 
-/// A five-segment timeframe control (Figma `Stride/Timeframe Selector`): equal-width
-/// segments on a surface track; the selected one is an accent pill with ink text.
-/// Custom rather than `Picker(.segmented)` — the Aurora track/pill/typography can't
-/// be reached through the system control (same rationale as `StrideTabBar`).
 struct StrideTimeframeSelector: View {
     @Binding var selection: StrideTimeframe
     @Namespace private var pillNamespace

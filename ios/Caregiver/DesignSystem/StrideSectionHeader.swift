@@ -1,9 +1,5 @@
 import SwiftUI
 
-/// A section label row (Figma `Stride/Section Header`): wide-tracked uppercase title
-/// on the left, optional accent action ("See all ›") pinned right. The component
-/// uppercases the title itself — callers pass natural-case strings. Transparent
-/// background; sits directly on the screen background.
 struct StrideSectionHeader: View {
     let title: String
     var actionLabel: String? = nil

@@ -1,10 +1,5 @@
 import SwiftUI
 
-/// A selectable tracker tile (Figma `Stride/Select Tile`): hue dot + name + trailing
-/// check ring, for picker grids (the quick-log wizard's "choose tracker" step).
-/// Selected swaps the ring for an accent-filled check and thickens the card border
-/// to 1.5pt accent. Like `StrideChip`, it's a dumb tile — selection state and
-/// single/multi rules live in the consumer.
 struct StrideSelectTile: View {
     let name: String
     let hue: Color

@@ -1,9 +1,5 @@
 import SwiftUI
 
-/// A filled mini area-sparkline with an endpoint dot (the `spark` slot of the
-/// Insight Card; no axes or labels). Values are normalized to the view's bounds —
-/// pass raw numbers. Drawn with `Path`, not Swift Charts: a chrome-less mini
-/// doesn't need axes, and this keeps it cheap inside scrolling card lists.
 struct StrideSparkline: View {
     let values: [Double]
     let hue: Color
@@ -48,10 +44,6 @@ struct StrideSparkline: View {
     }
 }
 
-/// The Insights overview card, one per tracker (Figma `Stride/Insight Card`):
-/// hue dot + name, a big count with its caption on the same baseline, a "latest"
-/// line, and a 100×44 hue sparkline pinned right. Dumb card — the consumer wraps
-/// it for the tap-to-drill-down.
 struct StrideInsightCard: View {
     let name: String
     let hue: Color

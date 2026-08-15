@@ -1,9 +1,5 @@
 import SwiftUI
 
-/// Aurora toggle treatment (Figma `Stride/Toggle`, set `156:572`) as a `ToggleStyle`,
-/// so call sites keep the system `Toggle`'s semantics (label, tap target, a11y,
-/// VoiceOver "on/off") and only the drawing is custom: 46×28 capsule track —
-/// `accent` on / `surfaceHi` off — with a snow thumb that slides on a spring.
 struct StrideToggleStyle: ToggleStyle {
     private enum Metrics {
         static let trackSize = CGSize(width: 46, height: 28)
