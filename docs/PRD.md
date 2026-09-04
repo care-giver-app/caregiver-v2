@@ -294,75 +294,91 @@ rather than values, and there is nothing in them to chart.
 
 ## UX flows
 
-These describe the paths a caregiver takes through the app, screen by screen. Each area gets its own
-subsection.
+The app is five areas. Each gets a subsection below holding three things: prose for why the area is
+built the way it is, a **Screens** catalogue stating every screen it owns, and the gaps still open in
+it.
+
+Every screen appears in exactly one catalogue, once. A screen reached from three places is still one
+entry, because it is one screen; where it is reached from is answered by the other screens' exits.
+The catalogues are written as data rather than prose so that they can be checked mechanically — that
+every destination names a screen that exists, that no screen is unreachable, and that none is a dead
+end. Each entry holds:
+
+| Field      | What it says                                                                  |
+| ---------- | ----------------------------------------------------------------------------- |
+| `screen`   | Its name, unique across the whole app.                                        |
+| `kind`     | How it is presented: `tab`, `push`, or `sheet`.                               |
+| `scope`    | What it is about, and what reloads when that changes.                         |
+| `contains` | What is on it.                                                                |
+| `exits`    | Every action that leaves it (below).                                          |
+| `empty`    | What it shows when there is nothing to show. Omitted when it cannot be empty. |
+| `open`     | Questions nobody has answered. Every one has a bullet under that area's gaps. |
+
+An exit is `action` (what the caregiver does), `to` (where it goes), and `as` (how). It carries `when`
+if it depends on a condition, and `admin: true` if only admins see it. An exit has exactly one
+destination — a choice between two is two exits with different `when`, because an implementer cannot
+build a single arrow that points at two screens.
+
+`as` is the part a diagram never tells you, and it is what decides what "back" does:
+
+| `as`    | What happens                                            | How you get back                         |
+| ------- | ------------------------------------------------------- | ---------------------------------------- |
+| `push`  | A new screen on top of the stack.                       | A back button.                           |
+| `sheet` | A card over the current screen, which is never lost.    | Dismiss, landing on what raised it.      |
+| `swap`  | Replaces the current screen rather than stacking on it. | Nothing — there is deliberately no back. |
+| `stays` | Nothing navigates; the screen updates where it stands.  | N/A.                                     |
+| `tab`   | Switches tabs. The stack you left is preserved.         | The original tab, where you left it.     |
+| `root`  | Discards the whole stack and starts again.              | Nothing — there is no stack left.        |
+| `out`   | Hands off to something outside the app.                 | iOS's business, not the app's.           |
+
+`???` marks something nobody has decided. It is a correct entry, not an unfinished one.
+
+The areas hand off to each other at a small number of points:
+
+```mermaid
+flowchart LR
+    GettingIn["Getting into the app<br/>landing · sign in · sign up<br/>join or create a team"]
+    Home["Home — tab<br/>one receiver, right now"]
+    Trackers["Trackers<br/>pushed from Home"]
+    Team["Team — tab<br/>teams · receivers · caregivers"]
+    Settings["Settings — tab<br/>your account, this device"]
+    Insights["Insights — tab<br/>deferred"]
+
+    GettingIn -- "signed in, or joined a team" --> Home
+    Home -- "All trackers · a gap alert" --> Trackers
+    Home -- "the header, to a care receiver" --> Team
+    Home -- "tab bar" --> Team
+    Home -- "tab bar" --> Settings
+    Home -- "tab bar" --> Insights
+    Team -- "pick a care receiver" --> Home
+    Settings -- "what you are told about" --> Team
+```
+
+Home, Team, Settings, and Insights are the four tabs. Trackers has no tab of its own and is pushed
+from inside Home, because it is about one care receiver and Home is where a receiver is being looked
+at. **Insights is deferred** and its catalogue is a placeholder, so that nothing points at a screen
+this document does not describe.
 
 ### Getting into the app
 
 Everything before Home: creating an account, signing back in, and landing somewhere once the app
-knows who you are. One diagram per flow — each box is one screen and lists what it contains, each
-arrow is the action that leaves it. Shaded boxes are handoffs — screens that belong to another
-diagram, where the flow carries on — and **Signed in** is the point these three share.
+knows who you are.
 
-Reaching Signed in is not quite the end: the app settles the caregiver's identity and care teams
-there, and that is what decides where they land. The same resolution runs at launch, so a returning
-caregiver whose session is still good goes straight to Home without passing through Landing at all.
+Reaching **signed in** is not quite the end. It is a resolution rather than a screen: the app settles
+the caregiver's identity and care teams there, and that is what decides where they land — Home if
+they belong to a care team, Join a care team if they do not. The same resolution runs at launch, so a
+returning caregiver whose session is still good goes straight to Home without passing through Landing
+at all.
 
-**Signing in.** A returning caregiver, and everything they can reach without abandoning the attempt.
+**Signing in.** Landing is a pure entry point: once past it, a caregiver crosses between Sign in and
+Sign up directly rather than going back, which is why those two swap rather than stack. Confirm code
+and Reset password are sheets over the screen that raised them, so the form underneath is never lost
+— and Reset password changes in place rather than navigating, taking an email and then swapping to a
+code and a new password, ending back at Sign in rather than signing the caregiver in on its own.
 
-```mermaid
-flowchart TD
-    Landing["Landing<br/>brand, tagline<br/>contact support"]
-    SignIn["Sign in<br/>email, password<br/>remember me"]
-    Reset["Reset password<br/>email, then code and new password"]
-    Confirm["Confirm code<br/>6-digit code sent to your email"]
-    SignUp["Sign up"]
-    SignedIn(["Signed in"])
-
-    Landing -- "Sign in" --> SignIn
-    SignIn -- "Sign in, or Face ID" --> SignedIn
-    SignIn -- "email not confirmed" --> Confirm
-    Confirm -- "Resend" --> Confirm
-    Confirm -- "Confirm" --> SignedIn
-    SignIn -- "Forgot password?" --> Reset
-    Reset -- "Set new password" --> SignIn
-    SignIn -- "Create account" --> SignUp
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class SignUp,SignedIn handoff
-```
-
-Landing is a pure entry point: once past it, a caregiver crosses between Sign in and Sign up directly
-rather than going back. Confirm code and Reset password are sheets over the screen that raised them,
-so the form underneath is never lost — and Reset password changes in place rather than navigating,
-taking an email and then swapping to a code and a new password, ending back at Sign in rather than
-signing the caregiver in on its own.
-
-**Signing up.** A new caregiver, from the entry screen to an account that exists and is confirmed.
-
-```mermaid
-flowchart TD
-    Landing["Landing<br/>brand, tagline<br/>contact support"]
-    SignUp["Sign up<br/>first and last name, email<br/>password, confirm password<br/>terms and privacy"]
-    Confirm["Confirm code<br/>6-digit code sent to your email"]
-    SignIn["Sign in"]
-    SignedIn(["Signed in"])
-
-    Landing -- "Create account" --> SignUp
-    SignUp -- "Create account" --> Confirm
-    SignUp -- "address already confirmed" --> SignIn
-    SignUp -- "address never confirmed" --> Confirm
-    Confirm -- "Resend" --> Confirm
-    Confirm -- "Confirm" --> SignedIn
-    SignUp -- "Sign in" --> SignIn
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class SignIn,SignedIn handoff
-```
-
-Confirming the code signs the caregiver in without asking for the password a second time, so signing
-up ends in the same place signing in does — and a caregiver who turns out to already have an account
-leaves through the cross-link rather than by going back to Landing.
+**Signing up.** Confirming the code signs the caregiver in without asking for the password a second
+time, so signing up ends in the same place signing in does — and a caregiver who turns out to already
+have an account leaves through the cross-link rather than by going back to Landing.
 
 An address that already has an account is answered by which kind of account it is. A confirmed one
 sends the caregiver to Sign in, because signing in is what they were trying to do. One created but
@@ -370,30 +386,10 @@ never confirmed sends them to Confirm code with a fresh code, because finishing 
 trying to do. Saying only that the address is taken would strand the second kind at the one screen
 that cannot help them, which is the trap an abandoned signup already falls into.
 
-**Signed in, no care team.** Where a caregiver lands when their account exists but belongs to nothing
-yet — either because they were invited, or because they are the one starting a team.
-
-```mermaid
-flowchart TD
-    SignedIn(["Signed in"])
-    Join["Join a care team<br/>invitations waiting for your email<br/>paste an invite code"]
-    FirstTeam["Create your first care team<br/>welcome, care team name"]
-    Home["Home"]
-
-    SignedIn -- "on a care team" --> Home
-    SignedIn -- "no care team" --> Join
-    Join -. "Accept" .-> Home
-    Join -. "Create a team instead" .-> FirstTeam
-    FirstTeam -- "Create team" --> Home
-    Join -- "invalid, expired, or used" --> Join
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class SignedIn,Home handoff
-```
-
-Join a care team is where a caregiver accepts an invitation waiting for their email or pastes an
-invite code, with creating a team offered as the alternative rather than the only option. Accepting
-an admin-role invitation additionally requires signing in with the address it was sent to.
+**Signed in with no care team.** Join a care team is where a caregiver accepts an invitation waiting
+for their email or pastes an invite code, with creating a team offered as the alternative rather than
+the only option. Accepting an admin-role invitation additionally requires signing in with the address
+it was sent to.
 
 Two behaviors have no screen of their own. **Remember me** stores the email address only and prefills
 it on the next launch. **Face ID** is offered once, in a sheet the first time a caregiver reaches
@@ -401,12 +397,222 @@ Home on a device that supports it; from then on the credentials live in the devi
 prompt comes up automatically whenever a session lapses on its own — but never after a deliberate
 sign out, which is a caregiver saying they want out.
 
+#### Screens
+
+```yaml
+- screen: Landing
+  kind: push
+  scope: >
+    nothing; the app before it knows who you are. Shown only when no session is
+    live — a returning caregiver with a good session never sees it
+  contains:
+    - brand and tagline
+    - Sign in
+    - Create account
+    - contact support
+  exits:
+    - action: Sign in
+      to: Sign in
+      as: push
+    - action: Create account
+      to: Sign up
+      as: push
+    - action: contact support
+      to: ???
+      as: ???
+  open:
+    - what contact support does — mail app, web page, or a form inside the app
+
+- screen: Sign in
+  kind: push
+  scope: nothing; no caregiver is known yet
+  contains:
+    - email, prefilled from Remember me
+    - password
+    - remember me
+    - Face ID, when the device has it and credentials are stored
+    - Forgot password?
+    - Create account
+  exits:
+    - action: Sign in, or Face ID
+      when: you belong to a care team
+      to: Home
+      as: root
+    - action: Sign in, or Face ID
+      when: you belong to no care team
+      to: Join a care team
+      as: root
+    - action: email not confirmed
+      to: Confirm code
+      as: sheet
+    - action: Forgot password?
+      to: Reset password
+      as: sheet
+    - action: Create account
+      to: Sign up
+      as: swap
+  open:
+    - >
+      a wrong password, an unknown address, or an account locked after repeated
+      attempts — nothing says what a failed sign in shows or where it leaves you
+
+- screen: Sign up
+  kind: push
+  scope: nothing; no caregiver is known yet
+  contains:
+    - first and last name
+    - email
+    - password
+    - confirm password
+    - terms and privacy
+    - Sign in
+  exits:
+    - action: Create account
+      to: Confirm code
+      as: sheet
+    - action: Create account
+      when: the address already has a confirmed account
+      to: Sign in
+      as: swap
+    - action: Create account
+      when: the address has an account that was never confirmed
+      to: Confirm code, with a fresh code sent
+      as: sheet
+    - action: Sign in
+      to: Sign in
+      as: swap
+
+- screen: Confirm code
+  kind: sheet
+  scope: >
+    the address being confirmed; raised over Sign in or Sign up, and dismissing
+    returns to whichever raised it
+  contains:
+    - 6-digit code sent to your email
+    - the address it was sent to
+    - Resend
+  exits:
+    - action: Confirm
+      when: you belong to a care team
+      to: Home
+      as: root
+    - action: Confirm
+      when: you belong to no care team
+      to: Join a care team
+      as: root
+    - action: Resend
+      to: Confirm code
+      as: stays
+    - action: dismiss
+      to: the screen that raised it
+      as: back
+  open:
+    - >
+      a wrong or expired code, and whether the attempts or the resends are
+      limited
+
+- screen: Reset password
+  kind: sheet
+  scope: >
+    one email address; raised over Sign in, and where it ends. It changes in
+    place rather than navigating — first the address, then the code and a new
+    password
+  contains:
+    - email address
+    - then, in place, the code sent to it and a new password
+  exits:
+    - action: Set new password
+      to: Sign in, not signed in
+      as: back
+    - action: dismiss
+      to: Sign in
+      as: back
+  open:
+    - a wrong or expired code
+    - >
+      whether an address with no account is told so, or answered the same way a
+      known one is
+
+- screen: Join a care team
+  kind: push
+  scope: the signed-in caregiver, when they belong to no care team
+  contains:
+    - invitations waiting for your email, each with its care team and your role
+    - paste an invite code
+    - create a team instead
+  exits:
+    - action: Accept an invitation
+      to: Home
+      as: root
+    - action: paste a valid invite code
+      to: Home
+      as: root
+    - action: paste a code that is invalid, expired, or already used
+      to: Join a care team
+      as: stays
+    - action: Create a team instead
+      to: Create your first care team
+      as: push
+  empty: >
+    no invitations waiting — the screen is the invite-code field and the offer to
+    create a team
+  open:
+    - an admin-role invitation opened from an address other than the one it was sent to
+    - an invitation to a care team the caregiver already belongs to
+
+- screen: Create your first care team
+  kind: push
+  scope: the signed-in caregiver, when they belong to no care team
+  contains:
+    - welcome
+    - care team name
+  exits:
+    - action: Create team
+      to: Home
+      as: root
+  open:
+    - >
+      the Home this lands on has no care receiver, and no screen describes that
+      state
+
+- screen: Offer Face ID
+  kind: sheet
+  scope: >
+    this device; raised over Home the first time a caregiver reaches it on a
+    device that supports Face ID, and never raised again. Afterwards it is a
+    switch in Settings
+  contains:
+    - what Face ID will do
+    - Enable
+    - Not now
+  exits:
+    - action: Enable
+      to: Home, with the credentials stored
+      as: back
+    - action: Not now
+      to: Home
+      as: back
+```
+
 #### Gaps in this flow
 
-- **Only the happy path through an invitation is drawn.** An invite code can be expired, already
+- **Only the happy path through an invitation is described.** An invite code can be expired, already
   used, meant for a team the caregiver already belongs to, or an admin invitation opened from the
-  wrong address, and each of those needs a place to land. The Team tab takes codes and waiting
-  invitations too, so both screens are owed the same answers.
+  wrong address. Join a care team answers only the first two, and then only as "an error". The Team
+  tab takes codes and waiting invitations too, so both screens are owed the same answers.
+- **Nothing describes a sign in that fails.** A wrong password, an address with no account, and an
+  account locked after repeated attempts all leave the caregiver on Sign in with nothing said about
+  what they are told or what they can do next — and the third is the one that needs a way out.
+- **A wrong or expired code has no screen.** Confirm code and Reset password both take a six-digit
+  code and both assume it is right. Whether a bad code is answered in place, whether attempts are
+  limited, and whether resending is limited are all unanswered, on the two screens standing between
+  a caregiver and their account.
+- **Contact support leads nowhere described.** Landing offers it, which makes it the only route a
+  caregiver locked out of their account has. Whether it opens the mail app, a web page, or a form
+  inside the app decides whether that route works at all.
+- **Creating a first care team lands on an undescribed Home.** A team made a moment ago has no care
+  receiver, and what Home shows in that state is recorded as a gap under Home — but this is the flow
+  that reaches it first, and a caregiver's very first look at the app is the one this decides.
 
 ### Home
 
@@ -442,25 +648,9 @@ otherwise.
 
 Home holds the receiver's name with the care team, who is on duty, whatever needs attention, a
 coming up banner, the daily timeline, and a link to all of the receiver's trackers. Pulling down
-refreshes the whole screen. The paths through it are drawn one at a time below, and each diagram
-shows only the part of Home its flow begins from.
+refreshes the whole screen.
 
 **The active care receiver.** Who Home is about, and the trackers that belong to them.
-
-```mermaid
-flowchart LR
-    Home["Home<br/>receiver name, care team<br/>who is on duty · all trackers"]
-    Receiver["Care receiver"]
-    Team["Team"]
-    Trackers["Trackers"]
-
-    Home -- "the header" --> Receiver
-    Team -- "pick a receiver" --> Home
-    Home -- "All trackers" --> Trackers
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class Receiver,Team,Trackers handoff
-```
 
 Home has no receiver switcher of its own, and its header does not lead to one. Tapping the header
 opens the care receiver — their instructions, who to call, who is meant to be there — because a
@@ -475,22 +665,6 @@ destination here; what it holds is described in its own section.
 
 **Needs attention.** What is wrong right now, and where each kind of trouble leads.
 
-```mermaid
-flowchart LR
-    Home["Home<br/>needs attention"]
-    TrackerDetail["Tracker detail"]
-    Entry["Entry detail"]
-    Trackers["Trackers"]
-
-    Home -- "a reading outside its range" --> Entry
-    Home -- "missed care" --> Entry
-    Home -- "a tracker past its gap" --> TrackerDetail
-    Home -- "how many altogether" --> Trackers
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class TrackerDetail,Entry,Trackers handoff
-```
-
 A reading outside its range leads to the entry that carries it, and missed care to the entry that is
 waiting — both are a single entry a caregiver can act on, the first to correct or confirm the
 reading, the second to log or skip the care. A gap alert has no entry to lead to, because it is
@@ -502,19 +676,6 @@ already on, so the three Home has room for are never the only three a caregiver 
 
 **Coming up.** What is due next.
 
-```mermaid
-flowchart LR
-    Home["Home<br/>coming up banner"]
-    ComingUp["Coming up<br/>upcoming scheduled entries<br/>this week, later"]
-    Entry["Entry detail<br/>log it, or skip it"]
-
-    Home -- "coming up banner" --> ComingUp
-    ComingUp -- "an upcoming entry" --> Entry
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class Entry handoff
-```
-
 Coming up is a pushed screen. An entry opened from it leads to the entry itself rather than to its
 tracker, so what a caregiver is looking at is the thing they can act on. A reminder tapped from
 outside the app lands in the same place — the scheduled entry it is about, ready to be logged or
@@ -522,35 +683,6 @@ skipped — because someone who has just been told a dose is due should arrive a
 at a screen about it.
 
 **The daily timeline.** What has already happened, a day at a time.
-
-```mermaid
-flowchart LR
-    Home["Home<br/>daily timeline"]
-    JumpToDay["Jump to day<br/>calendar"]
-    Entry["Entry detail<br/>tracker, state, time, who logged or skipped it<br/>who changed it last · field values, note<br/>any value outside its range · the schedule it came from"]
-    EditEntry["Edit entry<br/>the tracker's fields, when, note"]
-    ConfirmDelete["Delete this entry?<br/>what deleting it will leave behind"]
-    JournalNote["Journal note<br/>who wrote it, when<br/>who changed it last"]
-    EditNote["Edit journal note<br/>the note, when"]
-    ConfirmDeleteNote["Delete this note?"]
-
-    Home -- "an entry in the timeline" --> Entry
-    Home -- "a journal note in the timeline" --> JournalNote
-    Home -- "calendar" --> JumpToDay
-    JumpToDay -- "Done" --> Home
-    Entry -- "Edit (logged)" --> EditEntry
-    EditEntry -- "Save" --> Entry
-    Entry -- "Log it / Skip (scheduled or missed)" --> Entry
-    Entry -- "Delete" --> ConfirmDelete
-    ConfirmDelete -- "Cancel" --> Entry
-    ConfirmDelete -- "Delete, fulfilled a schedule" --> Entry
-    ConfirmDelete -- "Delete, logged ad hoc" --> Home
-    JournalNote -- "Edit" --> EditNote
-    EditNote -- "Save" --> JournalNote
-    JournalNote -- "Delete" --> ConfirmDeleteNote
-    ConfirmDeleteNote -- "Cancel" --> JournalNote
-    ConfirmDeleteNote -- "Delete" --> Home
-```
 
 Entry detail is the one screen any entry is read on, whatever state it is in, because an entry that
 is scheduled this morning and logged this evening is the same entry and should not change address
@@ -584,24 +716,6 @@ as many taps as the way in.
 
 **The tab bar.** Logging, and leaving Home for another tab.
 
-```mermaid
-flowchart LR
-    Home["Home"]
-    QuickLog["Quick log<br/>pick trackers and a journal note<br/>when, once for the run<br/>a step for each · results"]
-    Insights["Insights"]
-    Team["Team"]
-    Settings["Settings"]
-
-    Home -- "⊕ log" --> QuickLog
-    QuickLog -- "Done" --> Home
-    Home -- "tab bar" --> Insights
-    Home -- "tab bar" --> Team
-    Home -- "tab bar" --> Settings
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class Insights,Team,Settings handoff
-```
-
 The ⊕ button sits in the tab bar and opens Quick log, one sheet that runs in three parts: what to
 record, when it happened, and then a step for each thing picked, ending in a result. Trackers are
 picked from the active care receiver's list, several at once, and a journal note is picked from that
@@ -633,11 +747,324 @@ caregiver who has just entered five things needs to know which of them landed. A
 to a Home that already reflects the new entries; a planning run returns to a Home where they sit
 under what is coming up rather than in the day behind it.
 
+#### Screens
+
+```yaml
+- screen: Home
+  kind: tab
+  scope: >
+    the active care receiver; switching receivers reloads the whole screen.
+    Nothing here is ever dismissed — what it shows is the state of the care
+  contains:
+    - the receiver's name with their care team
+    - who is on duty, when the team keeps a roster
+    - >
+      what needs attention: at most three, ordered missed care first, then
+      readings outside their range, then trackers past their gap, with a count
+      of how many there are altogether
+    - a coming up banner
+    - >
+      the daily timeline for one day — entries and journal notes together, in
+      time order
+    - >
+      the date, with a day stepper that walks back a day at a time and stops at
+      today, and a Today button whenever the day shown is not today
+    - All trackers
+  exits:
+    - action: the header
+      to: Care receiver
+      as: push
+    - action: a reading outside its range
+      to: Entry detail
+      as: push
+    - action: missed care
+      to: Entry detail
+      as: push
+    - action: a tracker past its gap
+      to: Tracker detail
+      as: push
+    - action: how many need attention altogether
+      to: Trackers, with the needs-attention filter already on
+      as: push
+    - action: the coming up banner
+      to: Coming up
+      as: push
+    - action: an entry in the timeline
+      to: Entry detail
+      as: push
+    - action: a journal note in the timeline
+      to: Journal note
+      as: push
+    - action: the calendar
+      to: Jump to day
+      as: sheet
+    - action: the ⊕ button in the tab bar
+      to: Quick log
+      as: sheet
+    - action: the tab bar
+      to: Insights
+      as: tab
+    - action: the tab bar
+      to: Team
+      as: tab
+    - action: the tab bar
+      to: Settings
+      as: tab
+    - action: step a day back, or forward as far as today
+      to: Home, showing that day
+      as: stays
+    - action: Today
+      to: Home, showing today
+      as: stays
+    - action: pull down
+      to: Home, refreshed
+      as: stays
+    - action: >
+        reaching Home for the first time on a device that supports Face ID, with
+        no choice yet made
+      to: Offer Face ID
+      as: sheet
+  empty:
+    - >
+      nothing needs attention — Home says so plainly rather than leaving a space
+      where a warning would be
+    - nothing logged on the day shown — ???
+    - the care receiver has no trackers — ???
+    - there is no care receiver at all — ???
+  open:
+    - >
+      what Home shows before any care receiver exists, and whether it should
+      send the caregiver to add one
+    - >
+      what the timeline shows on a day nobody logged anything, which is most
+      days for most teams
+
+- screen: Coming up
+  kind: push
+  scope: the active care receiver
+  contains:
+    - >
+      upcoming scheduled entries in two groups, this week and later, each with
+      its tracker, its time, and the schedule it came from
+  exits:
+    - action: an upcoming entry
+      to: Entry detail
+      as: push
+  empty: nothing is scheduled ahead — ???
+  open:
+    - >
+      what Coming up shows when nothing is scheduled, which is the ordinary
+      state for a team that logs everything ad hoc
+
+- screen: Jump to day
+  kind: sheet
+  scope: which day the timeline on Home is showing
+  contains:
+    - a calendar
+  exits:
+    - action: pick a day
+      to: Jump to day, with that day selected
+      as: stays
+    - action: Done
+      to: Home, showing the day picked
+      as: back
+  open:
+    - >
+      whether days ahead of today can be picked. The day stepper deliberately
+      stops at today, and a calendar that does not would be a second door onto
+      a screen the timeline refuses to show
+
+- screen: Entry detail
+  kind: push
+  scope: >
+    one entry, in whatever state it is in. It is the one screen any entry is
+    read on, because an entry scheduled this morning and logged this evening is
+    the same entry and should not change address when it changes state
+  contains:
+    - its tracker, its state, and its time
+    - who logged or skipped it, and when
+    - who changed it last and when, if it has been changed
+    - its field values and its note
+    - >
+      any value that fell outside its range, named alongside the range it was
+      expected to hold to
+    - the schedule it came from, when it came from one
+  exits:
+    - action: Log it
+      when: the entry is scheduled or missed
+      to: Entry detail, now logged
+      as: stays
+    - action: Skip
+      when: the entry is scheduled or missed
+      to: Entry detail, now skipped
+      as: stays
+    - action: Edit
+      when: the entry is logged
+      to: Edit entry
+      as: sheet
+    - action: Edit
+      when: the entry is skipped, and editing it logs the care after all
+      to: Edit entry
+      as: sheet
+    - action: Delete
+      when: the entry is logged or skipped
+      to: Delete this entry?
+      as: sheet
+  open:
+    - >
+      a scheduled entry made by hand cannot be changed once it is made — not its
+      time, not its pre-filled values, not whether being missed should alert
+      anyone
+
+- screen: Edit entry
+  kind: sheet
+  scope: >
+    one entry; raised over Entry detail rather than pushed, because a caregiver
+    correcting a digit is not going somewhere
+  contains:
+    - the tracker's fields, as they were logged
+    - when it occurred
+    - the note
+  exits:
+    - action: Save
+      to: Entry detail
+      as: back
+    - action: Save, having moved the entry to another day
+      to: Entry detail, with the timeline behind it now on that day
+      as: back
+    - action: Cancel
+      to: Entry detail
+      as: back
+
+- screen: Delete this entry?
+  kind: sheet
+  scope: one entry
+  contains:
+    - >
+      what deleting will leave behind, which differs — an entry logged ad hoc is
+      simply gone, while one that fulfilled a scheduled entry leaves that
+      occurrence waiting again
+  exits:
+    - action: Cancel
+      to: Entry detail
+      as: back
+    - action: Delete
+      when: the entry fulfilled a scheduled entry
+      to: Entry detail, now scheduled again, or missed if its time has passed
+      as: back
+    - action: Delete
+      when: the entry was logged ad hoc, so there is nothing left to show
+      to: Home
+      as: back
+
+- screen: Journal note
+  kind: push
+  scope: one journal note
+  contains:
+    - the note
+    - who wrote it, and the time it is about
+    - who changed it last and when, if it has been changed
+  exits:
+    - action: Edit
+      to: Edit journal note
+      as: sheet
+    - action: Delete
+      to: Delete this note?
+      as: sheet
+
+- screen: Edit journal note
+  kind: sheet
+  scope: one journal note
+  contains:
+    - the note
+    - when it is about
+  exits:
+    - action: Save
+      to: Journal note
+      as: back
+    - action: Cancel
+      to: Journal note
+      as: back
+
+- screen: Delete this note?
+  kind: sheet
+  scope: one journal note
+  contains:
+    - that the note will be gone
+  exits:
+    - action: Cancel
+      to: Journal note
+      as: back
+    - action: Delete
+      to: Home
+      as: back
+
+- screen: Quick log
+  kind: sheet
+  scope: >
+    the active care receiver. One sheet that runs in three parts — what to
+    record, when it happened, then a step for each thing picked — and ends on a
+    result
+  contains:
+    - >
+      what to record: the receiver's active trackers, several at once, and a
+      journal note picked from that same list
+    - >
+      when, asked once for the whole run: now, an earlier time today, or a
+      future time. A run given a future time is planning rather than logging,
+      and creates scheduled entries
+    - >
+      whether the team should be told if the care is missed — asked once, and
+      only when the time is in the future
+    - a step for each thing picked, pre-filling rather than recording when the run is planning
+    - >
+      a result reporting item by item, since some may save while others do not
+  exits:
+    - action: Done, after a logging run
+      to: Home, with the new entries in the day behind it
+      as: back
+    - action: Done, after a planning run
+      to: Home, with the new entries under what is coming up
+      as: back
+    - action: Cancel
+      to: Home
+      as: back
+  empty: the care receiver has no active trackers — ???
+  open:
+    - >
+      whether a caregiver can step back to an earlier part of the run, or only
+      forward
+    - >
+      nothing catches an ad-hoc log that lands near a scheduled one, so the
+      offer to fulfil it has no screen
+    - >
+      what the picker offers a receiver with no active trackers, when a journal
+      note is the only thing left to pick
+```
+
 #### Gaps in this flow
 
+- **Home with no care receiver has no described screen.** Team offers Add care receiver, so the
+  first caregiver has somewhere to go; what Home itself shows before any receiver exists, and
+  whether it should send them there, decides what their very first look at the app feels like. A
+  receiver who exists but has no trackers is answered on the Trackers list.
+- **A day with nothing logged is undescribed, and it is the ordinary day.** The timeline is the
+  bulk of Home and most teams do not log every day, so what a caregiver sees when they step back to
+  a quiet Tuesday is a state the app will spend most of its time in.
+- **Coming up with nothing scheduled is undescribed**, for the same reason: a team that logs
+  everything ad hoc has no scheduled entries at all, and the banner and the screen behind it both
+  have to say something.
+- **Jump to day does not say whether days ahead of today can be picked.** The day stepper
+  deliberately stops at today, so a calendar that allows tomorrow would be a second door onto a day
+  the timeline refuses to show.
 - **Nothing here catches an ad-hoc log that lands near a scheduled one.** A caregiver logging a dose
   twenty minutes before it was due is meant to be offered the chance to fulfil it; that offer has no
   screen, so the two records simply coexist.
+- **Quick log does not say whether a caregiver can go back a step.** The run has three parts and
+  several steps, and a caregiver who picked the wrong tracker or the wrong time has no described way
+  to return to that choice.
+- **Quick log with nothing to pick is undescribed.** A receiver with no active trackers — a new one,
+  or one whose trackers are all paused — leaves the picker holding only a journal note.
 - **A one-off scheduled entry cannot be changed once it is made.** Quick log creates one — an
   appointment next Tuesday, a dose planned for the evening — but nothing afterward changes its time,
   its pre-filled values, or whether being missed should alert anyone. Entry detail offers a scheduled
@@ -647,11 +1074,8 @@ under what is coming up rather than in the day behind it.
   likely to need to call someone, and the one moment they should not have to go looking.
 - **A point on a chart does not open its entry.** The timeline, needs attention, Coming up, and a
   tracker's own list all lead to Entry detail, but a reading a caregiver has picked out of an insight
-  is an entry they are looking at with no way to open it.
-- **Home with no care receiver has no described screen.** Team offers Add care receiver, so the
-  first caregiver has somewhere to go; what Home itself shows before any receiver exists, and
-  whether it should send them there, decides what their very first look at the app feels like. A
-  receiver who exists but has no trackers is answered on the Trackers list.
+  is an entry they are looking at with no way to open it. Insights is deferred, so this waits with
+  it.
 
 ### Trackers
 
@@ -661,23 +1085,6 @@ trackers" from the receiver header, and a gap alert from needs attention, which 
 tracker that has gone quiet.
 
 **The list.** Every tracker belonging to the active care receiver.
-
-```mermaid
-flowchart LR
-    Home["Home"]
-    Trackers["Trackers<br/>active trackers, then paused<br/>each with its name and last entry<br/>needs-attention filter · Add a tracker"]
-    Detail["Tracker detail"]
-    AddTracker["Add tracker"]
-
-    Home -- "All trackers" --> Trackers
-    Trackers -- "a tracker, active or paused" --> Detail
-    Trackers -- "Needs attention" --> Trackers
-    Trackers -- "Add a tracker (admins)" --> AddTracker
-    AddTracker -- "Create" --> Detail
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class Home,AddTracker handoff
-```
 
 Trackers answers what a team is keeping track of for this person. It is scoped to the active care
 receiver like everything else reached from Home, and switching receivers reloads it.
@@ -708,27 +1115,6 @@ receiver with no trackers at all is offered the first one instead of an empty sc
 what to keep track of is what a team does immediately after adding someone to care for.
 
 **Tracker detail.** What one tracker is, and everything logged against it.
-
-```mermaid
-flowchart LR
-    Trackers["Trackers"]
-    Detail["Tracker detail<br/>name, icon, what it collects<br/>schedules or gap · anything wrong now<br/>entries, newest first"]
-    Entry["Entry detail"]
-    Edit["Edit tracker<br/>fields on or paused, add a field<br/>schedules, thresholds, Pause"]
-    ConfirmPause["Pause this tracker?<br/>what stops, and what is kept"]
-
-    Trackers -- "a tracker" --> Detail
-    Detail -- "an entry" --> Entry
-    Detail -- "Edit (admins)" --> Edit
-    Detail -- "Resume (admins, when paused)" --> Detail
-    Edit -- "Save" --> Detail
-    Edit -- "Pause tracker" --> ConfirmPause
-    ConfirmPause -- "Cancel" --> Edit
-    ConfirmPause -- "Pause" --> Trackers
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class Entry,Trackers handoff
-```
 
 Tracker detail is the only screen that shows a tracker whole. Home's timeline is one day across every
 tracker and an insight is one shape drawn from many entries; this is one tracker, all of it, newest
@@ -767,14 +1153,184 @@ and the confirmation is there to promise that nothing is lost; resuming promises
 puts a tracker back the way it was, and a question whose answer is always yes teaches people to stop
 reading questions.
 
+#### Screens
+
+```yaml
+- screen: Trackers
+  kind: push
+  scope: >
+    the active care receiver; switching receivers reloads it. Reached from Home
+    two ways — All trackers from the receiver header, and the count of
+    everything needing attention
+  contains:
+    - >
+      active trackers first and paused ones after, in two labelled groups,
+      alphabetical within each group and staying there
+    - >
+      each row: the tracker's name, and how long it has been since anything was
+      logged against it
+    - >
+      each row marks what is wrong — a value out of range, a gap run past, care
+      gone missed
+    - >
+      a paused tracker's row says when it was paused instead, since how long ago
+      it was last logged stopped meaning anything
+    - >
+      a needs-attention filter, off every time the screen is opened, and with it
+      on the paused group disappears entirely
+    - Add a tracker — admins only
+  exits:
+    - action: a tracker, active or paused
+      to: Tracker detail
+      as: push
+    - action: Needs attention
+      to: Trackers, narrowed to the trackers in trouble
+      as: stays
+    - action: Add a tracker
+      admin: true
+      to: Add tracker
+      as: ???
+  empty: >
+    the care receiver has no trackers at all — the screen offers the first one
+    rather than showing an empty list
+  open:
+    - whether Add tracker is pushed or raised as a sheet
+
+- screen: Tracker detail
+  kind: push
+  scope: >
+    one tracker, whole. The only screen that shows a tracker entire — Home's
+    timeline is one day across every tracker, and an insight is one shape drawn
+    from many entries
+  contains:
+    - its name and icon, and what it collects, including the fields that are paused
+    - its schedules, or its gap
+    - >
+      whether anything is wrong right now — and for a gap alert, how long it has
+      gone unlogged against how long the team said was acceptable, since this is
+      where a gap alert lands
+    - >
+      its entries, newest first, holding logged, missed and skipped together,
+      because a run of logged doses tells the truth only when the missed ones sit
+      between them
+    - >
+      the most recent stretch first, loading more as a caregiver scrolls rather
+      than claiming to show a year of entries at once
+    - >
+      when paused: the screen reads as paused, offers no way to log against it,
+      and offers Resume, which says what will start again before it is pressed
+  exits:
+    - action: an entry
+      to: Entry detail
+      as: push
+    - action: Edit
+      admin: true
+      to: Edit tracker
+      as: sheet
+    - action: Resume
+      admin: true
+      when: the tracker is paused
+      to: Tracker detail, active again
+      as: stays
+  empty: the tracker has never been logged — ???
+  open:
+    - >
+      what a tracker with no entries shows, which is every tracker on the day it
+      is created
+
+- screen: Add tracker
+  kind: ???
+  scope: a new tracker for the active care receiver; admins only
+  contains:
+    - ???
+  exits:
+    - action: Create
+      to: Tracker detail, on the tracker just made
+      as: ???
+    - action: Cancel
+      to: Trackers
+      as: ???
+  open:
+    - >
+      the whole screen is undescribed — what it asks for, in what order, and
+      whether a tracker is built field by field or started from a template
+    - how a tracker template becomes a tracker
+
+- screen: Edit tracker
+  kind: sheet
+  scope: >
+    one tracker; admins only. A sheet over Tracker detail rather than a screen
+    of its own
+  contains:
+    - its fields, each on or paused, and a way to add a field
+    - its schedules
+    - >
+      its thresholds — a range on a numeric field, or a gap on the tracker as a
+      whole
+    - >
+      the rule that a tracker has schedules or a gap but never both, enforced
+      here, telling an admin what they are about to lose
+    - Pause tracker
+  exits:
+    - action: Save
+      to: Tracker detail
+      as: back
+    - action: Cancel
+      to: Tracker detail
+      as: back
+    - action: Pause tracker
+      to: Pause this tracker?
+      as: sheet
+    - action: add a field
+      to: ???
+      as: ???
+    - action: add or change a schedule
+      to: ???
+      as: ???
+  open:
+    - >
+      adding a field is offered but not described — what names a field, chooses
+      its type, sets its options or its unit, and marks it required
+    - >
+      adding or changing a schedule is not described either, and a tracker can
+      have any number of them, each with a rule, pre-filled values, a label, and
+      an optional end date
+
+- screen: Pause this tracker?
+  kind: sheet
+  scope: one tracker
+  contains:
+    - >
+      what stops — no new entries, schedules stop generating, thresholds stop
+      raising alerts, and it leaves both Home and the logging picker
+    - >
+      what is kept — every entry ever logged against it, in the timelines it
+      appeared in and the insights it fed
+  exits:
+    - action: Cancel
+      to: Edit tracker
+      as: back
+    - action: Pause
+      to: Trackers
+      as: back
+```
+
 #### Gaps in this flow
 
 - **What Add a tracker opens is undescribed.** The Trackers list offers it and creating one lands on
-  the new tracker, but nothing says what the screen in between holds, or how a tracker template
-  becomes a tracker.
+  the new tracker, but nothing says what the screen in between holds, how a tracker template becomes
+  a tracker, or whether it is pushed or raised as a sheet.
+- **Adding a field has no screen.** Edit tracker offers it, and a field is the thing a tracker is
+  made of — it needs a name, a type, whether it is required, and for a choice field a list of
+  options. None of that is described anywhere.
+- **Adding or changing a schedule has no screen either.** A tracker can have any number of
+  schedules, each carrying a recurrence, the values it pre-fills, an optional label, and an optional
+  end date. Edit tracker lists them; nothing says how one is made.
+- **A tracker with no entries is undescribed.** Every tracker passes through that state on the day
+  it is created, and a gap threshold starts counting from that day, so the first thing an admin sees
+  after making a tracker is a screen nothing describes.
 - **A tracker's insights are not reachable from it.** A caregiver reading a tracker's entries has no
-  way to the chart drawn from those same entries; Insights is its own tab, reached from the tab bar
-  and nowhere else.
+  way to the chart drawn from those same entries. Insights is deferred, so this waits with it.
 
 ### Team
 
@@ -813,29 +1369,6 @@ their name, exactly as it does when a caregiver closes their account.
 
 **The teams you belong to.** Every care team, its care receivers, and the way into a new one.
 
-```mermaid
-flowchart LR
-    Team["Team<br/>each care team and your role in it<br/>its care receivers · invitations waiting for you<br/>paste an invite code · create a care team"]
-    CareTeam["Care team"]
-    Receiver["Care receiver"]
-    AddReceiver["Add care receiver<br/>name, time zone"]
-    NewTeam["Create a care team<br/>care team name"]
-    Home["Home"]
-
-    Team -- "a care receiver" --> Home
-    Team -- "a care receiver ›" --> Receiver
-    Team -- "a care team" --> CareTeam
-    Team -- "Add care receiver (admins)" --> AddReceiver
-    AddReceiver -- "Add receiver" --> Home
-    Team -- "Create a care team" --> NewTeam
-    NewTeam -- "Create team" --> Team
-    Team -- "Accept, or paste a code" --> Team
-    Team -- "invalid, expired, or used" --> Team
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class Home handoff
-```
-
 Picking a receiver makes them the active one and lands on their Home, because picking one is a
 caregiver saying that is who they want to look at. Adding one does the same for the same reason — and
 a new receiver with no trackers is met by the Trackers list offering the first, which is where that
@@ -849,28 +1382,6 @@ ordinary case for anyone who helps two families, and an app that offers an invit
 with nowhere to be tells the second family to work it out themselves.
 
 **One care team.** Who is on it, who has been asked, and what it tells you about.
-
-```mermaid
-flowchart LR
-    Team["Team"]
-    CareTeam["Care team<br/>name · caregivers and their roles<br/>pending invitations · what you are told about<br/>leave this care team"]
-    Invite["Invite a caregiver<br/>email address, role<br/>the invite code, to copy"]
-    Member["A caregiver (admins)<br/>make admin, make caregiver, remove"]
-    Notify["What you are told about<br/>reminders and alerts, for this team"]
-    ConfirmLeave["Leave this care team?<br/>what you lose, and what stays"]
-
-    Team -- "a care team" --> CareTeam
-    CareTeam -- "Invite a caregiver (admins)" --> Invite
-    Invite -- "Create invitation" --> CareTeam
-    CareTeam -- "copy an invite code" --> CareTeam
-    CareTeam -- "a caregiver (admins)" --> Member
-    Member -- "promote, demote, remove" --> CareTeam
-    CareTeam -- "What you are told about" --> Notify
-    CareTeam -- "Leave this care team" --> ConfirmLeave
-    ConfirmLeave -- "Cancel" --> CareTeam
-    ConfirmLeave -- "Leave" --> Team
-    CareTeam -- "you are the only admin" --> CareTeam
-```
 
 Creating an invitation ends on the team rather than anywhere new, because the invitation is now a row
 in the pending list with its code beside it, and copying that code is the next thing the admin does.
@@ -889,32 +1400,6 @@ team, because how someone wants to be reached does not change from one family to
 involved they are does.
 
 **One care receiver.** Everything about the person that is not an entry.
-
-```mermaid
-flowchart LR
-    Team["Team"]
-    Home["Home"]
-    Receiver["Care receiver<br/>name, time zone, care team<br/>care instructions, who changed them and when<br/>emergency contacts<br/>who is on duty · assignments ahead · coverage schedules"]
-    EditReceiver["Edit care receiver<br/>name, time zone"]
-    EditInstructions["Edit care instructions<br/>one free-form document"]
-    Contacts["Emergency contacts<br/>name, relationship, phone number, order"]
-    Assignment["An assignment<br/>caregiver, when<br/>hand to someone else · remove"]
-    Schedule["A coverage schedule<br/>caregiver, days, hours<br/>when it ends"]
-
-    Team -- "a care receiver ›" --> Receiver
-    Home -- "the header" --> Receiver
-    Receiver -- "call a contact" --> Receiver
-    Receiver -- "Edit (admins)" --> EditReceiver
-    Receiver -- "Care instructions → Edit (admins)" --> EditInstructions
-    Receiver -- "Emergency contacts → Edit (admins)" --> Contacts
-    Receiver -- "an assignment, or add one (admins)" --> Assignment
-    Receiver -- "a coverage schedule, or add one (admins)" --> Schedule
-    Assignment -- "Save" --> Receiver
-    Schedule -- "Save" --> Receiver
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class Home handoff
-```
 
 Care receiver is reached two ways — the chevron on a receiver's row here, and Home's header, which
 is where a caregiver already is when they need it. It is where the standing knowledge about a person
@@ -942,6 +1427,352 @@ all sheets. Two things stay put rather than navigating: calling a contact hands 
 and accepting an invitation turns that row into a care team on the list already in front of the
 caregiver.
 
+#### Screens
+
+```yaml
+- screen: Team
+  kind: tab
+  scope: >
+    the caregiver, not a care receiver. Switching receivers reloads Home and
+    Trackers and leaves Team exactly as it was, because Team is the screen a
+    receiver is switched on
+  contains:
+    - each care team the caregiver belongs to, and their role in it
+    - each team's care receivers
+    - invitations waiting for your email, each with its team and your role
+    - paste an invite code
+    - create a care team
+  exits:
+    - action: a care receiver
+      to: Home, with that receiver now active
+      as: root
+    - action: the chevron on a care receiver's row
+      to: Care receiver
+      as: push
+    - action: a care team
+      to: Care team
+      as: push
+    - action: Add care receiver
+      admin: true
+      to: Add care receiver
+      as: sheet
+    - action: Create a care team
+      to: Create a care team
+      as: sheet
+    - action: Accept an invitation
+      to: Team, with that care team now a row on the list
+      as: stays
+    - action: paste a valid invite code
+      to: Team, with that care team now a row on the list
+      as: stays
+    - action: paste a code that is invalid, expired, or already used
+      to: Team
+      as: stays
+  empty: the caregiver belongs to no care team — ???
+  open:
+    - >
+      whether switching care receivers discards the Home tab's pushed stack.
+      `root` is the only reading that does not leave a caregiver looking at
+      another receiver's trackers, but the PRD does not say so outright
+    - >
+      what Team shows to a caregiver who has just left their last care team, and
+      whether it becomes Join a care team or something of its own
+
+- screen: Create a care team
+  kind: sheet
+  scope: a new care team, whose creator becomes its first admin
+  contains:
+    - care team name
+  exits:
+    - action: Create team
+      to: Team, with the new team a row on the list
+      as: back
+    - action: Cancel
+      to: Team
+      as: back
+
+- screen: Add care receiver
+  kind: sheet
+  scope: one care team; admins only
+  contains:
+    - name
+    - time zone
+  exits:
+    - action: Add receiver
+      to: Home, with the new receiver active
+      as: root
+    - action: Cancel
+      to: Team
+      as: back
+
+- screen: Care team
+  kind: push
+  scope: one care team
+  contains:
+    - its name
+    - >
+      its caregivers and the role each of them holds, readable by every
+      caregiver rather than admins alone
+    - pending invitations, each with its invite code to copy — admins only
+    - what you are told about
+    - leave this care team
+  exits:
+    - action: Invite a caregiver
+      admin: true
+      to: Invite a caregiver
+      as: sheet
+    - action: copy an invite code
+      admin: true
+      to: Care team
+      as: stays
+    - action: a caregiver's row
+      admin: true
+      to: A caregiver
+      as: sheet
+    - action: your own row
+      to: Leave this care team?
+      as: sheet
+    - action: What you are told about
+      to: What you are told about
+      as: push
+    - action: Leave this care team
+      to: Leave this care team?
+      as: sheet
+    - action: Leave this care team, when you are the team's only admin
+      to: Care team, refused with the reason rather than a greyed-out row
+      as: stays
+  open:
+    - >
+      a pending invitation can be copied but not withdrawn or amended, and the
+      two-week expiry is the only thing that ends it
+
+- screen: Invite a caregiver
+  kind: sheet
+  scope: one care team; admins only
+  contains:
+    - email address
+    - role
+    - >
+      once created, the invite code to copy, since the app sends no email on the
+      admin's behalf
+  exits:
+    - action: Create invitation
+      to: Care team, with the invitation now in the pending list
+      as: back
+    - action: Cancel
+      to: Care team
+      as: back
+
+- screen: A caregiver
+  kind: sheet
+  scope: >
+    one caregiver's membership of one care team; admins only. The actions sit on
+    that caregiver's row rather than behind a screen-level button, so an admin
+    never has to say who twice
+  contains:
+    - their name and the role they hold
+    - make admin
+    - make caregiver
+    - remove from this care team
+  exits:
+    - action: make admin, make caregiver, or remove
+      admin: true
+      to: Care team
+      as: back
+    - action: demote or remove the team's only admin
+      admin: true
+      to: A caregiver, refused with the reason
+      as: stays
+  open:
+    - >
+      what a caregiver who has left, or been removed, looks like on the roster —
+      whether the team can still see who they were, and whether they read as a
+      former caregiver here as they do on their entries
+
+- screen: What you are told about
+  kind: push
+  scope: >
+    one care team, for the signed-in caregiver. The subject matter only —
+    Settings holds the channels, once for the account
+  contains:
+    - which reminders this team should send you
+    - which alerts this team should send you
+  exits:
+    - action: turn a reminder or an alert on or off
+      to: What you are told about
+      as: stays
+
+- screen: Leave this care team?
+  kind: sheet
+  scope: the signed-in caregiver's membership of one care team
+  contains:
+    - >
+      what you lose — the access, and nothing else
+    - >
+      what stays — every entry and journal note you wrote, where it is, under
+      your name
+  exits:
+    - action: Cancel
+      to: Care team
+      as: back
+    - action: Leave
+      to: Team
+      as: back
+
+- screen: Care receiver
+  kind: push
+  scope: >
+    one care receiver. Reached two ways — the chevron on their row in Team, and
+    Home's header. One screen rather than three, because a caregiver who needs
+    it needs all of it: what the instructions say, who to call, and who is meant
+    to be there
+  contains:
+    - their name, time zone, and care team
+    - >
+      the care instructions, one free-form document, with who last changed them
+      and when, so a caregiver reading at 2am can tell standing orders from
+      something written a year ago
+    - >
+      emergency contacts, each a name, a relationship, and a phone number, in
+      the order the admin set, as rows that dial rather than a paragraph to read
+      a number out of
+    - who is on duty
+    - the assignments ahead
+    - the coverage schedules behind them, in a separate labelled group
+  exits:
+    - action: call an emergency contact
+      to: the phone
+      as: out
+    - action: Edit
+      admin: true
+      to: Edit care receiver
+      as: sheet
+    - action: Edit, on the care instructions
+      admin: true
+      to: Edit care instructions
+      as: sheet
+    - action: Edit, on the emergency contacts
+      admin: true
+      to: Emergency contacts
+      as: sheet
+    - action: an assignment, or add one
+      admin: true
+      to: An assignment
+      as: sheet
+    - action: a coverage schedule, or add one
+      admin: true
+      to: A coverage schedule
+      as: sheet
+  empty:
+    - no care instructions have been written — ???
+    - no emergency contacts — ???
+    - >
+      no assignments and no coverage schedules, which is every team that
+      coordinates informally — ???
+  open:
+    - >
+      nothing shows the time nobody is covering. The screen lists the
+      assignments that exist rather than the hours that have none, so no screen
+      answers "is Thursday covered?" for a Thursday nobody has filled
+    - >
+      what this screen shows a team that keeps no roster at all, given coverage
+      is optional and Home should not imply otherwise
+
+- screen: Edit care receiver
+  kind: sheet
+  scope: one care receiver; admins only
+  contains:
+    - name
+    - >
+      time zone — changing it keeps the receiver's routines at their wall-clock
+      times and shifts them along
+  exits:
+    - action: Save
+      to: Care receiver
+      as: back
+    - action: Cancel
+      to: Care receiver
+      as: back
+
+- screen: Edit care instructions
+  kind: sheet
+  scope: one care receiver's instructions; admins only
+  contains:
+    - >
+      one free-form document, written in the admin's own words — no list, no
+      categories, no fields
+  exits:
+    - action: Save
+      to: Care receiver, recording who changed it and when
+      as: back
+    - action: Cancel
+      to: Care receiver
+      as: back
+
+- screen: Emergency contacts
+  kind: sheet
+  scope: one care receiver's contacts; admins only
+  contains:
+    - each contact's name, relationship, and phone number
+    - the order they appear in
+    - add a contact, and remove one
+  exits:
+    - action: Save
+      to: Care receiver
+      as: back
+    - action: Cancel
+      to: Care receiver
+      as: back
+
+- screen: An assignment
+  kind: sheet
+  scope: >
+    one span of time during which one named caregiver is responsible for this
+    care receiver; admins only. A coordination signal, never a permission
+    boundary
+  contains:
+    - the caregiver
+    - when it runs
+    - hand it to someone else
+    - remove it
+  exits:
+    - action: Save, hand to someone else, or remove
+      admin: true
+      to: Care receiver, with the rule that generated it untouched
+      as: back
+    - action: Cancel
+      to: Care receiver
+      as: back
+
+- screen: A coverage schedule
+  kind: sheet
+  scope: >
+    one recurring rule that generates assignments for this care receiver;
+    admins only
+  contains:
+    - the caregiver
+    - the days and the hours
+    - when it ends, if it ends
+  exits:
+    - action: Save
+      to: Care receiver
+      as: back
+    - action: Cancel
+      to: Care receiver
+      as: back
+    - action: end or remove the schedule
+      admin: true
+      to: ???
+      as: ???
+  open:
+    - >
+      ending a schedule early is unanswered — whether the assignments it has
+      already generated disappear with the rule, or stand on their own
+    - >
+      an assignment can be removed and a schedule cannot, though a rotation
+      ending is at least as ordinary as a single Thursday being dropped
+```
+
 #### Gaps in this flow
 
 - **Nothing describes a care team ending.** A caregiver can leave, and the last admin is stopped from
@@ -952,10 +1783,10 @@ caregiver.
 - **A pending invitation can be copied but not withdrawn or changed.** An admin who invited the wrong
   address, or invited someone as a caregiver when they meant admin, has no way to cancel the
   invitation or amend it, and the two-week expiry is the only thing that ends it.
-- **Ending a coverage schedule early is unanswered.** A schedule is created, changed, and given an
-  end date on the care receiver, but nothing says what becomes of the assignments it has already
-  generated when a team stops it before that date — whether the ones still ahead disappear with the
-  rule, or stand on their own as assignments somebody is still expected to keep.
+- **A coverage schedule cannot be ended or removed.** An assignment offers removal and a schedule
+  does not, and nothing says what becomes of the assignments a schedule has already generated when a
+  team stops it before its end date — whether the ones still ahead disappear with the rule, or stand
+  on their own as assignments somebody is still expected to keep.
 - **Nothing shows the time nobody is covering.** Assignments exist so that uncovered time is
   something a team can see rather than discover afterward, but the care receiver lists the
   assignments that exist rather than the hours that have none. No screen answers "is Thursday
@@ -963,6 +1794,16 @@ caregiver.
 - **What a former teammate looks like on the roster is undescribed.** Entries keep the name of a
   caregiver who left, the way they keep the name of one who closed their account, but nothing says
   whether the team can still see who that was, or whether they read as a former caregiver here too.
+- **Care receiver has three empty states and describes none of them.** No instructions written yet,
+  no emergency contacts, and no roster at all are each the ordinary condition of a receiver added
+  five minutes ago — and the third is the permanent condition of every team that coordinates
+  informally, which the PRD says is many of them.
+- **Team with no care teams is undescribed.** A caregiver who leaves their last team lands on a tab
+  built entirely around the teams they belong to, and whether it becomes Join a care team or
+  something of its own decides where they go next.
+- **Whether switching care receivers resets the Home tab is not stated.** If the pushed stack
+  survives, a caregiver who switches while reading one receiver's Trackers is left looking at
+  another receiver's trackers under the first one's name.
 
 ### Settings
 
@@ -976,32 +1817,6 @@ Team tab — for the same reason the notification split falls where it does. Set
 person, and a care team is not a property of a person; it is a thing several people share.
 
 **Your account and this device.** Who you are to the app, and how you get in and out of it.
-
-```mermaid
-flowchart LR
-    Settings["Settings<br/>your name and email<br/>password · Face ID · notifications<br/>about this app<br/>sign out · close your account"]
-    ChangeEmail["Change email<br/>new address, then a code sent to it"]
-    ChangePassword["Change password<br/>current, new, confirm"]
-    Notifications["Notifications<br/>push, as the phone has it<br/>email on or off"]
-    Team["Team"]
-    ConfirmOut["Sign out?<br/>what leaves this device"]
-    Landing["Landing"]
-    Close["Close your account"]
-
-    Settings -- "Email" --> ChangeEmail
-    ChangeEmail -- "Confirm" --> Settings
-    Settings -- "Password" --> ChangePassword
-    ChangePassword -- "Save" --> Settings
-    Settings -- "Notifications" --> Notifications
-    Notifications -. "what you are told about" .-> Team
-    Settings -- "Sign out" --> ConfirmOut
-    ConfirmOut -- "Cancel" --> Settings
-    ConfirmOut -- "Sign out" --> Landing
-    Settings -- "Close your account" --> Close
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class Team,Landing,Close handoff
-```
 
 Change email and Change password are sheets; Notifications is a pushed screen. Changing an address
 sends a code to the new one and is not finished until that code is entered, because an address nobody
@@ -1027,22 +1842,6 @@ reached does not.
 
 **Closing an account.** The way out, and what it leaves behind.
 
-```mermaid
-flowchart LR
-    Settings["Settings"]
-    Close["Close your account<br/>what goes and what stays<br/>your password, to prove it is you"]
-    ConfirmClose["Close this account?"]
-    Landing["Landing"]
-
-    Settings -- "Close your account" --> Close
-    Close -- "Close my account" --> ConfirmClose
-    ConfirmClose -- "Cancel" --> Close
-    ConfirmClose -- "Close account" --> Landing
-
-    classDef handoff fill:#FDF1DC,stroke:#B8791F,color:#4A3410
-    class Settings,Landing handoff
-```
-
 Closing an account is a pushed screen rather than a row that opens a dialog, because it has something
 to say before it asks anything: the account goes, and the care stays. Every entry and journal note
 the caregiver wrote remains where it is, attributed to a former caregiver. The screen says so plainly
@@ -1056,11 +1855,220 @@ for someone else to be promoted first, on the same reasoning that stops that car
 team nobody can manage is one no caregiver can be added to, and closing an account is not a way to
 put a family in it.
 
+#### Screens
+
+```yaml
+- screen: Settings
+  kind: tab
+  scope: >
+    the caregiver themselves, this device, and the app. The only area not about
+    a care receiver — it does not change when the active receiver does, and it
+    holds nothing about a care team
+  contains:
+    - your name and email
+    - password
+    - >
+      Face ID as a switch, so a caregiver who declined the one-time offer is not
+      locked out of it forever
+    - notifications
+    - about this app
+    - sign out
+    - close your account
+  exits:
+    - action: Email
+      to: Change email
+      as: sheet
+    - action: Password
+      to: Change password
+      as: sheet
+    - action: turn Face ID on or off
+      to: Settings
+      as: stays
+    - action: Notifications
+      to: Notifications
+      as: push
+    - action: Sign out
+      to: Sign out?
+      as: sheet
+    - action: Close your account
+      to: Close your account
+      as: push
+    - action: About this app
+      to: ???
+      as: ???
+  open:
+    - >
+      your name is shown but nothing changes it, though a caregiver's name is
+      what every entry they log is attributed to
+    - what About this app opens, and what it holds
+
+- screen: Change email
+  kind: sheet
+  scope: the signed-in caregiver's email address
+  contains:
+    - the new address
+    - then the code sent to it, since an address nobody can prove they hold is a
+      way to lose an account rather than a way to reach someone
+  exits:
+    - action: Confirm
+      to: Settings
+      as: back
+    - action: Cancel
+      to: Settings
+      as: back
+  open:
+    - a wrong or expired code, as on Confirm code and Reset password
+    - >
+      changing an address while an admin-role invitation is waiting leaves an
+      invitation that can no longer be accepted, and no way to say so
+
+- screen: Change password
+  kind: sheet
+  scope: the signed-in caregiver's password
+  contains:
+    - current password
+    - new password
+    - confirm new password
+  exits:
+    - action: Save
+      to: Settings
+      as: back
+    - action: Cancel
+      to: Settings
+      as: back
+  open:
+    - what a wrong current password shows, and whether attempts are limited
+
+- screen: Notifications
+  kind: push
+  scope: >
+    the caregiver's channels, once for the account, because how someone wants to
+    be reached does not change from one care team to the next. What they want to
+    be told about belongs to each team separately
+  contains:
+    - >
+      push, shown as the phone has it rather than as a switch the app owns, so a
+      caregiver wondering why nothing arrives is told the true reason
+    - a way out to the system settings when push is off
+    - email, on or off
+    - >
+      that which reminders and alerts a team sends are chosen with that team,
+      not here
+  exits:
+    - action: open the system settings
+      to: the Settings app
+      as: out
+    - action: turn email on or off
+      to: Notifications
+      as: stays
+    - action: what you are told about
+      to: Team
+      as: ???
+  open:
+    - >
+      whether the pointer to per-team subject matter is a link a caregiver can
+      follow, or only a sentence explaining where to go
+
+- screen: Sign out?
+  kind: sheet
+  scope: this device
+  contains:
+    - >
+      what leaves — Face ID switches off and the saved password leaves the
+      device, which is what makes the promise elsewhere true: Face ID never
+      prompts after a deliberate sign out
+    - >
+      what stays — the remembered email, which prefills the next sign in and
+      unlocks nothing on its own
+  exits:
+    - action: Cancel
+      to: Settings
+      as: back
+    - action: Sign out
+      to: Landing
+      as: root
+
+- screen: Close your account
+  kind: push
+  scope: >
+    the signed-in caregiver's account. A pushed screen rather than a row that
+    opens a dialog, because it has something to say before it asks anything
+  contains:
+    - >
+      what goes and what stays — the account goes, and every entry and journal
+      note the caregiver wrote remains where it is, attributed to a former
+      caregiver
+    - >
+      your password, because an account left open on a borrowed phone should not
+      be closable by whoever picks it up
+    - >
+      when you are a care team's only admin, that team named and a request to
+      promote someone else first
+  exits:
+    - action: Close my account
+      to: Close this account?
+      as: sheet
+    - action: Close my account, when you are a care team's only admin
+      to: Close your account, refused with the team named
+      as: stays
+
+- screen: Close this account?
+  kind: sheet
+  scope: the signed-in caregiver's account
+  contains:
+    - that the account will be closed
+  exits:
+    - action: Cancel
+      to: Close your account
+      as: back
+    - action: Close account
+      to: Landing
+      as: root
+```
+
 #### Gaps in this flow
 
+- **A caregiver cannot change their name.** Settings shows it beside the email and offers no way to
+  edit it, though a caregiver's name is what every entry they log and every journal note they write
+  is attributed to, on screens the whole team reads.
+- **About this app leads nowhere described.** It sits in the list with no destination, and it is the
+  usual home for the terms and the privacy policy a caregiver agreed to at signup — which the app
+  has to be able to show them again.
 - **Changing an email address can strand a pending invitation.** An admin-role invitation must be
   accepted from the address it was sent to, so a caregiver who changes their address while one is
   waiting has an invitation they can no longer accept and no way to say so.
+- **The code and password failures are undescribed here too.** Change email takes a six-digit code
+  and Change password takes the current password, and neither says what a wrong one shows. This is
+  the same hole as Confirm code and Reset password, and it should be answered once for all four.
+- **Whether Notifications links to a care team is unsettled.** The screen has to explain that
+  subject matter is chosen per team; whether it can also take the caregiver there decides how many
+  taps that costs.
+
+### Insights
+
+**Deferred.** Insights is the fourth tab and the PRD defines what an insight is, but the area is out
+of scope until the rest of the app matches this document. It appears on the area map, and the tab bar
+reaches it, so that nothing points at a screen this document leaves unmentioned.
+
+Two things are already owed to it and recorded elsewhere: a point on a chart has no way to open the
+entry behind it, and a tracker's own screen has no route to the chart drawn from its entries. Both
+are gaps under the areas that reach toward it, and both are answered here when this area is written.
+
+#### Screens
+
+```yaml
+- screen: Insights
+  kind: tab
+  scope: ???
+  contains:
+    - ???
+  exits:
+    - action: ???
+      to: ???
+      as: ???
+  open:
+    - the whole area is deferred
+```
 
 ## Open questions
 
