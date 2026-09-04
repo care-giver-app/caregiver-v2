@@ -37,6 +37,6 @@ Also document a constraint for the future B1 spec: v2 DynamoDB tables MUST be pr
 
 ## Related
 
-- Spec: `docs/specs/2026-06-06-f1-engineering-practices-baseline-design.md` §16 (open question on dual-account topology)
+- Spec: `docs/archive/2026-06-06-f1-engineering-practices-baseline-design.md` §16 (open question on dual-account topology)
 - ADR-0008 (CDK as IaC)
 - v1 stack inventory captured in PR description.

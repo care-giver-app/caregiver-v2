@@ -49,16 +49,20 @@ struct TrackerDetailView: View {
 
     private var actionBar: some View {
         VStack(spacing: 0) {
-            Divider().overlay(Theme.Colors.border)
-            VStack(spacing: Theme.Spacing.sm) {
-                if tracker.kind == .scheduled {
-                    StrideButton(title: "Schedule item", style: .secondary) { showSchedule = true }
+            VStack(spacing: 0) {
+                Divider().overlay(Theme.Colors.border)
+                VStack(spacing: Theme.Spacing.sm) {
+                    if tracker.kind == .scheduled {
+                        StrideButton(title: "Schedule item", style: .secondary) { showSchedule = true }
+                    }
+                    StrideButton(title: "Log reading") { showLog = true }
                 }
-                StrideButton(title: "Log reading") { showLog = true }
+                .padding(Theme.Spacing.md)
             }
-            .padding(Theme.Spacing.md)
+            // Clears the persistent StrideTabBar, which sits as a safeAreaInset on the
+            // root TabView and isn't accounted for by this pushed view's own inset.
+            Color.clear.frame(height: StrideTabBar.reservedHeight)
         }
-        .background(.ultraThinMaterial)
     }
 
     @ViewBuilder private var history: some View {

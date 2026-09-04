@@ -5,8 +5,8 @@
         "IdentityManager": { "Default": {} },
         "CognitoUserPool": {
           "Default": {
-            "PoolId": "us-east-2_bbbbbbbbb",
-            "AppClientId": "bbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "PoolId": "us-east-2_gx83iVcbO",
+            "AppClientId": "6ahnue69qsc9lsgr274aa8npqv",
             "Region": "us-east-2"
           }
         },

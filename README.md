@@ -14,15 +14,15 @@ Greenfield rewrite of the Caregiver tracking app. Multi-tenant, custom event typ
 | `web/`                        | Next.js + React web client                          |
 | `ios/`                        | SwiftUI iOS client                                  |
 | `infra/`                      | AWS CDK in TypeScript                               |
-| `docs/specs/`                 | Brainstormed design specs                           |
+| `docs/PRD.md`                 | **The product** — the only document describing it   |
 | `docs/adr/`                   | Architecture decision records (MADR)                |
-| `docs/plans/`                 | Implementation plans                                |
-| `docs/roadmap.md`             | Product roadmap — phases B1–B4, C1–C3               |
+| `docs/archive/`               | Historical design records — never updated           |
 
 ## Quickstart
 
 See [`docs/runbook.md`](docs/runbook.md) for the day-to-day dev loop and operational guides.
-See [`docs/roadmap.md`](docs/roadmap.md) for what's being built after F1 and in what order.
+See [`docs/PRD.md`](docs/PRD.md) for what the product is, and `CLAUDE.md` for how work moves
+through its approval gates.
 
 ### Prerequisites
 
@@ -41,4 +41,4 @@ pnpm exec lefthook install
 
 ## Architecture
 
-See `docs/specs/2026-06-06-f1-engineering-practices-baseline-design.md`.
+See `docs/archive/2026-06-06-f1-engineering-practices-baseline-design.md` (historical).

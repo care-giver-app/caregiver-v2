@@ -2,7 +2,7 @@ import Security
 import Foundation
 
 enum KeychainStore {
-    private static let service = "app.caregiver.ios"
+    private static let service = "caretosher.caregiverapp.ios"
     private static let account = "biometric-credentials"
 
     struct Credentials: Codable {

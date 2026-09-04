@@ -36,6 +36,9 @@ struct HomeView: View {
                 }
                 snapshotSection
                 timelineSection
+                // Clears the persistent StrideTabBar, which sits as a safeAreaInset on the
+                // root TabView but doesn't extend this ScrollView's scrollable content height.
+                Color.clear.frame(height: StrideTabBar.reservedHeight)
             }
             .padding(.horizontal, Theme.Spacing.md)
             .padding(.top, Theme.Spacing.md)

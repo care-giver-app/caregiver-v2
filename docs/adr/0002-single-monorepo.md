@@ -33,5 +33,5 @@ Single monorepo. iOS has minimal friction inside a monorepo (Xcode opens the `io
 
 ## Related
 
-- Spec: `docs/specs/2026-06-06-f1-engineering-practices-baseline-design.md` §5
+- Spec: `docs/archive/2026-06-06-f1-engineering-practices-baseline-design.md` §5
 - ADR-0001

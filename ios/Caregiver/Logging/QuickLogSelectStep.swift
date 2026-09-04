@@ -95,7 +95,6 @@ struct QuickLogSelectStep: View {
             DatePicker("When", selection: $model.occurredAt)
                 .datePickerStyle(.graphical)
                 .tint(Theme.Colors.accent)
-                .colorScheme(.dark)
             StrideButton(title: "Done") { showTimePicker = false }
         }
         .padding(Theme.Spacing.lg)
