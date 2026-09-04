@@ -668,10 +668,6 @@ sign out, which is a caregiver saying they want out.
     - action: Create team
       to: Home
       as: root
-  open:
-    - >
-      the Home this lands on has no care receiver, and no screen describes that
-      state
 
 - screen: Offer Face ID
   kind: sheet
@@ -737,6 +733,28 @@ When a team keeps a roster, Home also names who is on duty for this receiver rig
 coordination signal and nothing more — it never decides who may log an entry, and a team that keeps
 no assignments simply sees nothing there, because coverage is optional and Home should not imply
 otherwise.
+
+Home is always about somebody. The app chooses the active care receiver rather than asking — the
+last one a caregiver looked at, or the first alphabetically across their teams if there is no last
+one — because most teams look after one person, and asking that caregiver to pick them out of a list
+of one every time they arrive is a question with a single answer. Choosing stays theirs to make on
+Team, whenever there is more than one to choose between.
+
+The one time Home has nobody to be about is a care team with no care receivers, which is every team
+in the minutes after it is created. Home says so, and says what happens next — which differs by who
+is reading. An admin is offered the first receiver there and then, rather than being sent to another
+tab to do it. A caregiver is told that an admin adds them, and is not shown a control they cannot
+use: the app refuses with a reason rather than greying something out, and an empty screen should not
+be the one place it abandons that.
+
+The same holds one level down. A care receiver with no active trackers leaves Home with nothing to
+show and nothing to watch, so it says so and offers an admin the first tracker, while a caregiver is
+told an admin sets them up. The condition is active trackers rather than trackers at all, because a
+receiver whose trackers have every one of them been paused is in the same position as one who never
+had any — nothing is being collected — even though the Trackers list still shows the paused ones,
+since that is where the record lives. This outranks Home's ordinary quiet state: a receiver with
+nothing tracked has nothing needing attention by definition, and saying all is well would be true
+and useless.
 
 Home holds the receiver's name with the care team, who is on duty, whatever needs attention, a
 coming up banner, the daily timeline, and a link to all of the receiver's trackers. Pulling down
@@ -911,6 +929,16 @@ under what is coming up rather than in the day behind it.
     - action: pull down
       to: Home, refreshed
       as: stays
+    - action: Add a care receiver
+      admin: true
+      when: the care team has no care receivers
+      to: Add care receiver
+      as: sheet
+    - action: Add a tracker
+      admin: true
+      when: the care receiver has no active trackers
+      to: Add tracker
+      as: ???
     - action: >
         reaching Home for the first time on a device that supports Face ID, with
         no choice yet made
@@ -921,12 +949,13 @@ under what is coming up rather than in the day behind it.
       nothing needs attention — Home says so plainly rather than leaving a space
       where a warning would be
     - nothing logged on the day shown — ???
-    - the care receiver has no trackers — ???
-    - there is no care receiver at all — ???
-  open:
     - >
-      what Home shows before any care receiver exists, and whether it should
-      send the caregiver to add one
+      the care team has no care receivers — Home says so and offers an admin the
+      first one, while a caregiver is told an admin adds them
+    - >
+      the care receiver has no active trackers — Home says so and offers an admin
+      the first one, while a caregiver is told an admin sets them up
+  open:
     - >
       what the timeline shows on a day nobody logged anything, which is most
       days for most teams
@@ -1136,10 +1165,6 @@ under what is coming up rather than in the day behind it.
 
 #### Gaps in this flow
 
-- **Home with no care receiver has no described screen.** Team offers Add care receiver, so the
-  first caregiver has somewhere to go; what Home itself shows before any receiver exists, and
-  whether it should send them there, decides what their very first look at the app feels like. A
-  receiver who exists but has no trackers is answered on the Trackers list.
 - **A day with nothing logged is undescribed, and it is the ordinary day.** The timeline is the
   bulk of Home and most teams do not log every day, so what a caregiver sees when they step back to
   a quiet Tuesday is a state the app will spend most of its time in.
@@ -1332,7 +1357,9 @@ reading questions.
 
 - screen: Add tracker
   kind: ???
-  scope: a new tracker for the active care receiver; admins only
+  scope: >
+    a new tracker for the active care receiver; admins only. Raised from the
+    Trackers list, or from Home when the receiver has no active trackers
   contains:
     - ???
   exits:
@@ -1340,7 +1367,7 @@ reading questions.
       to: Tracker detail, on the tracker just made
       as: ???
     - action: Cancel
-      to: Trackers
+      to: the screen that raised it
       as: ???
   open:
     - >
@@ -1588,7 +1615,9 @@ caregiver.
 
 - screen: Add care receiver
   kind: sheet
-  scope: one care team; admins only
+  scope: >
+    one care team; admins only. Raised from Team, or from Home when the team has
+    no care receivers yet
   contains:
     - name
     - time zone
@@ -1597,7 +1626,7 @@ caregiver.
       to: Home, with the new receiver active
       as: root
     - action: Cancel
-      to: Team
+      to: the screen that raised it
       as: back
 
 - screen: Care team
