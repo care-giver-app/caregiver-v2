@@ -30,5 +30,5 @@ We chose Option X because...
 
 ## Related
 
-- Spec: `docs/specs/...`
+- Spec: `docs/archive/...` (historical only — the PRD is the product)
 - ADRs: ...

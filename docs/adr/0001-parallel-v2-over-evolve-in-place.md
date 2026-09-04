@@ -33,4 +33,4 @@ Parallel v2. The app is small, traffic is low (single family), and Trevor does n
 
 ## Related
 
-- Spec: `docs/specs/2026-06-06-f1-engineering-practices-baseline-design.md` §2
+- Spec: `docs/archive/2026-06-06-f1-engineering-practices-baseline-design.md` §2

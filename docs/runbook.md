@@ -151,6 +151,6 @@ aws ce get-cost-and-usage \
 
 ## Links
 
-- Spec: [`docs/specs/2026-06-06-f1-engineering-practices-baseline-design.md`](specs/2026-06-06-f1-engineering-practices-baseline-design.md)
+- Spec: [`docs/archive/2026-06-06-f1-engineering-practices-baseline-design.md`](archive/2026-06-06-f1-engineering-practices-baseline-design.md)
 - ADRs: [`docs/adr/`](adr/)
 - Plans: [`docs/plans/`](plans/)
