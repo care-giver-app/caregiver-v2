@@ -15,10 +15,29 @@ KINDS = {"push", "sheet", "swap", "stays", "tab", "root", "out", "back", "???"}
 EXTERNAL = ("the phone", "the Settings app", "the screen that raised it", "???")
 
 
+def unfold(block):
+    """Join YAML folded scalars (`key: >` + indented lines) onto one line."""
+    out, lines, i = [], block.splitlines(), 0
+    while i < len(lines):
+        line = lines[i]
+        if m := re.match(r"^(\s*)(-\s+)?(\w+): >-?\s*$", line):
+            indent = len(m.group(1)) + (len(m.group(2)) if m.group(2) else 0)
+            parts, i = [], i + 1
+            while i < len(lines) and (not lines[i].strip() or len(lines[i]) - len(lines[i].lstrip()) > indent):
+                parts.append(lines[i].strip())
+                i += 1
+            prefix = m.group(1) + (m.group(2) or "")
+            out.append(f"{prefix}{m.group(3)}: {' '.join(p for p in parts if p)}")
+            continue
+        out.append(line)
+        i += 1
+    return "\n".join(out)
+
+
 def parse(text):
     screens, current = {}, None
     for block in re.findall(r"```yaml\n(.*?)```", text, re.S):
-        for line in block.splitlines():
+        for line in unfold(block).splitlines():
             if m := re.match(r"^- screen: (.+)$", line):
                 current = m.group(1).strip()
                 screens[current] = {"exits": [], "kind": None}

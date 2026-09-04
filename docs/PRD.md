@@ -395,11 +395,41 @@ way in that does not depend on remembering anything. Nothing about the lock need
 clears on its own, because an account a family cannot get back into without an intervention is an
 account they cannot get back into.
 
-A confirmation code lives ten minutes, and the lock covers everything that issues or checks one. A
-locked-out caregiver cannot resend their way around it, and Sign up cannot be used to mint a fresh
-code for an account that is locked — a lock that only guarded the screen it was tripped on would
-leave Sign up as a way to ask for another code. Because the code dies before the lock lifts, five
-guesses is all any code ever gets.
+A code the app emails — to confirm an account, or to reset a password — lives ten minutes, and the
+lock covers everything that issues or checks one. A locked-out caregiver cannot resend their way
+around it, and Sign up cannot be used to mint a fresh code for an account that is locked, since a
+lock that only guarded the screen it was tripped on would leave Sign up as a way to ask for another
+code. Because the code dies before the lock lifts, five guesses is all any code ever gets. There is
+also a wait between resends, so a caregiver who presses it twice does not spend two of those guesses
+on a code that has already been replaced.
+
+**Reset password is the way back in, whatever went wrong.** It answers every address identically —
+that if an account exists, a code is on its way — because a screen that said otherwise would let
+anyone discover which addresses have accounts, which is exactly what Sign in refuses to do. An
+account created but never confirmed cannot have its password reset at all, so it is sent a
+confirmation code instead and the caregiver lands on Confirm code. Confirming and then resetting is
+two steps rather than one, but it is a path rather than a dead end. That this reveals an abandoned
+signup is a cost taken deliberately: it exposes signups nobody finished rather than accounts somebody
+holds, and Sign up already reveals the same thing about the same address.
+
+For the same reason, Reset password answers every code that is not the right one the same way. If a
+wrong code and an expired one read differently, a caregiver who was never sent a code could tell
+which of the two they were, and the neutral answer to an unknown address would be undone by the
+screen after it. Confirm code has no such worry and says which it was, because a caregiver only
+reaches it having already shown the account exists — and being told the code expired is what tells
+them to ask for another rather than retype the same six digits.
+
+A caregiver who mistyped their address can go back to it. The code already sent is discarded and
+correcting the address sends another, because the alternative is someone staring at a code field
+waiting for a code that went somewhere else, with the fix two screens away.
+
+Setting a new password ends every other session and clears the credentials stored for Face ID. A
+device still holding the old password finds it rejected, clears its own copy, and asks the caregiver
+to sign in — offering Face ID again once they have — so Face ID stops working loudly rather than
+silently. The same holds for a password changed deliberately from Settings, where the device making
+the change stays signed in, because ejecting someone from the app they are standing in is not
+security. Resetting ends back at Sign in rather than signing the caregiver in, since a reset has just
+destroyed every session and creating one in the same breath would undo the point of it.
 
 **Signing up.** Confirming the code signs the caregiver in without asking for the password a second
 time, so signing up ends in the same place signing in does — and a caregiver who turns out to already
@@ -514,8 +544,9 @@ sign out, which is a caregiver saying they want out.
 - screen: Confirm code
   kind: sheet
   scope: >
-    the address being confirmed; raised over Sign in or Sign up, and dismissing
-    returns to whichever raised it
+    the address being confirmed; raised over Sign in or Sign up, or in place of
+    Reset password when the account was never confirmed. Dismissing returns to
+    the screen underneath
   contains:
     - 6-digit code sent to your email
     - the address it was sent to
@@ -529,14 +560,21 @@ sign out, which is a caregiver saying they want out.
       when: you belong to no care team
       to: Join a care team
       as: root
+    - action: Confirm
+      when: the code is wrong
+      to: Confirm code, saying the code is wrong
+      as: stays
+    - action: Confirm
+      when: the code has expired
+      to: Confirm code, saying the code has expired and to ask for another
+      as: stays
     - action: Resend
-      to: Confirm code
+      to: Confirm code, with a new code sent and the previous one discarded
       as: stays
     - action: dismiss
       to: the screen that raised it
       as: back
   open:
-    - whether a wrong code and an expired one read differently
     - how long a caregiver must wait between resends
 
 - screen: Reset password
@@ -547,18 +585,32 @@ sign out, which is a caregiver saying they want out.
   contains:
     - email address
     - then, in place, the code sent to it and a new password
+    - a way back to the address
   exits:
+    - action: Send me a code
+      to: >
+        Reset password, now asking for the code and a new password, saying only
+        that a code is on its way if an account exists for that address
+      as: stays
+    - action: Send me a code
+      when: the address has an account that was never confirmed
+      to: Confirm code, with a confirmation code sent instead
+      as: swap
+    - action: back to the address
+      to: Reset password, discarding the code already sent
+      as: stays
     - action: Set new password
-      to: Sign in, not signed in
+      when: the code is not the right one, whether wrong or expired
+      to: Reset password, saying only that the code is not right
+      as: stays
+    - action: Set new password
+      to: >
+        Sign in, not signed in, with every other session ended and stored
+        credentials cleared
       as: back
     - action: dismiss
       to: Sign in
       as: back
-  open:
-    - a wrong or expired code
-    - >
-      whether an address with no account is told so, or answered the same way a
-      known one is
 
 - screen: Join a care team
   kind: push
@@ -627,10 +679,10 @@ sign out, which is a caregiver saying they want out.
   used, meant for a team the caregiver already belongs to, or an admin invitation opened from the
   wrong address. Join a care team answers only the first two, and then only as "an error". The Team
   tab takes codes and waiting invitations too, so both screens are owed the same answers.
-- **What a bad code says is still unanswered.** How many attempts a caregiver gets and what a lock
-  means are now settled — five, then fifteen minutes, on the account — but Confirm code and Reset
-  password still do not say whether a wrong code and an expired one read differently, or how long a
-  caregiver must wait between resends.
+- **How long a resend makes you wait is unanswered.** There is a wait between resends, so that
+  pressing it twice does not burn two of the five guesses on a code that has already been replaced,
+  but nothing says how long it runs — and it has to be short enough that a caregiver whose first
+  email went to spam does not give up.
 - **Contact support leads nowhere described.** Landing offers it, which makes it the only route a
   caregiver locked out of their account has. Whether it opens the mail app, a web page, or a form
   inside the app decides whether that route works at all.
@@ -1893,7 +1945,8 @@ put a family in it.
     - password
     - >
       Face ID as a switch, so a caregiver who declined the one-time offer is not
-      locked out of it forever
+      locked out of it forever. Any password change clears the stored
+      credentials, so the switch is not the only thing that turns it off
     - notifications
     - about this app
     - sign out
@@ -1955,7 +2008,9 @@ put a family in it.
     - confirm new password
   exits:
     - action: Save
-      to: Settings
+      to: >
+        Settings, with every other session ended and stored credentials cleared,
+        while this device stays signed in
       as: back
     - action: Cancel
       to: Settings
