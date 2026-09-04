@@ -107,3 +107,24 @@ Surfaced during manual use of the C1-UI build; not yet fixed. Both pre-date the 
 - A few **orphaned care-group rows** remain in the **dev** DynamoDB tables from the B1 deploy smoke
   (the Cognito test users were deleted; their care groups/memberships were not). Dev-only test data —
   safe to ignore or sweep.
+
+## Found during the screen-catalogue pass (2026-09-03)
+
+- **`main` is red on a flaky iOS test.** `CaregiverTests/TrackerSummariesTests.swift:109`
+  (`testRecencyTextBuckets`) builds its clock from `Date()` and asserts that `now - 2h` reads
+  "2h ago". Between 00:00 and 02:00 UTC that timestamp falls on the previous calendar day, so
+  `recencyText` correctly returns "Yesterday" and the test fails. **The implementation is right and
+  the test is wrong** — `recencyText` checks the previous-day case before the hours bucket on
+  purpose (`TrackerSummariesModel.swift:51-58`), and `testRecencyTextYesterday` right below asserts
+  exactly that. _Fix:_ pin `now` to a fixed mid-day time, the way the neighbouring test already
+  does. It only fires when CI runs in that two-hour window, so it will look intermittent.
+- **`CLAUDE.md` may be wrong about the iOS toolchain.** It says Xcode 26+ and an iPhone 17
+  simulator; the CI job builds with **Xcode 16.4** against an **iPhone 16 Pro**. Local dev and CI may
+  legitimately differ — `ios/README.md` says CI resolves the simulator name dynamically — but one of
+  the two is stale and nobody has checked which.
+- **`role` is still required on invitations in the contract.** The PRD no longer has admin-role
+  invitations: every invitation joins as a caregiver, and admins are made by promotion. But `role`
+  remains `required` on `Invitation`, `PendingInvitation`, and `AcceptInvitationResponse` in
+  `shared/openapi/openapi.yaml`, and the API still enforces the email-match rule for admin invites.
+  Whether the field comes off the schema belongs to the **data model pass** — recorded here so it is
+  not discovered mid-build.
