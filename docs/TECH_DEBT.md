@@ -43,6 +43,13 @@ The following were deferred (family-scale-safe today):
   (`aud` = the app client id). The iOS client (C1) and the runbook should state this explicitly.
 - **Cognito pool uses email as the username.** `signInAliases: { email: true }` ⇒
   `UsernameAttributes: [email]`, so `admin-create-user` etc. must pass the email as `--username`.
+- **Tracker `kind` is no longer a product concept — remove it from the contract.** `TrackerKind`
+  (`measurement` / `event` / the reserved `scheduled`) is set on every tracker in
+  `shared/go-common/domain/care.go` and exposed through `shared/openapi/openapi.yaml`, but the PRD
+  (`docs/PRD.md`) defines a tracker with no kind at all: charts follow from field type (numbers plot
+  values over time, choices and yes/no plot frequency). _Fix:_ drop `kind` from the contract, the
+  domain, the templates catalog, and the iOS tracker card, then regenerate types. _Trigger:_ the next
+  contract change that touches `Tracker` — batch it there rather than spending a codegen cycle alone.
 - **Repo Go-version pinning.** `shared/go-common` is pinned to `go 1.23.7`, held there by pinning
   `testcontainers-go@v0.35.0` plus several transitive deps (smithy-go, otel, klauspost/compress).
   Renovate may try to bump these and re-raise the `go` directive. The clean fix is to standardize the
