@@ -376,6 +376,11 @@ and Reset password are sheets over the screen that raised them, so the form unde
 — and Reset password changes in place rather than navigating, taking an email and then swapping to a
 code and a new password, ending back at Sign in rather than signing the caregiver in on its own.
 
+Contact support is the one route out of the app that does not depend on getting into it. It shows
+the address rather than only offering a button, because a caregiver whose device has no mail app
+configured would otherwise tap something that silently does nothing — and the person most likely to
+tap it is the one already locked out and half-convinced the app is broken.
+
 **A sign in that fails says as little as it can.** A wrong password and an address with no account
 are answered identically — that the credentials are incorrect — because distinguishing them tells
 anyone who asks which addresses have accounts on a care app, and a family's involvement in one is not
@@ -464,7 +469,7 @@ sign out, which is a caregiver saying they want out.
     - brand and tagline
     - Sign in
     - Create account
-    - contact support
+    - contact support, with support@caretosher.com shown as text
   exits:
     - action: Sign in
       to: Sign in
@@ -473,10 +478,8 @@ sign out, which is a caregiver saying they want out.
       to: Sign up
       as: push
     - action: contact support
-      to: ???
-      as: ???
-  open:
-    - what contact support does — mail app, web page, or a form inside the app
+      to: the mail app, addressed to support@caretosher.com
+      as: out
 
 - screen: Sign in
   kind: push
@@ -537,6 +540,12 @@ sign out, which is a caregiver saying they want out.
       when: the address has an account that was never confirmed
       to: Confirm code, with a fresh code sent
       as: sheet
+    - action: Terms
+      to: the terms, on the web
+      as: out
+    - action: Privacy policy
+      to: the privacy policy, on the web
+      as: out
     - action: Sign in
       to: Sign in
       as: swap
@@ -683,9 +692,6 @@ sign out, which is a caregiver saying they want out.
   pressing it twice does not burn two of the five guesses on a code that has already been replaced,
   but nothing says how long it runs — and it has to be short enough that a caregiver whose first
   email went to spam does not give up.
-- **Contact support leads nowhere described.** Landing offers it, which makes it the only route a
-  caregiver locked out of their account has. Whether it opens the mail app, a web page, or a form
-  inside the app decides whether that route works at all.
 - **Creating a first care team lands on an undescribed Home.** A team made a moment ago has no care
   receiver, and what Home shows in that state is recorded as a gap under Home — but this is the flow
   that reaches it first, and a caregiver's very first look at the app is the one this decides.
@@ -1902,6 +1908,12 @@ can prove they hold is a way to lose an account rather than a way to reach someo
 caregiver reaches Home is only the first time it is asked; afterwards this is where it is turned on
 and off, so a caregiver who declined it once is not locked out of it forever.
 
+**About this app** holds the version, the terms and the privacy policy a caregiver agreed to at
+signup, and the way to reach support — the same handoff Landing offers, so a caregiver who is signed
+in and stuck does not have to sign out to find it. The terms and the policy are read on the web
+rather than in the app, because they are the same documents the App Store requires a link to, and a
+second copy would eventually disagree with the first.
+
 **Signing out** asks first, and says what it takes with it. Face ID switches off and the saved
 password leaves the device; the remembered email stays and prefills the next sign in. A device two
 caregivers share must not hand the second one the first one's account, and the email alone unlocks
@@ -1971,13 +1983,32 @@ put a family in it.
       to: Close your account
       as: push
     - action: About this app
-      to: ???
-      as: ???
+      to: About this app
+      as: push
   open:
     - >
       your name is shown but nothing changes it, though a caregiver's name is
       what every entry they log is attributed to
-    - what About this app opens, and what it holds
+
+- screen: About this app
+  kind: push
+  scope: the app itself, and how to reach the people behind it
+  contains:
+    - the app's version
+    - the terms and the privacy policy a caregiver agreed to at signup
+    - >
+      contact support, with support@caretosher.com shown as text and a tap that
+      hands off to the mail app
+  exits:
+    - action: Terms
+      to: the terms, on the web
+      as: out
+    - action: Privacy policy
+      to: the privacy policy, on the web
+      as: out
+    - action: contact support
+      to: the mail app, addressed to support@caretosher.com
+      as: out
 
 - screen: Change email
   kind: sheet
@@ -2110,9 +2141,6 @@ put a family in it.
 - **A caregiver cannot change their name.** Settings shows it beside the email and offers no way to
   edit it, though a caregiver's name is what every entry they log and every journal note they write
   is attributed to, on screens the whole team reads.
-- **About this app leads nowhere described.** It sits in the list with no destination, and it is the
-  usual home for the terms and the privacy policy a caregiver agreed to at signup — which the app
-  has to be able to show them again.
 - **Changing an email address can strand a pending invitation.** An admin-role invitation must be
   accepted from the address it was sent to, so a caregiver who changes their address while one is
   waiting has an invitation they can no longer accept and no way to say so.

@@ -12,7 +12,15 @@ from pathlib import Path
 PRD = Path(__file__).resolve().parent.parent / "docs" / "PRD.md"
 KINDS = {"push", "sheet", "swap", "stays", "tab", "root", "out", "back", "???"}
 # Destinations that deliberately leave the app or point outside the catalogue.
-EXTERNAL = ("the phone", "the Settings app", "the screen that raised it", "???")
+EXTERNAL = (
+    "the phone",
+    "the Settings app",
+    "the mail app",
+    "the terms",
+    "the privacy policy",
+    "the screen that raised it",
+    "???",
+)
 
 
 def unfold(block):
