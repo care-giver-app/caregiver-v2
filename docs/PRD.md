@@ -376,6 +376,31 @@ and Reset password are sheets over the screen that raised them, so the form unde
 — and Reset password changes in place rather than navigating, taking an email and then swapping to a
 code and a new password, ending back at Sign in rather than signing the caregiver in on its own.
 
+**A sign in that fails says as little as it can.** A wrong password and an address with no account
+are answered identically — that the credentials are incorrect — because distinguishing them tells
+anyone who asks which addresses have accounts on a care app, and a family's involvement in one is not
+something the app should confirm to a stranger.
+
+The one thing that is revealed is revealed only once it has been earned. An address whose account was
+created but never confirmed goes to Confirm code with a fresh code, but only after the right password
+has been supplied — so a caregiver learns their account exists by having already proved it is theirs.
+Revealing it on the address alone would hand back exactly what the identical message was protecting.
+
+After five failed attempts the account is locked for fifteen minutes. The lock is on the account
+rather than the device, because a device lock is escaped by reinstalling and punishes a family
+sharing one iPad. The screen says that the account is locked and when it will clear, rather than
+repeating that the credentials are wrong — a caregiver told the same thing six times learns nothing
+about why the sixth time was different. Forgot password stays available throughout, because it is a
+way in that does not depend on remembering anything. Nothing about the lock needs anyone's help: it
+clears on its own, because an account a family cannot get back into without an intervention is an
+account they cannot get back into.
+
+A confirmation code lives ten minutes, and the lock covers everything that issues or checks one. A
+locked-out caregiver cannot resend their way around it, and Sign up cannot be used to mint a fresh
+code for an account that is locked — a lock that only guarded the screen it was tripped on would
+leave Sign up as a way to ask for another code. Because the code dies before the lock lifts, five
+guesses is all any code ever gets.
+
 **Signing up.** Confirming the code signs the caregiver in without asking for the password a second
 time, so signing up ends in the same place signing in does — and a caregiver who turns out to already
 have an account leaves through the cross-link rather than by going back to Landing.
@@ -435,27 +460,31 @@ sign out, which is a caregiver saying they want out.
     - Create account
   exits:
     - action: Sign in, or Face ID
-      when: you belong to a care team
+      when: the credentials are right and you belong to a care team
       to: Home
       as: root
     - action: Sign in, or Face ID
-      when: you belong to no care team
+      when: the credentials are right and you belong to no care team
       to: Join a care team
       as: root
-    - action: email not confirmed
-      to: Confirm code
+    - action: Sign in
+      when: the password is wrong, or the address has no account
+      to: Sign in, saying only that the credentials are incorrect
+      as: stays
+    - action: Sign in
+      when: the password is right and the account was created but never confirmed
+      to: Confirm code, with a fresh code sent
       as: sheet
+    - action: Sign in
+      when: five attempts have failed
+      to: Sign in, locked for fifteen minutes, saying so and saying when it clears
+      as: stays
     - action: Forgot password?
       to: Reset password
       as: sheet
     - action: Create account
       to: Sign up
       as: swap
-  open:
-    - >
-      a wrong password, an unknown address, or an account locked after repeated
-      attempts — nothing says what a failed sign in shows or where it leaves you
-
 - screen: Sign up
   kind: push
   scope: nothing; no caregiver is known yet
@@ -507,16 +536,14 @@ sign out, which is a caregiver saying they want out.
       to: the screen that raised it
       as: back
   open:
-    - >
-      a wrong or expired code, and whether the attempts or the resends are
-      limited
+    - whether a wrong code and an expired one read differently
+    - how long a caregiver must wait between resends
 
 - screen: Reset password
   kind: sheet
   scope: >
     one email address; raised over Sign in, and where it ends. It changes in
-    place rather than navigating — first the address, then the code and a new
-    password
+    place rather than navigating — first the address, then the code and a new password
   contains:
     - email address
     - then, in place, the code sent to it and a new password
@@ -600,13 +627,10 @@ sign out, which is a caregiver saying they want out.
   used, meant for a team the caregiver already belongs to, or an admin invitation opened from the
   wrong address. Join a care team answers only the first two, and then only as "an error". The Team
   tab takes codes and waiting invitations too, so both screens are owed the same answers.
-- **Nothing describes a sign in that fails.** A wrong password, an address with no account, and an
-  account locked after repeated attempts all leave the caregiver on Sign in with nothing said about
-  what they are told or what they can do next — and the third is the one that needs a way out.
-- **A wrong or expired code has no screen.** Confirm code and Reset password both take a six-digit
-  code and both assume it is right. Whether a bad code is answered in place, whether attempts are
-  limited, and whether resending is limited are all unanswered, on the two screens standing between
-  a caregiver and their account.
+- **What a bad code says is still unanswered.** How many attempts a caregiver gets and what a lock
+  means are now settled — five, then fifteen minutes, on the account — but Confirm code and Reset
+  password still do not say whether a wrong code and an expired one read differently, or how long a
+  caregiver must wait between resends.
 - **Contact support leads nowhere described.** Landing offers it, which makes it the only route a
   caregiver locked out of their account has. Whether it opens the mail app, a web page, or a form
   inside the app decides whether that route works at all.
