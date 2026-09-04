@@ -23,6 +23,11 @@ struct StrideTabBar: View {
     @Binding var selection: StrideTab
     let onQuickLog: () -> Void
 
+    /// Rendered height of the bar, so pushed views can clear it explicitly — it sits
+    /// as a persistent `safeAreaInset` on the root `TabView`, which pushed
+    /// `navigationDestination` content doesn't automatically account for.
+    static let reservedHeight = Metrics.barHeight
+
     private enum Metrics {
         static let barHeight: CGFloat = 60
         static let iconSize: CGFloat = 24

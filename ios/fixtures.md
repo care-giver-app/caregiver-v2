@@ -109,3 +109,29 @@ whole-day delta ("Today" / "Tomorrow" / "in N days").
   are their own `scheduled` trackers. Reuse the canonical hues (cyan/teal/violet); no amber (amber is the
   banner's fixed attention accent, not a tracker hue).
 - Figma frames: look-ahead list `219:986`, empty state `223:1051` (see [[schedule]]).
+
+## Care teams, receivers, and invitations (PRD-era additions)
+
+Added 2026-09-02 with the PRD-driven Team pass. The PRD renames the tenant **care team** (not "care
+group") and drops `TrackerKind`, so the vocabulary above is behind — but the _names_ here remain
+canonical and nothing in the PRD retires them.
+
+| Slot                         | Value                                                                      | Notes                                                             |
+| ---------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Active care team             | **The Riverside Group**                                                    | Trevor is an **admin**.                                           |
+| Its care receivers           | **Eleanor** (active) · **Harold** · Rosa                                   | Eleanor and Harold are the two drawn on the Team list.            |
+| Second care team             | **Johnson Family**                                                         | Trevor is a **caregiver** here — no Add care receiver.            |
+| Its care receiver            | **Walter** · Mountain time                                                 | New fixture — the second team needs one receiver to be real.      |
+| Inbound pending invitation   | **Delgado Family** · caregiver · expires in 7d                             | New fixture — a team Trevor is _not_ on, waiting on the Team tab. |
+| Eleanor's time zone          | Central time                                                               | Walter is Mountain time, so the zone rule is visible.             |
+| Eleanor's emergency contacts | Dana · daughter · (555) 014-2277 · Dr. Ahn · primary care · (555) 019-9040 | New fixtures.                                                     |
+| Eleanor's coverage           | Dana Thu 8a–4p · Trevor Tue 8a–4p, both from repeating rules               | New fixtures.                                                     |
+
+**Roster and invite are unchanged from above:** Trevor (You · admin) · Dana (admin) · Marcus
+(caregiver), one pending invite `jordan@email.com` (caregiver · expires 7d). Dana reads as an **admin**
+on the Team frames so that promote/demote has something to act on; the `Needs an admin` frame is the
+single exception and shows Dana as a caregiver, because its whole point is Trevor being the last admin.
+
+**This section exists because the Team pass initially invented a second fixture set** (Michele /
+Sherman family / Ryan / Kate) without checking this spec, which is the exact drift the file was
+written to prevent. Bind new frames here first.
