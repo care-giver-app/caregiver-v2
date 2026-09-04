@@ -71,7 +71,7 @@ first admin. Every caregiver logs entries and can see who else is on the team an
 hold; admins additionally manage the team's setup.
 
 **Invitation** — How a caregiver joins a care team. An admin creates an invitation for a particular
-email address and role, then shares it with that person however they already talk to them; the app
+email address, then shares it with that person however they already talk to them; the app
 does not send email on their behalf.
 
 There are two ways to redeem one, and the common one asks nothing of the invitee. A caregiver who
@@ -82,10 +82,20 @@ someone uses Apple's Hide My Email, or signs up with a different address than th
 pastes into the app, so a wrong guess at someone's email is a small annoyance rather than a dead
 end. The code is long and random rather than short enough to read aloud, because it is always
 copied: nobody should be able to reach a care team by guessing. An admin can copy it again from the
-team's pending invitations for as long as it goes unused. **Admin-role invitations are the
-exception: they must be accepted from the invited address**, because promoting someone to admin
-should not be possible by passing a code along. An invitation is single-use and expires after two
-weeks, so a code shared once does not stay live.
+team's pending invitations for as long as it goes unused.
+
+Every invitation joins a team as a caregiver. Nobody becomes an admin by redeeming anything: an
+admin is made by an existing admin promoting somebody already on the team, by name — a deliberate
+act about a person they can see, rather than a property of a code that may have been passed along.
+The first admin of a team is whoever created it.
+
+An invitation is single-use and expires after two weeks, so a code shared once does not stay live.
+An admin cannot create one for somebody already on the team, and an invitation redeemed by an
+existing member is refused as it is redeemed. The second guard is the one that matters, because the
+first can be walked around: two invitations sent in confusion leave one live behind the other, and
+an invitee using Hide My Email may accept with an address their invitation never named, so no check
+made against an email address can be relied on. Membership is the thing worth asking about, and it
+is asked at the only moment that counts.
 
 **Assignment** — A span of time during which a named caregiver is responsible for a care receiver.
 Assignments are how a care team answers "who has Thursday?": they make coverage visible so two
@@ -448,8 +458,7 @@ that cannot help them, which is the trap an abandoned signup already falls into.
 
 **Signed in with no care team.** Join a care team is where a caregiver accepts an invitation waiting
 for their email or pastes an invite code, with creating a team offered as the alternative rather than
-the only option. Accepting an admin-role invitation additionally requires signing in with the address
-it was sent to.
+the only option.
 
 Two behaviors have no screen of their own. **Remember me** stores the email address only and prefills
 it on the next launch. **Face ID** is offered once, in a sheet the first time a caregiver reaches
@@ -625,7 +634,7 @@ sign out, which is a caregiver saying they want out.
   kind: push
   scope: the signed-in caregiver, when they belong to no care team
   contains:
-    - invitations waiting for your email, each with its care team and your role
+    - invitations waiting for your email, each with its care team and who invited you
     - paste an invite code
     - create a team instead
   exits:
@@ -645,8 +654,9 @@ sign out, which is a caregiver saying they want out.
     no invitations waiting — the screen is the invite-code field and the offer to
     create a team
   open:
-    - an admin-role invitation opened from an address other than the one it was sent to
-    - an invitation to a care team the caregiver already belongs to
+    - >
+      whether an invalid code, an expired one, and one already used read
+      differently
 
 - screen: Create your first care team
   kind: push
@@ -684,10 +694,10 @@ sign out, which is a caregiver saying they want out.
 
 #### Gaps in this flow
 
-- **Only the happy path through an invitation is described.** An invite code can be expired, already
-  used, meant for a team the caregiver already belongs to, or an admin invitation opened from the
-  wrong address. Join a care team answers only the first two, and then only as "an error". The Team
-  tab takes codes and waiting invitations too, so both screens are owed the same answers.
+- **What a rejected invite code says is undescribed.** Invalid, expired, and already used all
+  collapse into "an error" on both Join a care team and the Team tab, and a caregiver told only that
+  something went wrong cannot tell whether to ask the admin for a new code or to look harder at the
+  one they have.
 - **How long a resend makes you wait is unanswered.** There is a wait between resends, so that
   pressing it twice does not burn two of the five guesses on a code that has already been replaced,
   but nothing says how long it runs — and it has to be short enough that a caregiver whose first
@@ -1521,7 +1531,7 @@ caregiver.
   contains:
     - each care team the caregiver belongs to, and their role in it
     - each team's care receivers
-    - invitations waiting for your email, each with its team and your role
+    - invitations waiting for your email, each with its team and who invited you
     - paste an invite code
     - create a care team
   exits:
@@ -1549,6 +1559,9 @@ caregiver.
       as: stays
     - action: paste a code that is invalid, expired, or already used
       to: Team
+      as: stays
+    - action: accept or paste a code for a care team you already belong to
+      to: Team, refused because you are already a member
       as: stays
   empty: the caregiver belongs to no care team — ???
   open:
@@ -1633,7 +1646,6 @@ caregiver.
   scope: one care team; admins only
   contains:
     - email address
-    - role
     - >
       once created, the invite code to copy, since the app sends no email on the
       admin's behalf
@@ -1641,6 +1653,10 @@ caregiver.
     - action: Create invitation
       to: Care team, with the invitation now in the pending list
       as: back
+    - action: Create invitation
+      when: the address already belongs to someone on this care team
+      to: Invite a caregiver, refused because they are already a member
+      as: stays
     - action: Cancel
       to: Care team
       as: back
@@ -1862,9 +1878,11 @@ caregiver.
   leaves a team nobody can join, empty of people and holding a receiver's whole record with no way to
   reach it. Whether a team can be deleted, what becomes of its receivers and their entries, and
   whether anyone but its members should be able to do it are all unanswered.
-- **A pending invitation can be copied but not withdrawn or changed.** An admin who invited the wrong
-  address, or invited someone as a caregiver when they meant admin, has no way to cancel the
-  invitation or amend it, and the two-week expiry is the only thing that ends it.
+- **A pending invitation can be copied but not withdrawn or changed.** An admin who invited the
+  wrong address has no way to cancel or amend it, and the two-week expiry is the only thing that
+  ends it. This is also what leaves a spent invitation on screen: two invitations sent to one
+  person, one accepted, and the other stays in both their waiting list and the team's pending list,
+  refusing politely, until it expires.
 - **A coverage schedule cannot be ended or removed.** An assignment offers removal and a schedule
   does not, and nothing says what becomes of the assignments a schedule has already generated when a
   team stops it before its end date — whether the ones still ahead disappear with the rule, or stand
@@ -2026,9 +2044,6 @@ put a family in it.
       as: back
   open:
     - a wrong or expired code, as on Confirm code and Reset password
-    - >
-      changing an address while an admin-role invitation is waiting leaves an
-      invitation that can no longer be accepted, and no way to say so
 
 - screen: Change password
   kind: sheet
@@ -2141,9 +2156,6 @@ put a family in it.
 - **A caregiver cannot change their name.** Settings shows it beside the email and offers no way to
   edit it, though a caregiver's name is what every entry they log and every journal note they write
   is attributed to, on screens the whole team reads.
-- **Changing an email address can strand a pending invitation.** An admin-role invitation must be
-  accepted from the address it was sent to, so a caregiver who changes their address while one is
-  waiting has an invitation they can no longer accept and no way to say so.
 - **The code and password failures are undescribed here too.** Change email takes a six-digit code
   and Change password takes the current password, and neither says what a wrong one shows. This is
   the same hole as Confirm code and Reset password, and it should be answered once for all four.
