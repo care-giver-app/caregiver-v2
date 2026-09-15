@@ -872,7 +872,10 @@ one of them would read as an oversight.
 
 Jump to day, Edit entry, Edit journal note, and both delete confirmations are sheets; Entry detail
 and Journal note are pushed. The day stepper walks a day at a time and stops at today, so the
-timeline looks back but never forward. A caregiver who has stepped back returns in one tap: a Today
+timeline looks back but never forward, and the calendar stops there too. A day in the future holds
+nothing but plans, which Coming up already answers and groups into this week and later; a calendar
+that opened tomorrow would be a second door onto that question, answering it differently, and the two
+would drift. A caregiver who has stepped back returns in one tap: a Today
 button sits with the date
 whenever the timeline is showing any day but today, because the way out of the past should not cost
 as many taps as the way in.
@@ -900,6 +903,19 @@ has taken yet is left blank for whoever takes it. A tracker schedule already pre
 occurrences it generates, and a plan made by hand should not carry less than one made by a rule. A
 planned run also asks once whether the team should be told if the care is missed, since a
 missed-care alert belongs to the occurrence it is about and not every plan warrants one.
+
+A caregiver can step back through the run as well as forward, and what they have already entered is
+still there when they come back to it. The run has three parts and a step for every tracker picked, so
+forward-only would mean a wrong tap at the start costs everything typed after it — and the only way
+out of that is cancelling the whole run, which is the one outcome nobody wants. Dropping a tracker
+from the picker drops what was entered for it, because the step it was entered on is gone.
+
+Where an occurrence of a picked tracker is already waiting near the time given, that tracker's step
+leads with it and offers to log that one instead. The app never attaches a log to a plan on its own,
+so this is the offer that promise depends on, and it belongs here rather than afterwards: at the step
+the caregiver is still deciding what they are recording, while after the save they would be
+correcting it. Taking the offer fills the step with what the schedule pre-filled, and the care
+fulfils the plan rather than sitting beside it as a second record of the same dose.
 
 The picker always offers an admin a new tracker, and taking it ends the run: Quick log is dismissed
 and Add tracker takes its place, so nobody ends up with a logging sheet buried under a setup sheet.
@@ -1041,7 +1057,9 @@ under what is coming up rather than in the day behind it.
   kind: sheet
   scope: which day the timeline on Home is showing
   contains:
-    - a calendar
+    - >
+      a calendar that stops at today, as the day stepper does, since a day ahead
+      holds nothing but plans and Coming up is what answers those
   exits:
     - action: pick a day
       to: Jump to day, with that day selected
@@ -1049,11 +1067,6 @@ under what is coming up rather than in the day behind it.
     - action: Done
       to: Home, showing the day picked
       as: back
-  open:
-    - >
-      whether days ahead of today can be picked. The day stepper deliberately
-      stops at today, and a calendar that does not would be a second door onto
-      a screen the timeline refuses to show
 
 - screen: Entry detail
   kind: push
@@ -1200,6 +1213,10 @@ under what is coming up rather than in the day behind it.
       only when the time is in the future
     - a step for each thing picked, pre-filling rather than recording when the run is planning
     - >
+      where an occurrence of a picked tracker is already waiting near the time
+      given, that step leads with it and offers to log that one instead, so the
+      care fulfils the plan rather than sitting beside it
+    - >
       a result reporting item by item, since some may save while others do not
     - Add a tracker — admins only, offered whatever else the picker holds
   exits:
@@ -1218,6 +1235,12 @@ under what is coming up rather than in the day behind it.
     - action: Cancel, raised from Tracker detail
       to: Tracker detail
       as: back
+    - action: log the waiting occurrence instead
+      to: Quick log, with that step filled from what the schedule pre-filled
+      as: stays
+    - action: step back a part
+      to: Quick log, at the earlier part, with what was entered still there
+      as: stays
     - action: Add a tracker
       admin: true
       to: Add tracker
@@ -1226,29 +1249,14 @@ under what is coming up rather than in the day behind it.
     the care receiver has no active trackers — the picker holds a journal note and,
     for an admin, the offer of a first tracker, while a caregiver is told an admin
     sets them up
-  open:
-    - >
-      whether a caregiver can step back to an earlier part of the run, or only
-      forward
-    - >
-      nothing catches an ad-hoc log that lands near a scheduled one, so the
-      offer to fulfil it has no screen
 ```
 
 #### Gaps in this flow
 
-- **Nothing reaches Coming up for a team that has never scheduled anything.** The banner is the only
-  way in and it is there only when something is scheduled, so a team that logs everything ad hoc
-  never sees the screen that would show them the app looks ahead at all.
-- **Jump to day does not say whether days ahead of today can be picked.** The day stepper
-  deliberately stops at today, so a calendar that allows tomorrow would be a second door onto a day
-  the timeline refuses to show.
-- **Nothing here catches an ad-hoc log that lands near a scheduled one.** A caregiver logging a dose
-  twenty minutes before it was due is meant to be offered the chance to fulfil it; that offer has no
-  screen, so the two records simply coexist.
-- **Quick log does not say whether a caregiver can go back a step.** The run has three parts and
-  several steps, and a caregiver who picked the wrong tracker or the wrong time has no described way
-  to return to that choice.
+- **How near counts as near is unanswered.** A tracker's step offers the waiting occurrence when an
+  ad-hoc log lands near it, but nothing says how wide near is. A dose due at 8:00pm and logged at
+  7:30 plainly fulfils it and one logged at 2:00pm plainly does not, and the width belongs with the
+  grace period in Open question 1 — both are asking how much slack a scheduled time carries.
 - **A one-off scheduled entry cannot be changed once it is made.** Quick log creates one — an
   appointment next Tuesday, a dose planned for the evening — but nothing afterward changes its time,
   its pre-filled values, or whether being missed should alert anyone. Entry detail offers a scheduled
