@@ -185,7 +185,16 @@ alerts, and one lapse should never be reported by two mechanisms — so choosing
 the other, and an admin changing either is told what they are about to lose.
 
 **Tracker template** — A pre-built tracker definition — name, icon, color, fields, and thresholds —
-that a caregiver can add in one step instead of building a tracker from scratch.
+that an admin starts a new tracker from instead of building one from scratch. Blood pressure arrives
+already knowing it takes a systolic and a diastolic in mmHg with an expected range around them; a
+shower arrives with no fields at all and a gap of a few days.
+
+A template is where a tracker starts and not what it stays. Everything it brought can be changed
+before the tracker is created, and afterward the tracker keeps no tie to the catalogue it came from —
+a team that renamed theirs, dropped a field they never take, or widened a range to what their doctor
+actually said has described their own care, and no catalogue is entitled to an opinion about that
+later. Templates carry no schedules, because when care happens is the one thing a catalogue cannot
+know: the same medication is taken twice a day by one person and on Mondays by another.
 
 **Entry** — A record attached to a tracker: its field values, an optional note, and a time. Every
 entry is in one of four states:
@@ -938,7 +947,7 @@ under what is coming up rather than in the day behind it.
       admin: true
       when: the care receiver has no active trackers
       to: Add tracker
-      as: ???
+      as: sheet
     - action: >
         reaching Home for the first time on a device that supports Face ID, with
         no choice yet made
@@ -1125,7 +1134,8 @@ under what is coming up rather than in the day behind it.
   scope: >
     the active care receiver. One sheet that runs in three parts — what to
     record, when it happened, then a step for each thing picked — and ends on a
-    result
+    result. Raised from Tracker detail it opens with that tracker picked and
+    skips the picking part, starting at when the care happened
   contains:
     - >
       what to record: the receiver's active trackers, several at once, and a
@@ -1147,8 +1157,14 @@ under what is coming up rather than in the day behind it.
     - action: Done, after a planning run
       to: Home, with the new entries under what is coming up
       as: back
+    - action: Done, raised from Tracker detail
+      to: Tracker detail, with what was logged in its list
+      as: back
     - action: Cancel
       to: Home
+      as: back
+    - action: Cancel, raised from Tracker detail
+      to: Tracker detail
       as: back
   empty: the care receiver has no active trackers — ???
   open:
@@ -1231,6 +1247,27 @@ than back on the list, because the next thing anyone wants after making a tracke
 receiver with no trackers at all is offered the first one instead of an empty screen, since deciding
 what to keep track of is what a team does immediately after adding someone to care for.
 
+**Making one.** A tracker starts from a template. The catalogue already knows that blood pressure
+takes two numbers in mmHg and that a shower is watched by a gap rather than a schedule, and an admin
+who has just added their mother to a care team should not have to work that out before the app is of
+any use to them. Picking one does not create the tracker, though: it fills in a second part where
+everything the template brought is there to be changed — its name, its color, the fields it captures,
+the thresholds around them. The two parts are one sheet rather than two screens, because choosing and
+adjusting are one decision, and an admin who realises while adjusting that they picked the wrong
+template has not left the place they picked it from.
+
+A field the template brought can also be dropped there, which is the only place in the app where that
+is true. A field is never deleted once a tracker exists, because deleting one would take real readings
+with it — but a tracker that has not been created yet has no readings, so a template's pulse field
+that this team never takes goes away rather than sitting paused on a tracker from the day it was made.
+
+A tracker no template describes is built from scratch in the same second part with nothing filled in.
+Neither path asks about schedules. A schedule describes a regimen, and a regimen is rarely settled at
+the moment someone decides to start tracking something — the tracker comes first, and Edit is where
+the times are written once the care has times. That is also where an admin meets the rule that a
+tracker has schedules or a gap but never both: a template that arrived with a gap has already spent
+that choice, and the first schedule added to it is where the app says so.
+
 **Tracker detail.** What one tracker is, and everything logged against it.
 
 Tracker detail is the only screen that shows a tracker whole. Home's timeline is one day across every
@@ -1249,14 +1286,32 @@ including the fields that have been paused, its schedules or its gap, and whethe
 right now. This is where a gap alert lands, so it has to answer what the alarm was about — how long
 the tracker has gone unlogged, and how long the team said was acceptable.
 
+Logging happens here too, against the tracker rather than from a list of all of them. The ⊕ on Home
+starts by asking what to record; a caregiver who has opened the evening dose has answered that
+already, so this raises the same sheet with the tracker picked and the run starting at when the care
+happened. A tracker with nothing logged against it says so and offers that first entry — every
+tracker passes through that state on the day it is created, and a gap counts from that day rather than
+from a first entry, so the screen an admin lands on straight after making a tracker is already one
+being measured.
+
 Every caregiver reads this screen; only admins see Edit, since admins manage the team's trackers
-while every caregiver logs against them. Edit tracker and the pause confirmation are sheets; Trackers
-and Tracker detail are pushed. The edit sheet is where the rule that a tracker has schedules or a gap
+while every caregiver logs against them. Add tracker, Edit tracker, the field and schedule sheets, and
+the pause confirmation are all sheets; Trackers and Tracker detail are pushed. The edit sheet is where the rule that a tracker has schedules or a gap
 but never both is enforced, and an admin turning on one is told what they are about to lose. **Pause
 sits inside the edit sheet rather than on the screen itself**, because it is the last thing a team
 does to a tracker rather than something that should be within reach while reading one. The
 confirmation says what stops and what is kept, since a caregiver who reads "pause" as "delete" would
 never press it.
+
+Adding a field and writing a schedule are each a sheet of their own over the edit sheet, because each
+is one thing with its own handful of decisions and neither survives being squeezed into a row. A field
+is a name, a type — a number, free text, a yes/no, a choice from a fixed list, a date and time — the
+unit of a number or the options of a choice, whether it is required, and the range a numeric value is
+expected to stay inside. On a tracker that exists it offers pause rather than delete, and says which
+of the two it is doing, because its values sit on every entry already carrying them. A schedule is a
+recurrence, the values it pre-fills, whether the team should be told if the care is missed, a label,
+and an end date if it has one; left unlabelled it takes a name derived from itself, so three schedules
+on one tracker read as a regimen rather than as three copies of the tracker's name.
 
 A paused tracker opens the same screen, reading as paused. It keeps everything worth reading — what
 it collected, what the team expected of it, and every entry ever logged against it — and offers no
@@ -1306,12 +1361,10 @@ reading questions.
     - action: Add a tracker
       admin: true
       to: Add tracker
-      as: ???
+      as: sheet
   empty: >
     the care receiver has no trackers at all — the screen offers the first one
     rather than showing an empty list
-  open:
-    - whether Add tracker is pushed or raised as a sheet
 
 - screen: Tracker detail
   kind: push
@@ -1344,36 +1397,54 @@ reading questions.
       admin: true
       to: Edit tracker
       as: sheet
+    - action: Log
+      when: the tracker is active
+      to: Quick log, with this tracker already picked
+      as: sheet
     - action: Resume
       admin: true
       when: the tracker is paused
       to: Tracker detail, active again
       as: stays
-  empty: the tracker has never been logged — ???
-  open:
-    - >
-      what a tracker with no entries shows, which is every tracker on the day it
-      is created
+  empty: >
+    the tracker has never been logged — it says so and offers the first entry.
+    Every tracker passes through this on the day it is created, and a gap counts
+    from that day rather than from a first entry
 
 - screen: Add tracker
-  kind: ???
+  kind: sheet
   scope: >
-    a new tracker for the active care receiver; admins only. Raised from the
+    a new tracker for the active care receiver; admins only. One sheet in two
+    parts — choose a template, then adjust everything it brought. Raised from the
     Trackers list, or from Home when the receiver has no active trackers
   contains:
-    - ???
+    - the tracker templates, each saying what it collects
+    - Start from scratch, for a tracker no template describes
+    - >
+      what the template brought, all of it changeable: its name, icon and color,
+      the fields it captures, and the thresholds around them
+    - >
+      a way to add a field, and a way to drop one the template brought — the only
+      place a field can be dropped, since a tracker that does not exist yet has no
+      readings to lose
+    - >
+      nothing about schedules: a regimen is rarely settled when a tracker is being
+      made, and Edit tracker is where one is written
   exits:
+    - action: a template, or Start from scratch
+      to: Add tracker, with the second part filled in from it
+      as: stays
+    - action: add or change a field
+      to: A field
+      as: sheet
     - action: Create
       to: Tracker detail, on the tracker just made
-      as: ???
+      as: push
     - action: Cancel
       to: the screen that raised it
-      as: ???
+      as: back
   open:
-    - >
-      the whole screen is undescribed — what it asks for, in what order, and
-      whether a tracker is built field by field or started from a template
-    - how a tracker template becomes a tracker
+    - which templates the catalogue holds
 
 - screen: Edit tracker
   kind: sheet
@@ -1400,20 +1471,66 @@ reading questions.
     - action: Pause tracker
       to: Pause this tracker?
       as: sheet
-    - action: add a field
-      to: ???
-      as: ???
+    - action: add or change a field
+      to: A field
+      as: sheet
     - action: add or change a schedule
-      to: ???
-      as: ???
+      to: A schedule
+      as: sheet
+
+- screen: A field
+  kind: sheet
+  scope: >
+    one piece of data a tracker captures; admins only. A sheet over whichever
+    screen is defining the tracker — Add tracker before it exists, Edit tracker
+    after
+  contains:
+    - a name
+    - >
+      its type — a number, free text, a yes/no, a choice from a fixed list, or a
+      date and time — with the unit of a number or the options of a choice
+    - whether it is required
+    - >
+      the range a numeric value is expected to stay inside, which is what raises
+      an alert when a logged one falls outside it
+    - >
+      on a tracker that already exists: pause it, never delete it, since its
+      values sit on every entry already carrying them
+  exits:
+    - action: Save
+      to: the screen that raised it
+      as: back
+    - action: Cancel
+      to: the screen that raised it
+      as: back
+
+- screen: A schedule
+  kind: sheet
+  scope: >
+    one recurring rule on a tracker, and the values it pre-fills; admins only. A
+    sheet over Edit tracker
+  contains:
+    - when it recurs
+    - >
+      the values it pre-fills on every entry it generates, leaving blank what
+      nobody can know until the care happens
+    - >
+      whether the team should be told if the care is missed, since a missed dose
+      matters and a missed walk may not
+    - a label, which left blank is derived from the schedule itself
+    - when it ends, if it ends
+    - >
+      what a gap costs: the first schedule on a tracker watched by one says so,
+      because a tracker has schedules or a gap and never both
+  exits:
+    - action: Save
+      to: Edit tracker
+      as: back
+    - action: Cancel
+      to: Edit tracker
+      as: back
   open:
-    - >
-      adding a field is offered but not described — what names a field, chooses
-      its type, sets its options or its unit, and marks it required
-    - >
-      adding or changing a schedule is not described either, and a tracker can
-      have any number of them, each with a rule, pre-filled values, a label, and
-      an optional end date
+    - whether a schedule can be removed outright, or only given an end date
 
 - screen: Pause this tracker?
   kind: sheet
@@ -1436,18 +1553,13 @@ reading questions.
 
 #### Gaps in this flow
 
-- **What Add a tracker opens is undescribed.** The Trackers list offers it and creating one lands on
-  the new tracker, but nothing says what the screen in between holds, how a tracker template becomes
-  a tracker, or whether it is pushed or raised as a sheet.
-- **Adding a field has no screen.** Edit tracker offers it, and a field is the thing a tracker is
-  made of — it needs a name, a type, whether it is required, and for a choice field a list of
-  options. None of that is described anywhere.
-- **Adding or changing a schedule has no screen either.** A tracker can have any number of
-  schedules, each carrying a recurrence, the values it pre-fills, an optional label, and an optional
-  end date. Edit tracker lists them; nothing says how one is made.
-- **A tracker with no entries is undescribed.** Every tracker passes through that state on the day
-  it is created, and a gap threshold starts counting from that day, so the first thing an admin sees
-  after making a tracker is a screen nothing describes.
+- **A schedule cannot be removed.** One can be given an end date, which stops it generating from then
+  on, but nothing takes a schedule off a tracker outright, so a regimen abandoned after a week leaves
+  its rule on the tracker for good. Team has the same hole in coverage schedules, and the two should
+  be answered together.
+- **What the template catalogue holds is unnamed.** A tracker starts from a template, so how useful
+  the app is on the day a team arrives is mostly decided by which templates exist — and nothing says
+  what they are, or what a team whose care is not in the list gets beyond a blank second part.
 - **A tracker's insights are not reachable from it.** A caregiver reading a tracker's entries has no
   way to the chart drawn from those same entries. Insights is deferred, so this waits with it.
 
