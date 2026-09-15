@@ -116,6 +116,13 @@ describe a real rotation. A schedule can end on a set date, so a temporary arran
 own. A single generated assignment can be handed to another caregiver without touching the rule
 behind it, so covering one Tuesday for someone does not rewrite the routine.
 
+An admin can remove a schedule outright, and removing one stops the future without rewriting the
+past: the assignments it generated for days already gone stay, still saying who was responsible for
+them, and the ones still ahead go with the rule. Giving a schedule an end date does the same thing at
+a different point. A rotation ending is at least as ordinary as a single Thursday being dropped, and
+a team whose only way out of a rule is to delete every Tuesday it ever made would leave the rule
+alone instead.
+
 **Care instructions** — A written description of how to care for one care receiver, kept by the
 team's admins and readable by every caregiver. It holds the standing knowledge no tracker can: that
 the morning pills go down with food, that the walker comes along for anything past the kitchen, that
@@ -259,6 +266,12 @@ can optionally end on a set date, so a course of treatment stops on its own. Eac
 label a caregiver may type; left blank, it defaults to one derived from the schedule itself, such as
 "Med A — MWF, 8:00am". A tracker does not need a schedule at all; entries can always be logged ad
 hoc.
+
+An admin can remove a schedule, and removing one takes the plan rather than the care: every
+occurrence still waiting goes with the rule, while every entry already logged, skipped, or missed
+stays exactly where it was. This is what pausing does one level up and for the same reason — a team
+that stopped a regimen has not stopped having followed it, and a schedule a team could only be rid of
+by erasing a month of doses is one they would keep.
 
 **Journal note** — Something a caregiver wants to say about a care receiver's day that no tracker
 captures: that the morning was rough and breakfast went half eaten, that a granddaughter visited and
@@ -1296,7 +1309,7 @@ being measured.
 
 Every caregiver reads this screen; only admins see Edit, since admins manage the team's trackers
 while every caregiver logs against them. Add tracker, Edit tracker, the field and schedule sheets, and
-the pause confirmation are all sheets; Trackers and Tracker detail are pushed. The edit sheet is where the rule that a tracker has schedules or a gap
+the pause and removal confirmations are all sheets; Trackers and Tracker detail are pushed. The edit sheet is where the rule that a tracker has schedules or a gap
 but never both is enforced, and an admin turning on one is told what they are about to lose. **Pause
 sits inside the edit sheet rather than on the screen itself**, because it is the last thing a team
 does to a tracker rather than something that should be within reach while reading one. The
@@ -1311,7 +1324,10 @@ expected to stay inside. On a tracker that exists it offers pause rather than de
 of the two it is doing, because its values sit on every entry already carrying them. A schedule is a
 recurrence, the values it pre-fills, whether the team should be told if the care is missed, a label,
 and an end date if it has one; left unlabelled it takes a name derived from itself, so three schedules
-on one tracker read as a regimen rather than as three copies of the tracker's name.
+on one tracker read as a regimen rather than as three copies of the tracker's name. Removing a
+schedule sits where the schedule does and asks before it acts, because what it takes is not obvious
+from the outside: the rule and every occurrence still waiting go, and nothing that was logged,
+skipped, or missed moves at all. The confirmation is where a team reads which of those is which.
 
 A paused tracker opens the same screen, reading as paused. It keeps everything worth reading — what
 it collected, what the team expected of it, and every entry ever logged against it — and offers no
@@ -1529,8 +1545,25 @@ reading questions.
     - action: Cancel
       to: Edit tracker
       as: back
-  open:
-    - whether a schedule can be removed outright, or only given an end date
+    - action: Remove
+      to: Remove this schedule?
+      as: sheet
+
+- screen: Remove this schedule?
+  kind: sheet
+  scope: one schedule on one tracker
+  contains:
+    - what goes — the rule, and every occurrence it made that is still waiting
+    - >
+      what stays — every entry already logged, skipped or missed, exactly where it
+      is, in the timelines it appeared in and the insights it fed
+  exits:
+    - action: Cancel
+      to: A schedule
+      as: back
+    - action: Remove
+      to: Edit tracker
+      as: back
 
 - screen: Pause this tracker?
   kind: sheet
@@ -1553,10 +1586,6 @@ reading questions.
 
 #### Gaps in this flow
 
-- **A schedule cannot be removed.** One can be given an end date, which stops it generating from then
-  on, but nothing takes a schedule off a tracker outright, so a regimen abandoned after a week leaves
-  its rule on the tracker for good. Team has the same hole in coverage schedules, and the two should
-  be answered together.
 - **What the template catalogue holds is unnamed.** A tracker starts from a template, so how useful
   the app is on the day a team arrives is mostly decided by which templates exist — and nothing says
   what they are, or what a team whose care is not in the list gets beyond a blank second part.
@@ -1649,12 +1678,15 @@ Both kinds are made here, in two labelled groups: a one-off **assignment** for t
 is covering, and a **coverage schedule** for the Tuesday somebody always has. They stay apart
 because a rotation and a favour are different things — covering one Tuesday for someone should not
 rewrite the routine — so opening a single assignment offers handing it to another caregiver or
-removing it, and leaves the rule that generated it exactly as it was.
+removing it, and leaves the rule that generated it exactly as it was. A rule can be removed as well,
+and that one asks first, because it takes every assignment it made that is still ahead — where
+dropping a single Thursday loses nothing but that Thursday. The Tuesdays already past stay either
+way: they say who was responsible, and this week's decision does not get to rewrite that.
 
 Care team and Care receiver are pushed screens, as is What you are told about. Add care receiver,
 Create a care team, Invite a caregiver, the caregiver actions, Edit care receiver, Edit care
-instructions, Emergency contacts, an assignment, a coverage schedule, and the leave confirmation are
-all sheets. Two things stay put rather than navigating: calling a contact hands off to the phone,
+instructions, Emergency contacts, an assignment, a coverage schedule, the removal confirmation, and
+the leave confirmation are all sheets. Two things stay put rather than navigating: calling a contact hands off to the phone,
 and accepting an invitation turns that row into a care team on the list already in front of the
 caregiver.
 
@@ -1992,6 +2024,7 @@ caregiver.
     - the caregiver
     - the days and the hours
     - when it ends, if it ends
+    - remove it, which asks first
   exits:
     - action: Save
       to: Care receiver
@@ -1999,17 +2032,25 @@ caregiver.
     - action: Cancel
       to: Care receiver
       as: back
-    - action: end or remove the schedule
-      admin: true
-      to: ???
-      as: ???
-  open:
+    - action: Remove
+      to: Remove this coverage schedule?
+      as: sheet
+
+- screen: Remove this coverage schedule?
+  kind: sheet
+  scope: one recurring rule on one care receiver
+  contains:
+    - what goes — the rule, and every assignment it made that is still ahead
     - >
-      ending a schedule early is unanswered — whether the assignments it has
-      already generated disappear with the rule, or stand on their own
-    - >
-      an assignment can be removed and a schedule cannot, though a rotation
-      ending is at least as ordinary as a single Thursday being dropped
+      what stays — every assignment for a day already past, still saying who was
+      responsible for it
+  exits:
+    - action: Cancel
+      to: A coverage schedule
+      as: back
+    - action: Remove
+      to: Care receiver
+      as: back
 ```
 
 #### Gaps in this flow
@@ -2024,10 +2065,6 @@ caregiver.
   ends it. This is also what leaves a spent invitation on screen: two invitations sent to one
   person, one accepted, and the other stays in both their waiting list and the team's pending list,
   refusing politely, until it expires.
-- **A coverage schedule cannot be ended or removed.** An assignment offers removal and a schedule
-  does not, and nothing says what becomes of the assignments a schedule has already generated when a
-  team stops it before its end date — whether the ones still ahead disappear with the rule, or stand
-  on their own as assignments somebody is still expected to keep.
 - **Nothing shows the time nobody is covering.** Assignments exist so that uncovered time is
   something a team can see rather than discover afterward, but the care receiver lists the
   assignments that exist rather than the hours that have none. No screen answers "is Thursday
