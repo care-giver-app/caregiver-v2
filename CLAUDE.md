@@ -50,6 +50,9 @@ gap)` in its catalog entry and a bullet in that flow's _Gaps in this flow_. Gues
 - **Figma review needs no screenshots.** Give Trevor the file key, page, section, and node IDs; he
   reviews in Figma and approves in chat.
 - **Never implement past the current gate**, however obvious the next step looks.
+- **Run `python3 scripts/check-screens.py` after touching a screen catalogue.** It reads the
+  ```yaml fences in `docs/PRD.md` and fails on an exit naming a screen that does not exist, a screen
+  nothing reaches, or a screen with no way out.
 - **Branch off `main`, open PRs, never merge.** Trevor merges — merging to `main` deploys to prod,
   where his family is.
 
@@ -60,11 +63,11 @@ awaiting approval · `approved` merged to `main`.
 
 | Area       | Screen catalog | Figma UI | Endpoints | Built |
 | ---------- | -------------- | -------- | --------- | ----- |
-| Getting in | —              | —        | —         | —     |
-| Trackers   | —              | —        | —         | —     |
-| Home       | —              | —        | —         | —     |
-| Team       | —              | —        | —         | —     |
-| Settings   | —              | —        | —         | —     |
+| Getting in | draft          | —        | —         | —     |
+| Trackers   | draft          | —        | —         | —     |
+| Home       | draft          | —        | —         | —     |
+| Team       | draft          | —        | —         | —     |
+| Settings   | draft          | —        | —         | —     |
 | Insights   | deferred       | deferred | deferred  | —     |
 
 **Data model pass:** — (gates every Endpoints cell above)
