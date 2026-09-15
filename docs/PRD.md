@@ -203,6 +203,21 @@ actually said has described their own care, and no catalogue is entitled to an o
 later. Templates carry no schedules, because when care happens is the one thing a catalogue cannot
 know: the same medication is taken twice a day by one person and on Mondays by another.
 
+The catalogue ships with the care families keep track of most. Blood pressure, weight, blood sugar,
+and temperature arrive as numbers with the range they are expected to stay inside — two of them in
+mmHg for blood pressure and one for the rest, and blood sugar asking as well whether the reading was
+taken before or after a meal, because the same number means different things either side of lunch.
+Meals ask what was eaten and how much of it went down, and Mood asks for a single choice from a list;
+both are things a family notices every day and neither has a right answer to fall outside of. A shower
+and a bowel movement arrive with no fields at all and a gap of a few days, since what matters about
+them is whether they happened and how long it has been. Medication arrives asking only whether the
+dose was given, and carrying no expectation at all — what watches a medication is its regimen, and a
+regimen is the one thing a template cannot bring.
+
+The set is deliberately short, and between them its entries teach every shape a tracker comes in:
+fields watched by a range, fields watched by nothing, and no fields at all watched by a gap. An admin
+whose care is not in the list builds it from scratch, and has seen one of each before they start.
+
 **Entry** — A record attached to a tracker: its field values, an optional note, and a time. Every
 entry is in one of four states:
 
@@ -1459,8 +1474,6 @@ reading questions.
     - action: Cancel
       to: the screen that raised it
       as: back
-  open:
-    - which templates the catalogue holds
 
 - screen: Edit tracker
   kind: sheet
@@ -1586,9 +1599,6 @@ reading questions.
 
 #### Gaps in this flow
 
-- **What the template catalogue holds is unnamed.** A tracker starts from a template, so how useful
-  the app is on the day a team arrives is mostly decided by which templates exist — and nothing says
-  what they are, or what a team whose care is not in the list gets beyond a blank second part.
 - **A tracker's insights are not reachable from it.** A caregiver reading a tracker's entries has no
   way to the chart drawn from those same entries. Insights is deferred, so this waits with it.
 
