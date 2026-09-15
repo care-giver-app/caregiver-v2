@@ -756,9 +756,11 @@ Nothing on Home is dismissed. A range alert stands until a later reading comes b
 stands until someone logs the tracker, and missed care stands until a caregiver logs it or skips it,
 because what Home shows should be the state of the care rather than the state of someone's
 notifications — an alert that can be tapped away is one a busy caregiver will tap away. Skipping is
-one of the things that clears something from Home, and a skipped entry never returns to it: Home is
-what needs attention and a skip is attention already paid. Skips live in their tracker's list, where
-the record of what did and did not happen belongs.
+one of the things that clears something from needs attention, and a skipped entry never returns to
+it: needs attention is what still wants doing, and a skip is attention already paid. The skip itself
+stays in the day it was about, in the timeline beside what was logged, because that is the record of
+what did and did not happen — and an occurrence being settled is not the same as its never having
+been expected.
 
 What needs attention is ordered by how much it matters: missed care first, then readings outside
 their range, then trackers past their gap — a dose nobody gave outranks a reading that is merely
@@ -823,6 +825,12 @@ already on, so the three Home has room for are never the only three a caregiver 
 
 **Coming up.** What is due next.
 
+The banner is there only when something is coming. A team that logs everything ad hoc has nothing
+ahead of them, and a line permanently reading "nothing is coming up" is furniture rather than
+information — so it goes, and Home is shorter by the height of it. A caregiver can still watch Coming
+up empty out by logging the last thing on it, and it says so where they are standing rather than
+dropping them back on Home.
+
 Coming up is a pushed screen. An entry opened from it leads to the entry itself rather than to its
 tracker, so what a caregiver is looking at is the thing they can act on. A reminder tapped from
 outside the app lands in the same place — the scheduled entry it is about, ready to be logged or
@@ -830,6 +838,14 @@ skipped — because someone who has just been told a dose is due should arrive a
 at a screen about it.
 
 **The daily timeline.** What has already happened, a day at a time.
+
+The timeline is one day of one receiver: the entries logged that day and the journal notes written
+about it, in time order, and among them the occurrences the day expected — the dose that was missed,
+the one somebody skipped. Needs attention is about the state of the care rather than about a day and
+shows at most three things, so a timeline holding only what got logged would leave last Tuesday's
+missed dose visible nowhere at all. A day is empty only when nothing was logged and nothing was
+expected, and then Home says so and offers a first log or a journal note, because the quiet Tuesday
+is the state this screen spends most of its life in and a blank space is not an account of it.
 
 Entry detail is the one screen any entry is read on, whatever state it is in, because an entry that
 is scheduled this morning and logged this evening is the same entry and should not change address
@@ -885,6 +901,14 @@ occurrences it generates, and a plan made by hand should not carry less than one
 planned run also asks once whether the team should be told if the care is missed, since a
 missed-care alert belongs to the occurrence it is about and not every plan warrants one.
 
+The picker always offers an admin a new tracker, and taking it ends the run: Quick log is dismissed
+and Add tracker takes its place, so nobody ends up with a logging sheet buried under a setup sheet.
+Little is lost, because the picker is the run's first part and at most a selection goes with it — and
+cancelling the new tracker lands on Home, which is where a caregiver who abandoned the whole errand
+belongs. A receiver with no active trackers leaves the picker holding a journal note and that offer,
+while a caregiver who is not an admin is told an admin sets the trackers up, in the same words Home
+uses.
+
 **Journal notes cannot be planned.** They leave the picker the moment a run is given a future time,
 because a note exists to tell the next caregiver what a day was like, and there is nothing yet to say
 about a day that has not happened.
@@ -909,10 +933,11 @@ under what is coming up rather than in the day behind it.
       what needs attention: at most three, ordered missed care first, then
       readings outside their range, then trackers past their gap, with a count
       of how many there are altogether
-    - a coming up banner
+    - a coming up banner, present only when something is scheduled ahead
     - >
-      the daily timeline for one day — entries and journal notes together, in
-      time order
+      the daily timeline for one day — entries and journal notes together in time
+      order, holding the day's missed and skipped occurrences alongside what was
+      logged
     - >
       the date, with a day stepper that walks back a day at a time and stops at
       today, and a Today button whenever the day shown is not today
@@ -934,6 +959,7 @@ under what is coming up rather than in the day behind it.
       to: Trackers, with the needs-attention filter already on
       as: push
     - action: the coming up banner
+      when: something is scheduled ahead
       to: Coming up
       as: push
     - action: an entry in the timeline
@@ -985,17 +1011,15 @@ under what is coming up rather than in the day behind it.
     - >
       nothing needs attention — Home says so plainly rather than leaving a space
       where a warning would be
-    - nothing logged on the day shown — ???
+    - >
+      nothing logged on the day shown and nothing expected either — Home says so,
+      and offers a first log or a journal note rather than leaving the day blank
     - >
       the care team has no care receivers — Home says so and offers an admin the
       first one, while a caregiver is told an admin adds them
     - >
       the care receiver has no active trackers — Home says so and offers an admin
       the first one, while a caregiver is told an admin sets them up
-  open:
-    - >
-      what the timeline shows on a day nobody logged anything, which is most
-      days for most teams
 
 - screen: Coming up
   kind: push
@@ -1008,11 +1032,10 @@ under what is coming up rather than in the day behind it.
     - action: an upcoming entry
       to: Entry detail
       as: push
-  empty: nothing is scheduled ahead — ???
-  open:
-    - >
-      what Coming up shows when nothing is scheduled, which is the ordinary
-      state for a team that logs everything ad hoc
+  empty: >
+    everything on it was settled while a caregiver was looking at it — it says so
+    where they are rather than dropping them back on Home. Home's banner is absent
+    when nothing is scheduled, so this is the only way to arrive on an empty one
 
 - screen: Jump to day
   kind: sheet
@@ -1178,6 +1201,7 @@ under what is coming up rather than in the day behind it.
     - a step for each thing picked, pre-filling rather than recording when the run is planning
     - >
       a result reporting item by item, since some may save while others do not
+    - Add a tracker — admins only, offered whatever else the picker holds
   exits:
     - action: Done, after a logging run
       to: Home, with the new entries in the day behind it
@@ -1194,7 +1218,14 @@ under what is coming up rather than in the day behind it.
     - action: Cancel, raised from Tracker detail
       to: Tracker detail
       as: back
-  empty: the care receiver has no active trackers — ???
+    - action: Add a tracker
+      admin: true
+      to: Add tracker
+      as: swap
+  empty: >
+    the care receiver has no active trackers — the picker holds a journal note and,
+    for an admin, the offer of a first tracker, while a caregiver is told an admin
+    sets them up
   open:
     - >
       whether a caregiver can step back to an earlier part of the run, or only
@@ -1202,19 +1233,13 @@ under what is coming up rather than in the day behind it.
     - >
       nothing catches an ad-hoc log that lands near a scheduled one, so the
       offer to fulfil it has no screen
-    - >
-      what the picker offers a receiver with no active trackers, when a journal
-      note is the only thing left to pick
 ```
 
 #### Gaps in this flow
 
-- **A day with nothing logged is undescribed, and it is the ordinary day.** The timeline is the
-  bulk of Home and most teams do not log every day, so what a caregiver sees when they step back to
-  a quiet Tuesday is a state the app will spend most of its time in.
-- **Coming up with nothing scheduled is undescribed**, for the same reason: a team that logs
-  everything ad hoc has no scheduled entries at all, and the banner and the screen behind it both
-  have to say something.
+- **Nothing reaches Coming up for a team that has never scheduled anything.** The banner is the only
+  way in and it is there only when something is scheduled, so a team that logs everything ad hoc
+  never sees the screen that would show them the app looks ahead at all.
 - **Jump to day does not say whether days ahead of today can be picked.** The day stepper
   deliberately stops at today, so a calendar that allows tomorrow would be a second door onto a day
   the timeline refuses to show.
@@ -1224,8 +1249,6 @@ under what is coming up rather than in the day behind it.
 - **Quick log does not say whether a caregiver can go back a step.** The run has three parts and
   several steps, and a caregiver who picked the wrong tracker or the wrong time has no described way
   to return to that choice.
-- **Quick log with nothing to pick is undescribed.** A receiver with no active trackers — a new one,
-  or one whose trackers are all paused — leaves the picker holding only a journal note.
 - **A one-off scheduled entry cannot be changed once it is made.** Quick log creates one — an
   appointment next Tuesday, a dose planned for the evening — but nothing afterward changes its time,
   its pre-filled values, or whether being missed should alert anyone. Entry detail offers a scheduled
@@ -1447,7 +1470,8 @@ reading questions.
   scope: >
     a new tracker for the active care receiver; admins only. One sheet in two
     parts — choose a template, then adjust everything it brought. Raised from the
-    Trackers list, or from Home when the receiver has no active trackers
+    Trackers list, from Home when the receiver has no active trackers, or from
+    Quick log's picker, which it replaces
   contains:
     - the tracker templates, each saying what it collects
     - Start from scratch, for a tracker no template describes
@@ -1472,7 +1496,12 @@ reading questions.
       to: Tracker detail, on the tracker just made
       as: push
     - action: Cancel
+      when: it was raised as a sheet
       to: the screen that raised it
+      as: back
+    - action: Cancel
+      when: it replaced Quick log
+      to: Home
       as: back
 
 - screen: Edit tracker
