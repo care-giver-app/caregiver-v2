@@ -19,6 +19,9 @@ final class AuthModel {
     /// Called by the owner (Session) after a successful sign-in to re-bootstrap.
     var onSignedIn: () async -> Void = {}
 
+    /// Reconciles Amplify's stored session before signing in. Injected for tests.
+    var reconciler: AuthSessionReconciling = AmplifyAuthSessionReconciler()
+
     func signUp() async {
         guard password == confirmPassword else {
             error = AppError(message: "Passwords do not match")
@@ -49,6 +52,25 @@ final class AuthModel {
 
     func signIn() async {
         await run {
+            // The app's signed-out state and Amplify's can disagree — a session
+            // whose refresh token expired leaves Amplify signedIn while the app
+            // falls back to the auth screen. Signing in from there throws
+            // `invalidState` until the dead session is cleared.
+            let local = await self.reconciler.localState()
+            switch SignInPreflight.decide(local: local, signingInAs: self.email) {
+            case .alreadySignedIn:
+                // Tokens are good and ours: the app only *thought* it was signed
+                // out. Re-bootstrap instead of burning a round trip on auth.
+                await self.onSignedIn()
+                return
+            case .clearThenProceed:
+                await self.reconciler.clearLocalSession()
+            case .unreachable:
+                // Never destroy a refresh token we can't prove is dead.
+                throw AppError.transport
+            case .proceed:
+                break
+            }
             let result = try await Amplify.Auth.signIn(username: self.email, password: self.password)
             if result.isSignedIn { await self.onSignedIn() }
             else if case .confirmSignUp = result.nextStep { self.needsConfirmation = true }
@@ -102,6 +124,7 @@ final class AuthModel {
     }
 
     private func friendly(_ error: Error) -> String {
+        if let appError = error as? AppError { return appError.message }
         // Amplify surfaces AuthError; show its recovery-friendly description.
         if let authError = error as? AuthError { return authError.errorDescription }
         return AppError.unknown.message
