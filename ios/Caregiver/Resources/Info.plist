@@ -21,7 +21,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>2</string>
 	<!-- The app's only cryptography is the OS-provided TLS behind URLSession and
 	     Cognito, which is exempt. Declaring it here stops every TestFlight upload
 	     from stalling on the export-compliance question. -->
