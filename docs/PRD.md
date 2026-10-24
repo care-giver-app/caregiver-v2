@@ -145,9 +145,15 @@ Admins write both; every caregiver reads them. Care instructions are reference, 
 nothing is logged against them, and they never appear in a timeline or an insight.
 
 **Tracker** — Something a care team wants to keep track of about one care receiver — blood pressure,
-meals, mood, medication given. A tracker has a name, icon, and color, and defines the fields captured
-each time it is logged. A tracker belongs to a single care receiver, so two receivers on the same
-team can be tracked differently.
+meals, mood, medication given. A tracker has a name, icon, and color, and defines the fields
+captured each time it is logged. A tracker belongs to a single care receiver, so two receivers on
+the same team can be tracked differently.
+
+A tracker's colour belongs to the tracker rather than to its condition, and it is the same colour
+wherever it appears. It is how a caregiver picks medication out of nine rows before they have read
+a word of any of them. It never shifts to report that something is wrong: what is wrong is said in
+words, and a colour that means medication on Monday and trouble on Tuesday means nothing on either
+day.
 
 A tracker can be **paused** when a team stops tracking something — the blood pressure taken daily for
 a month after a hospital stay, the pill that came off the regimen. Pausing stops the future without
@@ -1350,12 +1356,12 @@ group trackers are listed alphabetically and stay there: Home is what surfaces t
 is where a caregiver comes looking for a particular tracker, and a list that rearranges itself
 around today's problems is one where the thing they reached for has moved.
 
-Each row carries the tracker's name and how long it has been since anything was logged against it,
-and marks the ones where something is wrong — a value out of range, a gap run past, care gone
-unrecorded. Home shows only the trackers needing attention and only three of them; this shows all of
-them, so the state has to travel with the row or a caregiver would have to open each one to find
-out. A paused tracker's row says when it was paused instead, since how long ago it was last logged
-stopped meaning anything the moment it stopped being collected.
+Each row carries the tracker's colour, its name, and how long it has been since anything was logged
+against it, and marks the ones where something is wrong — a value out of range, a gap run past, care
+gone unrecorded. Home shows only the trackers needing attention and only three of them; this shows
+all of them, so the state has to travel with the row or a caregiver would have to open each one to
+find out. A paused tracker's row says when it was paused instead, since how long ago it was last
+logged stopped meaning anything the moment it stopped being collected.
 
 A filter narrows the list to the trackers that need attention. Home shows at most three of those and
 says how many there are altogether; this is where "altogether" leads. With the filter on the paused
@@ -1468,8 +1474,8 @@ reading questions.
       active trackers first and paused ones after, with only the paused group
       labelled, alphabetical within each group and staying there
     - >
-      each row: the tracker's name, and how long it has been since anything was
-      logged against it
+      each row: the tracker's colour, its name, and how long it has been since
+      anything was logged against it
     - >
       each row marks what is wrong — a value out of range, a gap run past, care
       gone unrecorded
