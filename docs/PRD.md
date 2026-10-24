@@ -47,12 +47,12 @@ removed is the caregiver; what stays is the care.
 
 **Care receiver** — A person who is being cared for, and about whom entries are logged. Each care
 receiver has a time zone, and every wall-clock rule about them is expressed in it: when a schedule
-fires, when a scheduled entry is due, when it becomes missed, and where one day ends and the next
-begins. Caregivers always see a receiver's times in that zone, whatever zone they are themselves in,
-so everyone on a team calls the evening dose by the same name. If a receiver's time zone changes —
-they move, or spend the winter somewhere warmer — their routines keep their wall-clock times and
-shift with them, because an 8:00am dose is a dose taken after waking up, not a dose taken at a
-particular instant.
+fires, when a scheduled entry is due, when it becomes unrecorded, and where one day ends and the
+next begins. Caregivers always see a receiver's times in that zone, whatever zone they are
+themselves in, so everyone on a team calls the evening dose by the same name. If a receiver's time
+zone changes — they move, or spend the winter somewhere warmer — their routines keep their
+wall-clock times and shift with them, because an 8:00am dose is a dose taken after waking up, not a
+dose taken at a particular instant.
 
 **Care team** — A shared space containing one or more care receivers and the caregivers who look
 after them. Every care receiver, tracker, and entry belongs to exactly one care team.
@@ -187,9 +187,9 @@ should happen regularly without pinning it to a clock. A tracker that has never 
 from the day it was created, so a gap starts watching immediately rather than waiting for a first
 entry.
 
-A tracker has schedules or a gap, never both. Care a schedule already plans is watched by missed-care
-alerts, and one lapse should never be reported by two mechanisms — so choosing one means giving up
-the other, and an admin changing either is told what they are about to lose.
+A tracker has schedules or a gap, never both. Care a schedule already plans is watched by
+unrecorded-care alerts, and one lapse should never be reported by two mechanisms — so choosing one
+means giving up the other, and an admin changing either is told what they are about to lose.
 
 **Tracker template** — A pre-built tracker definition — name, icon, color, fields, and thresholds —
 that an admin starts a new tracker from instead of building one from scratch. Blood pressure arrives
@@ -223,25 +223,30 @@ entry is in one of four states:
 
 - **Scheduled** — planned for a future time, not yet logged.
 - **Logged** — a caregiver logged it, so it carries the time it occurred and who logged it.
-- **Missed** — its scheduled time has passed and no caregiver has logged it yet.
+- **Unrecorded** — its scheduled time has passed and no caregiver has logged it yet.
 - **Skipped** — a caregiver deliberately marked it as not happening, whether or not its time has
   already passed, and the entry carries who skipped it and when. A skip is a decision, not a care
-  failure, so it never counts as missed — and a decision has an author for the same reason a logged
-  entry does.
+  failure, so it never counts as unrecorded — and a decision has an author for the same reason a
+  logged entry does.
 
-A caregiver logging an entry is what moves it to logged; the passage of time alone never does, so the
-app never records care that nobody gave. Missed is not a final state: care often happens without
-being logged right away, so a caregiver can log a missed entry at any point afterward and set the
-time the care actually occurred — someone catching up on the week during the weekend should not have
-to record it as never having happened. A missed entry can equally be skipped, and skipping settles
-it: the entry becomes skipped rather than carrying both states, because a caregiver saying the care
-was not needed is making a decision whatever hour they make it in. Settling is not the same as being
-final: a caregiver who skipped the evening dose and then learns it was given after all can edit the
-entry and log it, moving it from skipped to logged and putting the care back in the record — a skip
-is a judgement about what happened, and a judgement made on wrong information should be correctable
-by whoever turns up the right information. Only planned care can be skipped, since an entry logged
-ad hoc records care that already happened and there is nothing left to decide about it. Entries are
-the raw material for every insight in the app, and — with journal notes alongside them — for every
+A caregiver logging an entry is what moves it to logged; the passage of time alone never does, so
+the app never records care that nobody gave. What the passage of time does do is move a scheduled
+entry to unrecorded, which says only what the app actually observed: the hour came and went and
+nothing was written down. It deliberately does not say the care was not given. A dose can be
+administered by someone whose hands are full and written up three hours later, and an app that
+called that a missed dose in the meantime would be telling the team something false about a
+caregiver who did their job. Unrecorded is not a final state, and not a verdict: a caregiver can log
+an unrecorded entry at any point afterward and set the time the care actually occurred, so someone
+catching up on the week during the weekend is filling in a record rather than confessing to a
+failure. An unrecorded entry can equally be skipped, and skipping settles it: the entry becomes
+skipped rather than carrying both states, because a caregiver saying the care was not needed is
+making a decision whatever hour they make it in. Settling is not the same as being final: a
+caregiver who skipped the evening dose and then learns it was given after all can edit the entry and
+log it, moving it from skipped to logged and putting the care back in the record — a skip is a
+judgement about what happened, and a judgement made on wrong information should be correctable by
+whoever turns up the right information. Only planned care can be skipped, since an entry logged ad
+hoc records care that already happened and there is nothing left to decide about it. Entries are the
+raw material for every insight in the app, and — with journal notes alongside them — for every
 timeline.
 
 Any caregiver can edit or delete any entry, whoever logged it, because a family that shares the care
@@ -251,27 +256,28 @@ changed, who changed it last and when, so a caregiver reading a value with someo
 can tell whether it is still what that person logged.
 
 Deleting an entry that fulfilled a scheduled one does not delete the plan behind it: the occurrence
-goes back to scheduled, or to missed if its time has passed. Logging is what makes an entry logged,
-so undoing the log undoes exactly that and no more — a caregiver who logged the evening dose against
-the wrong receiver should be left with an evening dose still waiting, not with an evening that was
-never planned. An entry logged ad hoc fulfilled nothing, and deleting it simply removes it. The same
-holds for a skip: deleting one returns the occurrence to waiting rather than erasing it. Editing a
-skipped entry into a logged one says the care happened after all, while deleting the skip says only
-that it should not have been skipped — and a caregiver who marked the wrong dose needs the second
-without having to claim the first.
+goes back to scheduled, or to unrecorded if its time has passed. Logging is what makes an entry
+logged, so undoing the log undoes exactly that and no more — a caregiver who logged the evening dose
+against the wrong receiver should be left with an evening dose still waiting, not with an evening
+that was never planned. An entry logged ad hoc fulfilled nothing, and deleting it simply removes it.
+The same holds for a skip: deleting one returns the occurrence to waiting rather than erasing it.
+Editing a skipped entry into a logged one says the care happened after all, while deleting the skip
+says only that it should not have been skipped — and a caregiver who marked the wrong dose needs the
+second without having to claim the first.
 
 **Scheduled entry** — An entry planned for a future time, such as an upcoming appointment or a dose
 due this evening. Scheduled entries are what the app looks ahead to and reminds caregivers about.
 They can be created one at a time or generated by a tracker schedule. One made by hand carries
-whatever can be filled in ahead of it — the dose, which pills — the same as one a schedule generates,
-and leaves blank only what nobody can know until the care happens. A scheduled entry becomes
-logged only when a caregiver deliberately logs it — either by opening it directly, or by accepting
-the app's offer to fulfill it when an ad-hoc log lands near one. The app never attaches a log to a
-scheduled entry on its own, so this morning's dose can never be mistaken for yesterday's. A scheduled
-entry's time comes from its schedule and is not moved on its own — a schedule that bends occurrence
-by occurrence stops describing the routine it exists to describe. If the care happens at a different
-time, the caregiver logs the occurrence with the time it actually occurred; if it will not happen at
-all, they skip it.
+whatever can be filled in ahead of it — the dose, which pills — the same as one a schedule
+generates, and leaves blank only what nobody can know until the care happens. A scheduled entry
+becomes logged only when a caregiver deliberately logs it — either by opening it directly, or by
+picking it out of Quick log's list. The app never attaches a log to a scheduled entry on its own and
+never infers from a nearby ad-hoc log that one was meant, so this morning's dose can never be
+mistaken for yesterday's: what a caregiver selected is what they recorded. A scheduled entry's time
+comes from its schedule and is not moved on its own — a schedule that bends occurrence by occurrence
+stops describing the routine it exists to describe. If the care happens at a different time, the
+caregiver logs the occurrence with the time it actually occurred; if it will not happen at all, they
+skip it.
 
 **Tracker schedule** — A recurring rule on a tracker, together with the field values it pre-fills,
 that generates scheduled entries. A tracker can have any number of schedules, which is what lets one
@@ -283,10 +289,10 @@ label a caregiver may type; left blank, it defaults to one derived from the sche
 hoc.
 
 An admin can remove a schedule, and removing one takes the plan rather than the care: every
-occurrence still waiting goes with the rule, while every entry already logged, skipped, or missed
-stays exactly where it was. This is what pausing does one level up and for the same reason — a team
-that stopped a regimen has not stopped having followed it, and a schedule a team could only be rid of
-by erasing a month of doses is one they would keep.
+occurrence still waiting goes with the rule, while every entry already logged, skipped, or
+unrecorded stays exactly where it was. This is what pausing does one level up and for the same
+reason — a team that stopped a regimen has not stopped having followed it, and a schedule a team
+could only be rid of by erasing a month of doses is one they would keep.
 
 **Journal note** — Something a caregiver wants to say about a care receiver's day that no tracker
 captures: that the morning was rough and breakfast went half eaten, that a granddaughter visited and
@@ -318,10 +324,13 @@ day with more care in it.
 **Reminder** — A notification that a scheduled entry is coming up.
 
 **Alert** — A notification that something needs attention: a logged value fell outside its range, a
-tracker went longer than its gap without an entry, or scheduled care was missed. Missed-care alerts
-are optional and set on the schedule or one-off scheduled entry they apply to, since not all care
-warrants one — a missed dose matters, a missed walk may not. Reminders look ahead; alerts look
-back.
+tracker went longer than its gap without an entry, or scheduled care went unrecorded.
+Unrecorded-care alerts are optional and set on the schedule or one-off scheduled entry they apply
+to, since not all care warrants one — a dose nobody wrote down matters, a walk nobody wrote down may
+not. They also stop: an occurrence raises an alert for forty-eight hours after its scheduled time
+and then goes quiet, because an alarm about a dose three days gone is one nobody can act on, and
+alarms nobody can act on are what teach a team to stop reading them. The occurrence stays unrecorded
+and stays in the record; it simply stops asking. Reminders look ahead; alerts look back.
 
 **Notification** — How a reminder or an alert reaches a caregiver. Two channels carry them: a push
 notification to the device, and email. Push is granted or refused by the phone rather than by the
@@ -335,8 +344,9 @@ belongs to each care team separately.
 
 **Insight** — Any visualization of a tracker's entries. A chart of blood-pressure readings over time
 is an insight; so is a trend line, or a count of how often something happened. Insights are derived
-from logged entries only — scheduled entries are excluded until a caregiver logs them, so nothing
-planned is ever plotted as though it happened. Journal notes are not plotted at all: they hold prose
+from logged entries only — an occurrence that is scheduled, unrecorded, or skipped is excluded until
+a caregiver logs it, so nothing planned, nothing merely expected, and nothing deliberately held is
+ever plotted as though it happened. Journal notes are not plotted at all: they hold prose
 rather than values, and there is nothing in them to chart.
 
 ## UX flows
@@ -747,26 +757,37 @@ it is scoped to the **active care receiver**, and switching receivers reloads th
 It is built from what a caregiver needs, in the order they need it: what is wrong, what is coming,
 what has already happened, and a way to log. Trackers appear on Home only when they need attention —
 a logged value outside its range, a tracker that has gone longer than its gap without being logged,
-or care that has gone missed — because a screen that lists every tracker whether or not anything is
-happening teaches caregivers to stop reading it. When nothing needs attention, Home says so plainly
-rather than leaving an empty space where a warning would be.
-The receiver's full set of trackers is always one tap away.
+or care that has gone unrecorded — because a screen that lists every tracker whether or not anything
+is happening teaches caregivers to stop reading it. When nothing needs attention, Home says so
+plainly rather than leaving an empty space where a warning would be. The receiver's full set of
+trackers is always one tap away.
 
 Nothing on Home is dismissed. A range alert stands until a later reading comes back in range, a gap
-stands until someone logs the tracker, and missed care stands until a caregiver logs it or skips it,
-because what Home shows should be the state of the care rather than the state of someone's
-notifications — an alert that can be tapped away is one a busy caregiver will tap away. Skipping is
-one of the things that clears something from needs attention, and a skipped entry never returns to
-it: needs attention is what still wants doing, and a skip is attention already paid. The skip itself
-stays in the day it was about, in the timeline beside what was logged, because that is the record of
-what did and did not happen — and an occurrence being settled is not the same as its never having
-been expected.
+stands until someone logs the tracker, and unrecorded care stands until a caregiver logs it or skips
+it, because what Home shows should be the state of the care rather than the state of someone's
+notifications — an alert that can be tapped away is one a busy caregiver will tap away.
 
-What needs attention is ordered by how much it matters: missed care first, then readings outside
-their range, then trackers past their gap — a dose nobody gave outranks a reading that is merely
-high, which outranks a tracker that has only gone quiet. Home shows at most three at a time and says
-how many there are altogether, because a list that can grow without limit is one a caregiver stops
-reading at the top.
+What Home does not do is ask forever. An unrecorded occurrence leaves needs attention forty-eight
+hours after its scheduled time whether or not anybody settled it, because a dose three days gone
+cannot be reconstructed from memory and a screen still demanding it is a screen asking for something
+nobody can give. That is not dismissal: nobody tapped it away, and the occurrence is still
+unrecorded, still in its day's timeline and still in its tracker's list, where a caregiver who does
+know what happened can go and fill it in. Needs attention is what still wants doing and can still be
+done.
+
+Skipping is one of the things that clears something from needs attention, and a skipped entry never
+returns to it: needs attention is what still wants doing, and a skip is attention already paid. The
+skip itself stays in the day it was about, in the timeline beside what was logged, because that is
+the record of what did and did not happen — and an occurrence being settled is not the same as its
+never having been expected.
+
+What needs attention is ordered by how much it matters: unrecorded care first, then readings outside
+their range, then trackers past their gap — a dose nobody can account for outranks a reading that is
+merely high, which outranks a tracker that has only gone quiet. Unrecorded care leads because it is
+the one of the three that goes stale: a reading out of range is as true next week as today, while
+the answer to whether this morning's dose was given lives in somebody's memory and does not keep.
+Home shows at most three at a time and says how many there are altogether, because a list that can
+grow without limit is one a caregiver stops reading at the top.
 
 When a team keeps a roster, Home also names who is on duty for this receiver right now. It is a
 coordination signal and nothing more — it never decides who may log an entry, and a team that keeps
@@ -814,9 +835,9 @@ destination here; what it holds is described in its own section.
 
 **Needs attention.** What is wrong right now, and where each kind of trouble leads.
 
-A reading outside its range leads to the entry that carries it, and missed care to the entry that is
-waiting — both are a single entry a caregiver can act on, the first to correct or confirm the
-reading, the second to log or skip the care. A gap alert has no entry to lead to, because it is
+A reading outside its range leads to the entry that carries it, and unrecorded care to the entry
+that is waiting — both are a single entry a caregiver can act on, the first to correct or confirm
+the reading, the second to log or skip the care. A gap alert has no entry to lead to, because it is
 raised by the absence of one, so it leads to the tracker that has gone quiet. An entry reached this
 way names the field that fell outside its range and the range it was expected to hold to, since a
 caregiver arriving from an alert has to see what the alarm was about before they can decide anything
@@ -840,19 +861,20 @@ at a screen about it.
 **The daily timeline.** What has already happened, a day at a time.
 
 The timeline is one day of one receiver: the entries logged that day and the journal notes written
-about it, in time order, and among them the occurrences the day expected — the dose that was missed,
-the one somebody skipped. Needs attention is about the state of the care rather than about a day and
-shows at most three things, so a timeline holding only what got logged would leave last Tuesday's
-missed dose visible nowhere at all. A day is empty only when nothing was logged and nothing was
-expected, and then Home says so and offers a first log or a journal note, because the quiet Tuesday
-is the state this screen spends most of its life in and a blank space is not an account of it.
+about it, in time order, and among them the occurrences the day expected — the dose nobody wrote
+down, the one somebody skipped. Needs attention is about the state of the care rather than about a
+day and shows at most three things, so a timeline holding only what got logged would leave last
+Tuesday's unrecorded dose visible nowhere at all. A day is empty only when nothing was logged and
+nothing was expected, and then Home says so and offers a first log or a journal note, because the
+quiet Tuesday is the state this screen spends most of its life in and a blank space is not an
+account of it.
 
 Entry detail is the one screen any entry is read on, whatever state it is in, because an entry that
 is scheduled this morning and logged this evening is the same entry and should not change address
 when it changes state. What it offers changes with the state rather than with where it was opened
-from: a scheduled or missed entry offers Log it and Skip, a logged one offers Edit and Delete, and a
-skipped one offers both: editing it logs the care, saying it happened after all, while deleting the
-skip leaves the occurrence waiting again for whoever marked the wrong dose.
+from: a scheduled or unrecorded entry offers Log it and Skip, a logged one offers Edit and Delete,
+and a skipped one offers both: editing it logs the care, saying it happened after all, while
+deleting the skip leaves the occurrence waiting again for whoever marked the wrong dose.
 It names the schedule an entry came from when it came from one, so a caregiver can tell this
 evening's dose from a reading somebody took because they felt like it, and it marks any value that
 fell outside its range, because an alert now leads here and the screen has to answer for itself why
@@ -863,7 +885,7 @@ correcting a digit is not going somewhere, and saving returns them to the entry 
 rather than closing it out from under them. Deleting always asks first, and the confirmation says
 what deleting will leave behind, because the answer differs: an entry logged ad hoc is simply gone,
 while one that fulfilled a scheduled entry leaves that occurrence waiting again. Only the first
-leaves the screen; the second stays on it, now reading as missed. An edit that moves an entry to
+leaves the screen; the second stays on it, now reading as unrecorded. An edit that moves an entry to
 another day takes the timeline with it: a caregiver who corrects Tuesday to Monday meant Monday, so
 the day behind them becomes the one the entry now belongs to rather than the one they happened to
 open. The alternative is an entry that appears to vanish at the moment it is corrected. Deleting a
@@ -888,6 +910,24 @@ picked from the active care receiver's list, several at once, and a journal note
 same list and written like any other step — so the one button a caregiver reaches for covers
 everything that goes into the record.
 
+**The picker leads with what the day already expects.** Above the trackers sit the occurrences the
+receiver has waiting — everything scheduled for today, and everything still unrecorded from the
+forty-eight hours behind it, unrecorded first. They are picked exactly as a tracker is, several at
+once, because the commonest thing a caregiver opens this sheet to do is write up the care that was
+already planned, and making them hunt for the tracker the plan came from is making them re-derive
+something the app already knows. It is also the only place the app brings unrecorded care and the
+means of settling it together: the same list that says the evening dose has no record is the list a
+caregiver taps to give it one.
+
+Each occurrence carries its time and the schedule it came from, because one tracker can hold more
+than one of them in a day and a row reading only "Morning meds" would make a caregiver guess which
+dose they were about to record. The tracker itself stays in the list alongside its occurrences, so a
+caregiver logging a dose that was never planned has somewhere to put it — and picking the tracker
+rather than the occurrence is how they say that is what they mean. The app reads nothing into the
+clock: an ad-hoc log near a waiting occurrence stays its own entry and the occurrence stays waiting,
+because a caregiver's selection is a better account of what they are recording than the app's guess
+at how close is close enough.
+
 **When is asked once, for the whole run.** A caregiver writing up the end of a long day is recording
 several things that happened at about one time, and asking again on every step would be asking the
 same question five times to get the same answer. The choices are now, an earlier time today, or a
@@ -895,14 +935,17 @@ future time — and a run given a future time is not logging at all: it creates 
 planned rather than recorded, because a caregiver saying the appointment is next Tuesday is saying
 that something will happen, not that it has. One time governs the whole run, so a run is either
 logging or planning and never both. A caregiver who needs one item at a different time edits it
-afterward, which the app already allows for any entry.
+afterward, which the app already allows for any entry. That holds for a picked occurrence too: its
+scheduled time is how a caregiver tells this morning's dose from this evening's, not a second answer
+to when — the run's one time is what the entry records, because what is being logged is when the
+care happened and the only person who knows that is the one logging it.
 
 **A planned run still walks every step, and pre-fills rather than records.** What can be known in
 advance is filled in — the dose, which pills, what the appointment is for — while a reading nobody
 has taken yet is left blank for whoever takes it. A tracker schedule already pre-fills the
 occurrences it generates, and a plan made by hand should not carry less than one made by a rule. A
-planned run also asks once whether the team should be told if the care is missed, since a
-missed-care alert belongs to the occurrence it is about and not every plan warrants one.
+planned run also asks once whether the team should be told if the care goes unrecorded, since an
+unrecorded-care alert belongs to the occurrence it is about and not every plan warrants one.
 
 A caregiver can step back through the run as well as forward, and what they have already entered is
 still there when they come back to it. The run has three parts and a step for every tracker picked, so
@@ -910,12 +953,11 @@ forward-only would mean a wrong tap at the start costs everything typed after it
 out of that is cancelling the whole run, which is the one outcome nobody wants. Dropping a tracker
 from the picker drops what was entered for it, because the step it was entered on is gone.
 
-Where an occurrence of a picked tracker is already waiting near the time given, that tracker's step
-leads with it and offers to log that one instead. The app never attaches a log to a plan on its own,
-so this is the offer that promise depends on, and it belongs here rather than afterwards: at the step
-the caregiver is still deciding what they are recording, while after the save they would be
-correcting it. Taking the offer fills the step with what the schedule pre-filled, and the care
-fulfils the plan rather than sitting beside it as a second record of the same dose.
+A picked occurrence's step offers Log it or Skip rather than only the fields, so one run covers an
+evening where two doses were given and the third was deliberately held. Skipping is a decision with
+an author and it belongs inside the run for that reason — it lands on the same result that reports
+everything else, where a caregiver can see what they just settled, rather than happening the instant
+a thumb touches a row in a sheet opened to log something else.
 
 The picker always offers an admin a new tracker, and taking it ends the run: Quick log is dismissed
 and Add tracker takes its place, so nobody ends up with a logging sheet buried under a setup sheet.
@@ -926,8 +968,9 @@ while a caregiver who is not an admin is told an admin sets the trackers up, in 
 uses.
 
 **Journal notes cannot be planned.** They leave the picker the moment a run is given a future time,
-because a note exists to tell the next caregiver what a day was like, and there is nothing yet to say
-about a day that has not happened.
+because a note exists to tell the next caregiver what a day was like, and there is nothing yet to
+say about a day that has not happened. Waiting occurrences leave it on a future time for the mirror
+of that reason: they are already plans, and there is nothing to plan about a plan.
 
 The run ends on a result that reports item by item, since some may save while others do not, and a
 caregiver who has just entered five things needs to know which of them landed. A logging run returns
@@ -941,19 +984,22 @@ under what is coming up rather than in the day behind it.
   kind: tab
   scope: >
     the active care receiver; switching receivers reloads the whole screen.
-    Nothing here is ever dismissed — what it shows is the state of the care
+    Nothing here is dismissed by hand — what it shows is the state of the care,
+    though unrecorded care leaves needs attention on its own forty-eight hours
+    after its time
   contains:
     - the receiver's name with their care team
     - who is on duty, when the team keeps a roster
     - >
-      what needs attention: at most three, ordered missed care first, then
+      what needs attention: at most three, ordered unrecorded care first, then
       readings outside their range, then trackers past their gap, with a count
-      of how many there are altogether
+      of how many there are altogether. Unrecorded care leaves it forty-eight
+      hours after its scheduled time, settled or not
     - a coming up banner, present only when something is scheduled ahead
     - >
       the daily timeline for one day — entries and journal notes together in time
-      order, holding the day's missed and skipped occurrences alongside what was
-      logged
+      order, holding the day's unrecorded and skipped occurrences alongside what
+      was logged
     - >
       the date, with a day stepper that walks back a day at a time and stops at
       today, and a Today button whenever the day shown is not today
@@ -965,7 +1011,7 @@ under what is coming up rather than in the day behind it.
     - action: a reading outside its range
       to: Entry detail
       as: push
-    - action: missed care
+    - action: unrecorded care
       to: Entry detail
       as: push
     - action: a tracker past its gap
@@ -1085,11 +1131,11 @@ under what is coming up rather than in the day behind it.
     - the schedule it came from, when it came from one
   exits:
     - action: Log it
-      when: the entry is scheduled or missed
+      when: the entry is scheduled or unrecorded
       to: Entry detail, now logged
       as: stays
     - action: Skip
-      when: the entry is scheduled or missed
+      when: the entry is scheduled or unrecorded
       to: Entry detail, now skipped
       as: stays
     - action: Edit
@@ -1107,7 +1153,7 @@ under what is coming up rather than in the day behind it.
   open:
     - >
       a scheduled entry made by hand cannot be changed once it is made — not its
-      time, not its pre-filled values, not whether being missed should alert
+      time, not its pre-filled values, not whether going unrecorded should alert
       anyone
 
 - screen: Edit entry
@@ -1144,7 +1190,7 @@ under what is coming up rather than in the day behind it.
       as: back
     - action: Delete
       when: the entry fulfilled a scheduled entry
-      to: Entry detail, now scheduled again, or missed if its time has passed
+      to: Entry detail, now scheduled again, or unrecorded if its time has passed
       as: back
     - action: Delete
       when: the entry was logged ad hoc, so there is nothing left to show
@@ -1198,24 +1244,32 @@ under what is coming up rather than in the day behind it.
   scope: >
     the active care receiver. One sheet that runs in three parts — what to
     record, when it happened, then a step for each thing picked — and ends on a
-    result. Raised from Tracker detail it opens with that tracker picked and
-    skips the picking part, starting at when the care happened
+    result. Raised from Tracker detail it is scoped to that tracker, and skips
+    the picking part only when that tracker has nothing waiting to pick between
   contains:
     - >
-      what to record: the receiver's active trackers, several at once, and a
-      journal note picked from that same list
+      what to record: the occurrences the receiver has waiting — everything
+      scheduled for today and everything still unrecorded from the forty-eight
+      hours behind it, unrecorded first — then the receiver's active trackers,
+      then a journal note. Several at once, from one list
+    - >
+      each occurrence with its time and the schedule it came from, since one
+      tracker can hold more than one of them in a day
+    - >
+      the tracker itself alongside its occurrences, so a dose that was never
+      planned has somewhere to go, and picking the tracker rather than the
+      occurrence is how a caregiver says that is what they mean
     - >
       when, asked once for the whole run: now, an earlier time today, or a
       future time. A run given a future time is planning rather than logging,
       and creates scheduled entries
     - >
-      whether the team should be told if the care is missed — asked once, and
-      only when the time is in the future
+      whether the team should be told if the care goes unrecorded — asked once,
+      and only when the time is in the future
     - a step for each thing picked, pre-filling rather than recording when the run is planning
     - >
-      where an occurrence of a picked tracker is already waiting near the time
-      given, that step leads with it and offers to log that one instead, so the
-      care fulfils the plan rather than sitting beside it
+      a picked occurrence's step offers Log it or Skip, so one run covers an
+      evening where two doses were given and one was held
     - >
       a result reporting item by item, since some may save while others do not
     - Add a tracker — admins only, offered whatever else the picker holds
@@ -1235,9 +1289,6 @@ under what is coming up rather than in the day behind it.
     - action: Cancel, raised from Tracker detail
       to: Tracker detail
       as: back
-    - action: log the waiting occurrence instead
-      to: Quick log, with that step filled from what the schedule pre-filled
-      as: stays
     - action: step back a part
       to: Quick log, at the earlier part, with what was entered still there
       as: stays
@@ -1253,14 +1304,21 @@ under what is coming up rather than in the day behind it.
 
 #### Gaps in this flow
 
-- **How near counts as near is unanswered.** A tracker's step offers the waiting occurrence when an
-  ad-hoc log lands near it, but nothing says how wide near is. A dose due at 8:00pm and logged at
-  7:30 plainly fulfils it and one logged at 2:00pm plainly does not, and the width belongs with the
-  grace period in Open question 1 — both are asking how much slack a scheduled time carries.
+- **A known care failure reads the same as an unknown one.** Unrecorded says only that nothing was
+  written down, which is the point of it, and Skip says a caregiver decided the care was not needed.
+  A caregiver who knows the evening dose was simply forgotten has neither: skipping it claims a
+  decision nobody made, and leaving it unrecorded understates what the team actually knows. Missed
+  was the state that said this, and it was dropped because the app could not tell the two apart on
+  its own. Whether a caregiver should be able to tell it by hand is open.
+- **A run cannot reach back to the day an unrecorded occurrence belongs to.** The picker offers
+  occurrences from the forty-eight hours behind today, but the run's one time offers only now or an
+  earlier time today, so yesterday's dose logged this morning records this morning's hour until a
+  caregiver edits the entry afterward. The two rules were settled separately and they do not quite
+  meet.
 - **A one-off scheduled entry cannot be changed once it is made.** Quick log creates one — an
   appointment next Tuesday, a dose planned for the evening — but nothing afterward changes its time,
-  its pre-filled values, or whether being missed should alert anyone. Entry detail offers a scheduled
-  entry Log it and Skip; editing belongs to entries already logged.
+  its pre-filled values, or whether going unrecorded should alert anyone. Entry detail offers a
+  scheduled entry Log it and Skip; editing belongs to entries already logged.
 - **Emergency contacts do not surface at the moment of trouble.** Home's header now reaches them in
   one tap, but nothing brings them up alongside an alert — the point at which a caregiver is most
   likely to need to call someone, and the one moment they should not have to go looking.
@@ -1289,11 +1347,11 @@ trouble, while this is where a caregiver comes looking for a particular tracker,
 rearranges itself around today's problems is one where the thing they reached for has moved.
 
 Each row carries the tracker's name and how long it has been since anything was logged against it,
-and marks the ones where something is wrong — a value out of range, a gap run past, care gone missed.
-Home shows only the trackers needing attention and only three of them; this shows all of them, so the
-state has to travel with the row or a caregiver would have to open each one to find out. A paused
-tracker's row says when it was paused instead, since how long ago it was last logged stopped meaning
-anything the moment it stopped being collected.
+and marks the ones where something is wrong — a value out of range, a gap run past, care gone
+unrecorded. Home shows only the trackers needing attention and only three of them; this shows all of
+them, so the state has to travel with the row or a caregiver would have to open each one to find
+out. A paused tracker's row says when it was paused instead, since how long ago it was last logged
+stopped meaning anything the moment it stopped being collected.
 
 A filter narrows the list to the trackers that need attention. Home shows at most three of those and
 says how many there are altogether; this is where "altogether" leads. With the filter on the paused
@@ -1329,16 +1387,16 @@ that choice, and the first schedule added to it is where the app says so.
 
 **Tracker detail.** What one tracker is, and everything logged against it.
 
-Tracker detail is the only screen that shows a tracker whole. Home's timeline is one day across every
-tracker and an insight is one shape drawn from many entries; this is one tracker, all of it, newest
-first. The list holds logged, missed, and skipped entries together, because a caregiver checking
-whether the evening dose is actually being given needs to see the nights it wasn't — a run of logged
-doses tells the truth only when the missed ones sit between them. Entries still to come are not here;
-Coming up is what looks ahead. Any entry in the list opens the entry itself. The list begins with the
-most recent stretch and keeps loading as a caregiver scrolls rather than claiming to show everything
-at once: a tracker logged twice a day for a year holds hundreds of entries and no screen is honest
-about that in one go. What matters is that the recent ones, the ones answering whether the care is
-happening, are there without being asked for.
+Tracker detail is the only screen that shows a tracker whole. Home's timeline is one day across
+every tracker and an insight is one shape drawn from many entries; this is one tracker, all of it,
+newest first. The list holds logged, unrecorded, and skipped entries together, because a caregiver
+checking whether the evening dose is actually being given needs to see the nights that have no
+record — a run of logged doses tells the truth only when the nights nothing was written sit between
+them. Entries still to come are not here; Coming up is what looks ahead. Any entry in the list opens
+the entry itself. The list begins with the most recent stretch and keeps loading as a caregiver
+scrolls rather than claiming to show everything at once: a tracker logged twice a day for a year
+holds hundreds of entries and no screen is honest about that in one go. What matters is that the
+recent ones, the ones answering whether the care is happening, are there without being asked for.
 
 Above the entries the screen says what the tracker is and how it is doing: what it collects,
 including the fields that have been paused, its schedules or its gap, and whether anything is wrong
@@ -1346,12 +1404,16 @@ right now. This is where a gap alert lands, so it has to answer what the alarm w
 the tracker has gone unlogged, and how long the team said was acceptable.
 
 Logging happens here too, against the tracker rather than from a list of all of them. The ⊕ on Home
-starts by asking what to record; a caregiver who has opened the evening dose has answered that
-already, so this raises the same sheet with the tracker picked and the run starting at when the care
-happened. A tracker with nothing logged against it says so and offers that first entry — every
-tracker passes through that state on the day it is created, and a gap counts from that day rather than
-from a first entry, so the screen an admin lands on straight after making a tracker is already one
-being measured.
+starts by asking what to record; a caregiver who has opened the evening dose has answered half of
+that already, so this raises the same sheet scoped to the one tracker. When it has nothing waiting —
+no occurrence scheduled today, none unrecorded behind it — there is nothing left to pick between and
+the run starts at when the care happened, as it always has. When it does have something waiting, the
+picking part appears holding just that tracker's occurrences and the tracker itself, because naming
+the tracker is not the same as saying which dose, and the shortcut only ever stood on the assumption
+that it was. A tracker with nothing logged against it says so and offers that first entry — every
+tracker passes through that state on the day it is created, and a gap counts from that day rather
+than from a first entry, so the screen an admin lands on straight after making a tracker is already
+one being measured.
 
 Every caregiver reads this screen; only admins see Edit, since admins manage the team's trackers
 while every caregiver logs against them. Add tracker, Edit tracker, the field and schedule sheets, and
@@ -1362,18 +1424,19 @@ does to a tracker rather than something that should be within reach while readin
 confirmation says what stops and what is kept, since a caregiver who reads "pause" as "delete" would
 never press it.
 
-Adding a field and writing a schedule are each a sheet of their own over the edit sheet, because each
-is one thing with its own handful of decisions and neither survives being squeezed into a row. A field
-is a name, a type — a number, free text, a yes/no, a choice from a fixed list, a date and time — the
-unit of a number or the options of a choice, whether it is required, and the range a numeric value is
-expected to stay inside. On a tracker that exists it offers pause rather than delete, and says which
-of the two it is doing, because its values sit on every entry already carrying them. A schedule is a
-recurrence, the values it pre-fills, whether the team should be told if the care is missed, a label,
-and an end date if it has one; left unlabelled it takes a name derived from itself, so three schedules
-on one tracker read as a regimen rather than as three copies of the tracker's name. Removing a
-schedule sits where the schedule does and asks before it acts, because what it takes is not obvious
-from the outside: the rule and every occurrence still waiting go, and nothing that was logged,
-skipped, or missed moves at all. The confirmation is where a team reads which of those is which.
+Adding a field and writing a schedule are each a sheet of their own over the edit sheet, because
+each is one thing with its own handful of decisions and neither survives being squeezed into a row.
+A field is a name, a type — a number, free text, a yes/no, a choice from a fixed list, a date and
+time — the unit of a number or the options of a choice, whether it is required, and the range a
+numeric value is expected to stay inside. On a tracker that exists it offers pause rather than
+delete, and says which of the two it is doing, because its values sit on every entry already
+carrying them. A schedule is a recurrence, the values it pre-fills, whether the team should be told
+if the care goes unrecorded, a label, and an end date if it has one; left unlabelled it takes a name
+derived from itself, so three schedules on one tracker read as a regimen rather than as three copies
+of the tracker's name. Removing a schedule sits where the schedule does and asks before it acts,
+because what it takes is not obvious from the outside: the rule and every occurrence still waiting
+go, and nothing that was logged, skipped, or unrecorded moves at all. The confirmation is where a
+team reads which of those is which.
 
 A paused tracker opens the same screen, reading as paused. It keeps everything worth reading — what
 it collected, what the team expected of it, and every entry ever logged against it — and offers no
@@ -1405,7 +1468,7 @@ reading questions.
       logged against it
     - >
       each row marks what is wrong — a value out of range, a gap run past, care
-      gone missed
+      gone unrecorded
     - >
       a paused tracker's row says when it was paused instead, since how long ago
       it was last logged stopped meaning anything
@@ -1442,9 +1505,9 @@ reading questions.
       gone unlogged against how long the team said was acceptable, since this is
       where a gap alert lands
     - >
-      its entries, newest first, holding logged, missed and skipped together,
-      because a run of logged doses tells the truth only when the missed ones sit
-      between them
+      its entries, newest first, holding logged, unrecorded and skipped
+      together, because a run of logged doses tells the truth only when the
+      nights nothing was written sit between them
     - >
       the most recent stretch first, loading more as a caregiver scrolls rather
       than claiming to show a year of entries at once
@@ -1461,7 +1524,7 @@ reading questions.
       as: sheet
     - action: Log
       when: the tracker is active
-      to: Quick log, with this tracker already picked
+      to: Quick log, scoped to this tracker — at the picking part when it has occurrences waiting
       as: sheet
     - action: Resume
       admin: true
@@ -1581,8 +1644,8 @@ reading questions.
       the values it pre-fills on every entry it generates, leaving blank what
       nobody can know until the care happens
     - >
-      whether the team should be told if the care is missed, since a missed dose
-      matters and a missed walk may not
+      whether the team should be told if the care goes unrecorded, since a dose
+      nobody wrote down matters and a walk nobody wrote down may not
     - a label, which left blank is derived from the schedule itself
     - when it ends, if it ends
     - >
@@ -1605,8 +1668,8 @@ reading questions.
   contains:
     - what goes — the rule, and every occurrence it made that is still waiting
     - >
-      what stays — every entry already logged, skipped or missed, exactly where it
-      is, in the timelines it appeared in and the insights it fed
+      what stays — every entry already logged, skipped or unrecorded, exactly
+      where it is, in the timelines it appeared in and the insights it fed
   exits:
     - action: Cancel
       to: A schedule
@@ -2416,17 +2479,21 @@ are gaps under the areas that reach toward it, and both are answered here when t
 
 ## Open questions
 
-1. **How late is missed?** A dose given at 8:05 should not be reported as missed care, so a grace
-   period has to pass before a scheduled entry counts as missed and any missed-care alert fires. The
-   likely shape is a configurable grace period defaulting to one hour after the scheduled time. What
-   remains open is what it is configured on — the schedule, the tracker, or the care team — and
-   whether the same period governs both the missed state and the alert.
+1. **How long is the grace period, and is the forty-eight-hour window the same setting?** An
+   occurrence becomes unrecorded the moment its time passes, which is merely true and costs nobody
+   anything. An alert is different: a dose given at 8:05 should not raise one at 8:01, so a grace
+   period has to pass before an unrecorded-care alert fires. The likely shape is a configurable
+   grace period defaulting to one hour after the scheduled time. What remains open is what it is
+   configured on — the schedule, the tracker, or the care team — and how it relates to the
+   forty-eight hours after which an unrecorded occurrence stops asking for attention. Those are two
+   durations at opposite ends of the same interval, and a team that can set one but not the other
+   would reasonably ask why.
 
 2. **Should coverage route notifications?** Today reminders and alerts reach the whole team
    regardless of who is assigned, and a roster is purely informational. A roster that decided who
-   got notified — reminding whoever is on duty, alerting them first when care is missed — would cut
-   notification fatigue and give the roster a reason to stay accurate, since a stale one would be
-   felt immediately. What holds this back is the edge cases rather than the idea: which
+   got notified — reminding whoever is on duty, alerting them first when care goes unrecorded —
+   would cut notification fatigue and give the roster a reason to stay accurate, since a stale one
+   would be felt immediately. What holds this back is the edge cases rather than the idea: which
    notifications should route at all (a dose coming due is a task and belongs to whoever is on duty,
    while a reading outside its threshold is information the whole team wants either way), who hears
    about it during hours nobody is assigned, and how a caregiver stays informed about a receiver
@@ -2442,11 +2509,11 @@ are gaps under the areas that reach toward it, and both are answered here when t
    the first thing a caregiver sees after tapping the alarm. The likely shape is that an alert is
    re-evaluated whenever the entries beneath it change, so one whose only supporting reading is
    corrected or deleted clears on its own. What remains open is how far that reaches — a gap alert
-   depends on the absence of entries and a missed-care alert on an occurrence rather than a value,
-   and both can be resurrected by a deletion as easily as dismissed by one — and whether a cleared
-   alert should leave any trace. A team that saw an alarming reading in the morning and by evening
-   finds neither the alert nor the reading has been told nothing about what happened, which is its
-   own kind of wrong.
+   depends on the absence of entries and an unrecorded-care alert on an occurrence rather than a
+   value, and both can be resurrected by a deletion as easily as dismissed by one — and whether a
+   cleared alert should leave any trace. A team that saw an alarming reading in the morning and by
+   evening finds neither the alert nor the reading has been told nothing about what happened, which
+   is its own kind of wrong.
 
 4. **Does an entry stay with its occurrence when its time is edited to another day?** Logging a
    scheduled entry attaches a record to a plan, and the PRD already holds that the plan does not
@@ -2458,5 +2525,5 @@ are gaps under the areas that reach toward it, and both are answered here when t
    because the caregiver said this is the care that occurrence was for and no later edit unsays it.
    What remains open is whether there is a distance at which the app should stop believing that,
    whether a caregiver should be able to detach an entry deliberately — leaving the occurrence
-   missed again and the entry standing on its own — and what Monday's timeline and Monday's insights
-   should make of an occurrence fulfilled by an entry timed for Tuesday.
+   unrecorded again and the entry standing on its own — and what Monday's timeline and Monday's
+   insights should make of an occurrence fulfilled by an entry timed for Tuesday.
