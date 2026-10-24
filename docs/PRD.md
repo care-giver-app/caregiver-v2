@@ -462,8 +462,9 @@ lock covers everything that issues or checks one. A locked-out caregiver cannot 
 around it, and Sign up cannot be used to mint a fresh code for an account that is locked, since a
 lock that only guarded the screen it was tripped on would leave Sign up as a way to ask for another
 code. Because the code dies before the lock lifts, five guesses is all any code ever gets. There is
-also a wait between resends, so a caregiver who presses it twice does not spend two of those guesses
-on a code that has already been replaced.
+a sixty-second wait between resends, so a caregiver who presses it twice does not spend two of those
+guesses on a code that has already been replaced — long enough that a double tap costs nothing, and
+short enough that someone whose first email went to spam is not left waiting on the second.
 
 **Reset password is the way back in, whatever went wrong.** It answers every address identically —
 that if an account exists, a code is on its way — because a screen that said otherwise would let
@@ -506,6 +507,17 @@ that cannot help them, which is the trap an abandoned signup already falls into.
 **Signed in with no care team.** Join a care team is where a caregiver accepts an invitation waiting
 for their email or pastes an invite code, with creating a team offered as the alternative rather than
 the only option.
+
+A code the app will not take is answered the same way whatever is wrong with it — invalid, expired,
+and already used all read as no longer valid — because the difference between them is one only the
+app can see, and none of the three changes what the caregiver does next, which is to ask whoever
+invited them for another. The Team tab answers a pasted code the same way, for the same reason.
+
+Creating a team lands on Team rather than Home. A team made a moment ago has no care receiver, so
+Home would open on its own empty state, describing the absence of something the caregiver has not
+had a chance to do yet — while Team is where the team they just made lives, and where Add care
+receiver offers the first one. The sign-in resolution is unchanged: a caregiver who already belongs
+to a team still lands on Home.
 
 Two behaviors have no screen of their own. **Remember me** stores the email address only and prefills
 it on the next launch. **Face ID** is offered once, in a sheet the first time a caregiver reaches
@@ -615,7 +627,7 @@ sign out, which is a caregiver saying they want out.
   contains:
     - 6-digit code sent to your email
     - the address it was sent to
-    - Resend
+    - Resend, available again sixty seconds after the last code was sent
   exits:
     - action: Confirm
       when: you belong to a care team
@@ -639,8 +651,6 @@ sign out, which is a caregiver saying they want out.
     - action: dismiss
       to: the screen that raised it
       as: back
-  open:
-    - how long a caregiver must wait between resends
 
 - screen: Reset password
   kind: sheet
@@ -692,7 +702,7 @@ sign out, which is a caregiver saying they want out.
       to: Home
       as: root
     - action: paste a code that is invalid, expired, or already used
-      to: Join a care team
+      to: Join a care team, saying only that the code is no longer valid
       as: stays
     - action: Create a team instead
       to: Create your first care team
@@ -700,10 +710,6 @@ sign out, which is a caregiver saying they want out.
   empty: >
     no invitations waiting — the screen is the invite-code field and the offer to
     create a team
-  open:
-    - >
-      whether an invalid code, an expired one, and one already used read
-      differently
 
 - screen: Create your first care team
   kind: push
@@ -713,7 +719,7 @@ sign out, which is a caregiver saying they want out.
     - care team name
   exits:
     - action: Create team
-      to: Home
+      to: Team, with the new team on the list and no care receiver yet
       as: root
 
 - screen: Offer Face ID
@@ -737,17 +743,10 @@ sign out, which is a caregiver saying they want out.
 
 #### Gaps in this flow
 
-- **What a rejected invite code says is undescribed.** Invalid, expired, and already used all
-  collapse into "an error" on both Join a care team and the Team tab, and a caregiver told only that
-  something went wrong cannot tell whether to ask the admin for a new code or to look harder at the
-  one they have.
-- **How long a resend makes you wait is unanswered.** There is a wait between resends, so that
-  pressing it twice does not burn two of the five guesses on a code that has already been replaced,
-  but nothing says how long it runs — and it has to be short enough that a caregiver whose first
-  email went to spam does not give up.
-- **Creating a first care team lands on an undescribed Home.** A team made a moment ago has no care
-  receiver, and what Home shows in that state is recorded as a gap under Home — but this is the flow
-  that reaches it first, and a caregiver's very first look at the app is the one this decides.
+- **A team with no care receivers is undescribed on Team.** Creating a team now lands on Team, and
+  Add care receiver is already offered there to an admin — but nothing says what a team's row looks
+  like with no receivers under it. This is the flow that reaches that state first, and a caregiver's
+  very first look at the app is the one it decides.
 
 ### Home
 
@@ -802,10 +801,12 @@ Team, whenever there is more than one to choose between.
 
 The one time Home has nobody to be about is a care team with no care receivers, which is every team
 in the minutes after it is created. Home says so, and says what happens next — which differs by who
-is reading. An admin is offered the first receiver there and then, rather than being sent to another
-tab to do it. A caregiver is told that an admin adds them, and is not shown a control they cannot
-use: the app refuses with a reason rather than greying something out, and an empty screen should not
-be the one place it abandons that.
+is reading. An admin is offered the first receiver there and then, because a caregiver already
+standing on Home should not be sent to another tab for something this screen can offer. Arriving is
+a different thing from standing: a caregiver who has just created a team lands on Team rather than
+Home, since that is where the team they made lives. A caregiver is told that an admin adds them, and
+is not shown a control they cannot use: the app refuses with a reason rather than greying something
+out, and an empty screen should not be the one place it abandons that.
 
 The same holds one level down. A care receiver with no active trackers leaves Home with nothing to
 show and nothing to watch, so it says so and offers an admin the first tracker, while a caregiver is
@@ -1839,7 +1840,7 @@ caregiver.
       to: Team, with that care team now a row on the list
       as: stays
     - action: paste a code that is invalid, expired, or already used
-      to: Team
+      to: Team, saying only that the code is no longer valid
       as: stays
     - action: accept or paste a code for a care team you already belong to
       to: Team, refused because you are already a member
