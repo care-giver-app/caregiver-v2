@@ -1025,7 +1025,7 @@ under what is coming up rather than in the day behind it.
       to: Tracker detail
       as: push
     - action: how many need attention altogether
-      to: Trackers, with the needs-attention filter already on
+      to: Trackers, with the needs-attention filter already chosen
       as: push
     - action: the coming up banner
       when: something is scheduled ahead
@@ -1346,28 +1346,46 @@ tracker that has gone quiet.
 Trackers answers what a team is keeping track of for this person. It is scoped to the active care
 receiver like everything else reached from Home, and switching receivers reloads it.
 
-Active trackers come first and paused ones after, and only the paused group carries a label. A
-paused tracker is still part of the record and dropping it from the list would leave a team
-wondering where something went, but it is not something anyone is being asked to log today, so it
-does not sit among the things that are. Labelling it is what says so. Labelling the active ones
-would only assert what a caregiver already assumes — that a tracker on this list is one they are
-expected to log — and a heading that earns nothing is a heading people stop reading. Within each
-group trackers are listed alphabetically and stay there: Home is what surfaces trouble, while this
-is where a caregiver comes looking for a particular tracker, and a list that rearranges itself
-around today's problems is one where the thing they reached for has moved.
+The list is one of three views, chosen by a row of filters: the active trackers, the ones that need
+attention, and the paused ones. It opens on active every time, because that is the roster a
+caregiver is being asked to log today. Within whichever view is showing, trackers are listed
+alphabetically and stay there: Home is what surfaces trouble, while this is where a caregiver comes
+looking for a particular tracker, and a list that rearranges itself around today's problems is one
+where the thing they reached for has moved.
+
+Paused trackers get a filter rather than a labelled tail. A paused tracker is still part of the
+record and dropping it from the app would leave a team wondering where something went, but it is not
+something anyone is being asked to log today, and a group pinned to the bottom of the list says so
+at the price of being scrolled past every time anyone looks for anything else. A filter says the
+same thing earlier and cheaper: its count is visible from the active list, so a team can see that
+one tracker has been set aside without going to look, and the ones who want it know where it is.
 
 Each row carries the tracker's colour, its name, and how long it has been since anything was logged
-against it, and marks the ones where something is wrong — a value out of range, a gap run past, care
-gone unrecorded. Home shows only the trackers needing attention and only three of them; this shows
-all of them, so the state has to travel with the row or a caregiver would have to open each one to
-find out. A paused tracker's row says when it was paused instead, since how long ago it was last
-logged stopped meaning anything the moment it stopped being collected.
+against it — or that nothing ever has been, which is a different fact and the one a gap counts from.
+It carries no reading. What a tracker collects is its own shape: two numbers for a blood pressure, a
+choice for a mood, nothing at all for a shower. A row that prints 128/82 is following a rule
+somebody wrote for blood pressure — which fields to show, in what order, joined by what — and the
+tracker beside it gets a worse answer or none, because the app is meant to let a team track anything
+and cannot know the shape of what they chose. The reading lives on Tracker detail, where every field
+can be named. The list is left saying the two things that mean the same for every tracker: how long
+it has been, and whether something is wrong.
 
-A filter narrows the list to the trackers that need attention. Home shows at most three of those and
-says how many there are altogether; this is where "altogether" leads. With the filter on the paused
-group disappears entirely, because a paused tracker's thresholds have stopped and it cannot be one of
-the ones in trouble. The filter is off every time the screen is opened, since a list that remembers
-being filtered is one where a caregiver decides trackers have gone missing.
+A row that needs attention says only that. The cause — a value outside its range, a gap run past,
+care gone unrecorded — waits on the tracker itself, where there is room to say what happened instead
+of a label for it. A list exists to say which rows to open; a caregiver who has been told which two
+of seven need attention is already going to open them, and spending that label on a phrase like
+"gap run past" buys nothing but a term they have to learn. A paused tracker's row says when it was paused
+instead, since how long ago it was last logged stopped meaning anything the moment it stopped being
+collected.
+
+Every filter carries its count. That is what makes the row read as a set of filters rather than a
+heading, and it is how the active list reports the other two views without showing them — a
+caregiver sees that two trackers need attention and one is paused before choosing to look at either.
+Needs attention is where Home's count leads: Home shows at most three of the trackers in trouble and
+says how many there are altogether. A paused tracker is never among them, because its thresholds
+have stopped and it cannot be one of the ones in trouble. The screen opens on active no matter how
+it was left, since a list that remembers being filtered is one where a caregiver decides trackers
+have gone missing.
 
 Admins add trackers; every caregiver reads the list. Creating one lands on the new tracker rather
 than back on the list, because the next thing anyone wants after making a tracker is to see it. A
@@ -1471,29 +1489,34 @@ reading questions.
     everything needing attention
   contains:
     - >
-      active trackers first and paused ones after, with only the paused group
-      labelled, alphabetical within each group and staying there
+      three filters, each carrying its count — active, needs attention, paused —
+      opening on active every time
+    - >
+      the trackers in the chosen view, alphabetical and staying there
     - >
       each row: the tracker's colour, its name, and how long it has been since
-      anything was logged against it
+      anything was logged against it, or that nothing ever has been
     - >
-      each row marks what is wrong — a value out of range, a gap run past, care
-      gone unrecorded
+      a row that needs attention says only that; what is wrong is named on the
+      tracker itself
     - >
       a paused tracker's row says when it was paused instead, since how long ago
       it was last logged stopped meaning anything
-    - >
-      a needs-attention filter, off every time the screen is opened, and with it
-      on the paused group disappears entirely
-    - Add a tracker — admins only
+    - Add new, in the header — admins only
   exits:
     - action: a tracker, active or paused
       to: Tracker detail
       as: push
+    - action: Active
+      to: Trackers, showing the active trackers
+      as: stays
     - action: Needs attention
       to: Trackers, narrowed to the trackers in trouble
       as: stays
-    - action: Add a tracker
+    - action: Paused
+      to: Trackers, showing the paused trackers
+      as: stays
+    - action: Add new
       admin: true
       to: Add tracker
       as: sheet
@@ -1709,12 +1732,18 @@ reading questions.
 
 #### Gaps in this flow
 
-- **A receiver whose every tracker is paused has an undescribed shape.** Only the paused group is
-  labelled, so a list with nothing active opens on that heading with nothing above it. Home already
+- **A receiver whose every tracker is paused has an undescribed shape.** The screen opens on active,
+  so this receiver opens on nothing, with the roster they do have one filter away. Home already
   covers this receiver — it treats every tracker paused as nothing being collected, and says the
   list still shows the paused ones, since that is where the record lives. What nothing says is
-  whether this screen remarks on having nothing active, or simply shows the paused group alone. The
+  whether the active view remarks on being empty, whether it points at the paused filter, or whether
+  the screen opens on paused instead when that is the only view with anything in it. The
   catalogue's empty state is a receiver with no trackers at all, which is not this.
+- **Paused trackers are now reachable only through their filter.** When they sat at the foot of the
+  list, a caregiver who had never thought about pausing still scrolled past them and learned the
+  concept. The count beside the filter is visible without scrolling and says a tracker is set aside,
+  but reading it means knowing what paused means. Whether that is enough, and whether anything else
+  in the app has to teach the word, is not written down.
 - **A tracker's insights are not reachable from it.** A caregiver reading a tracker's entries has no
   way to the chart drawn from those same entries. Insights is deferred, so this waits with it.
 
