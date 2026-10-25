@@ -63,8 +63,8 @@ awaiting approval · `approved` merged to `main`.
 
 | Area       | Screen catalog | Figma UI | Endpoints | Built |
 | ---------- | -------------- | -------- | --------- | ----- |
-| Getting in | draft          | —        | —         | —     |
-| Trackers   | draft          | —        | —         | —     |
+| Getting in | approved       | approved | —         | —     |
+| Trackers   | approved       | approved | —         | —     |
 | Home       | draft          | —        | —         | —     |
 | Team       | draft          | —        | —         | —     |
 | Settings   | draft          | —        | —         | —     |

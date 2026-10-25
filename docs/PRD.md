@@ -149,10 +149,10 @@ meals, mood, medication given. A tracker has a name, icon, and color, and define
 captured each time it is logged. A tracker belongs to a single care receiver, so two receivers on
 the same team can be tracked differently.
 
-A tracker's colour belongs to the tracker rather than to its condition, and it is the same colour
+A tracker's color belongs to the tracker rather than to its condition, and it is the same color
 wherever it appears. It is how a caregiver picks medication out of nine rows before they have read
 a word of any of them. It never shifts to report that something is wrong: what is wrong is said in
-words, and a colour that means medication on Monday and trouble on Tuesday means nothing on either
+words, and a color that means medication on Monday and trouble on Tuesday means nothing on either
 day.
 
 A tracker can be **paused** when a team stops tracking something — the blood pressure taken daily for
@@ -1360,7 +1360,7 @@ at the price of being scrolled past every time anyone looks for anything else. A
 same thing earlier and cheaper: its count is visible from the active list, so a team can see that
 one tracker has been set aside without going to look, and the ones who want it know where it is.
 
-Each row carries the tracker's colour, its name, and how long it has been since anything was logged
+Each row carries the tracker's color, its name, and how long it has been since anything was logged
 against it — or that nothing ever has been, which is a different fact and the one a gap counts from.
 It carries no reading. What a tracker collects is its own shape: two numbers for a blood pressure, a
 choice for a mood, nothing at all for a shower. A row that prints 128/82 is following a rule
@@ -1426,10 +1426,13 @@ scrolls rather than claiming to show everything at once: a tracker logged twice 
 holds hundreds of entries and no screen is honest about that in one go. What matters is that the
 recent ones, the ones answering whether the care is happening, are there without being asked for.
 
-Above the entries the screen says what the tracker is and how it is doing: what it collects,
-including the fields that have been paused, its schedules or its gap, and whether anything is wrong
-right now. This is where a gap alert lands, so it has to answer what the alarm was about — how long
-the tracker has gone unlogged, and how long the team said was acceptable.
+Above the entries the screen says what the tracker is and how it is doing: how many schedules it
+has, or the gap that watches it instead, and — only when there is something to say — what is wrong
+right now. The schedules themselves are a tap away on a page of their own, because a tracker can
+have any number of them and no summary of twenty says anything, and because there every caregiver
+can read them: Edit tracker, where they are written, is for admins. What it collects is left to
+Edit tracker too; a caregiver about to log is shown the fields by the logging itself. This is where a gap alert lands, so it has to answer what the alarm was about — how long the
+tracker has gone unlogged, and how long the team said was acceptable.
 
 Logging happens here too, against the tracker rather than from a list of all of them. The ⊕ on Home
 starts by asking what to record; a caregiver who has opened the evening dose has answered half of
@@ -1494,7 +1497,7 @@ reading questions.
     - >
       the trackers in the chosen view, alphabetical and staying there
     - >
-      each row: the tracker's colour, its name, and how long it has been since
+      each row: the tracker's color, its name, and how long it has been since
       anything was logged against it, or that nothing ever has been
     - >
       a row that needs attention says only that; what is wrong is named on the
@@ -1531,25 +1534,39 @@ reading questions.
     timeline is one day across every tracker, and an insight is one shape drawn
     from many entries
   contains:
-    - its name and icon, and what it collects, including the fields that are paused
-    - its schedules, or its gap
+    - its name, icon and color
     - >
-      whether anything is wrong right now — and for a gap alert, how long it has
-      gone unlogged against how long the team said was acceptable, since this is
-      where a gap alert lands
+      how many schedules it has, opening Schedules; or, when a gap watches it
+      instead, the gap in one line that opens nothing
+    - >
+      what is wrong right now, only when something is — and for a gap alert, how
+      long it has gone unlogged against how long the team said was acceptable,
+      since this is where a gap alert lands
     - >
       its entries, newest first, holding logged, unrecorded and skipped
       together, because a run of logged doses tells the truth only when the
       nights nothing was written sit between them
     - >
+      each entry as a tile that plainly opens it: when it happened, its state, the
+      value of every field it carries, its note if it has one, and who logged or
+      skipped it
+    - a way to narrow the entries to a stretch of time, showing all of them until asked
+    - >
       the most recent stretch first, loading more as a caregiver scrolls rather
       than claiming to show a year of entries at once
+    - >
+      Log an entry — or Resume, with what pausing stopped, when it is paused —
+      held beneath the entries, so it stays in reach however far they scroll
     - >
       when paused: the screen reads as paused, offers no way to log against it,
       and offers Resume, which says what will start again before it is pressed
   exits:
     - action: an entry
       to: Entry detail
+      as: push
+    - action: its schedules
+      when: it has schedules
+      to: Schedules
       as: push
     - action: Edit
       admin: true
@@ -1569,23 +1586,56 @@ reading questions.
     Every tracker passes through this on the day it is created, and a gap counts
     from that day rather than from a first entry
 
+- screen: Schedules
+  kind: push
+  scope: >
+    one tracker's schedules, read by anyone on the team. Nothing here edits; an
+    admin changes them in Edit tracker, which Edit raises from here
+  contains:
+    - >
+      each schedule by its name, with the days it falls on, how often it repeats,
+      its time, and whether it alerts the team if it goes unrecorded
+  exits:
+    - action: Back
+      to: Tracker detail
+      as: back
+    - action: Edit
+      admin: true
+      to: Edit tracker
+      as: sheet
+
 - screen: Add tracker
   kind: sheet
   scope: >
-    a new tracker for the active care receiver; admins only. One sheet in two
-    parts — choose a template, then adjust everything it brought. Raised from the
+    a new tracker for the active care receiver; admins only. One sheet in parts —
+    choose a template, then adjust everything it brought, with its icon and color
+    a part of their own behind a preview. Raised from the
     Trackers list, from Home when the receiver has no active trackers, or from
     Quick log's picker, which it replaces
   contains:
-    - the tracker templates, each saying what it collects
-    - Start from scratch, for a tracker no template describes
     - >
-      what the template brought, all of it changeable: its name, icon and color,
-      the fields it captures, and the thresholds around them
+      Start from scratch, for a tracker no template describes — pinned above the
+      templates, so someone who has scrolled through them and not found their care
+      is never far from it
     - >
-      a way to add a field, and a way to drop one the template brought — the only
-      place a field can be dropped, since a tracker that does not exist yet has no
-      readings to lose
+      the tracker templates in a list that scrolls beneath it, each shown only by its
+      name, icon and color; what a template collects shows once it is chosen
+    - >
+      what the template brought, all of it changeable: its name, typed in place
+      beside a preview of its icon and color; the fields it captures, and the
+      thresholds around them
+    - >
+      behind that preview, a part of its own for the icon and color: colors along
+      the top, any color at all one tap beyond them, and the icons scrolling
+      beneath, chosen for care and searchable by name
+    - >
+      each field as a row naming its type and whether it is required, opening it,
+      and carrying a red x that removes it — the only place a field can be removed,
+      since a tracker that does not exist yet has no readings to lose — and a way
+      to add a field
+    - >
+      one line under the fields heading, saying that fields cannot be deleted once the
+      tracker is created, only paused
     - >
       nothing about schedules: a regimen is rarely settled when a tracker is being
       made, and Edit tracker is where one is written
@@ -1593,6 +1643,21 @@ reading questions.
     - action: a template, or Start from scratch
       to: Add tracker, with the second part filled in from it
       as: stays
+    - action: Back
+      when: on the second part
+      to: Add tracker, back on its first part
+      as: stays
+    - action: the icon preview
+      to: Add tracker, on its icon and color
+      as: stays
+    - action: Done
+      when: on its icon and color
+      to: Add tracker, back on the second part with the choice made
+      as: stays
+    - action: any color
+      when: on its icon and color
+      to: the iPhone's color picker
+      as: out
     - action: add or change a field
       to: A field
       as: sheet
@@ -1611,28 +1676,47 @@ reading questions.
 - screen: Edit tracker
   kind: sheet
   scope: >
-    one tracker; admins only. A sheet over Tracker detail rather than a screen
-    of its own
+    one tracker; admins only. A sheet over Tracker detail or Schedules rather
+    than a screen of its own
   contains:
-    - its fields, each on or paused, and a way to add a field
-    - its schedules
     - >
-      its thresholds — a range on a numeric field, or a gap on the tracker as a
-      whole
+      its name, typed in place beside a preview of its icon and color, and behind
+      that preview the same icon and color part Add tracker has
+    - >
+      its fields, each a row naming its type and whether it is required, opening
+      it, and carrying a switch that pauses or resumes it — never deletes it,
+      since its values sit on every entry already carrying them — and a way to
+      add a field
+    - its schedules, each a row that opens it, and a way to add one
+    - >
+      its gap, behind a switch that says whether the tracker is watched by one at
+      all, and the longest the team will go without an entry when it is; a range
+      belongs to a number field and is set in that field
     - >
       the rule that a tracker has schedules or a gap but never both, enforced
       here, telling an admin what they are about to lose
     - Pause tracker
   exits:
     - action: Save
-      to: Tracker detail
+      to: the screen that raised it
       as: back
     - action: Cancel
-      to: Tracker detail
+      to: the screen that raised it
       as: back
     - action: Pause tracker
       to: Pause this tracker?
       as: sheet
+    - action: the icon preview
+      to: Edit tracker, on its icon and color
+      as: stays
+    - action: Done
+      when: on its icon and color
+      to: Edit tracker, back on the tracker with the choice made
+      as: stays
+    - action: any color
+      when: on its icon and color
+      to: the iPhone's color picker
+      as: out
     - action: add or change a field
       to: A field
       as: sheet
@@ -1649,17 +1733,22 @@ reading questions.
   contains:
     - a name
     - >
-      its type — a number, free text, a yes/no, a choice from a fixed list, or a
-      date and time — with the unit of a number or the options of a choice
+      its type, one of five — a number, free text, a yes/no, a choice from a fixed
+      list, or a date and time — with the unit of a number, typed in, or the
+      options of a choice
     - whether it is required
     - >
-      the range a numeric value is expected to stay inside, which is what raises
-      an alert when a logged one falls outside it
+      on a number only: whether it alerts at all, and when it does, the range its
+      value is expected to stay inside, as a low and a high drawn against the
+      readings that would alert the team
     - >
-      on a tracker that already exists: pause it, never delete it, since its
-      values sit on every entry already carrying them
+      on a tracker that does not exist yet: Remove, which takes the field off it
   exits:
     - action: Save
+      to: the screen that raised it
+      as: back
+    - action: Remove
+      when: the tracker does not exist yet
       to: the screen that raised it
       as: back
     - action: Cancel
@@ -1672,7 +1761,12 @@ reading questions.
     one recurring rule on a tracker, and the values it pre-fills; admins only. A
     sheet over Edit tracker
   contains:
-    - when it recurs
+    - >
+      when it recurs: the days of the week it falls on, how often it repeats —
+      every week, every two weeks, every month, or every two months — and the time
+      of day. These are a starting set and not the limit of what a schedule can
+      say; a team's regimen will eventually need more, and adding it must not mean
+      starting over
     - >
       the values it pre-fills on every entry it generates, leaving blank what
       nobody can know until the care happens
@@ -1744,6 +1838,23 @@ reading questions.
   concept. The count beside the filter is visible without scrolling and says a tracker is set aside,
   but reading it means knowing what paused means. Whether that is enough, and whether anything else
   in the app has to teach the word, is not written down.
+- **Any color can be one that already means trouble.** An admin can give a tracker the red of an
+  out-of-range reading or the amber of a tracker needing attention, and its row will look flagged
+  when nothing is wrong. The color still belongs to the tracker, which is the rule, but a caregiver
+  scanning the list cannot tell the difference. Whether colors near the warning ones should be
+  refused is open.
+- **Only Apple's own platforms may draw these icons.** The icons are the symbols the iPhone draws
+  with, and Apple allows them nowhere else. The web app will need its own drawing of every icon the
+  set offers, or a stand-in for any it lacks.
+- **A monthly schedule on chosen weekdays has no settled meaning.** Every week and every two weeks
+  read plainly against the days picked, but Monday every month could mean the first Monday, every
+  Monday of one week in four, or the same date as the first one. The likely answer is every four
+  weeks, which is what every two months would then double; it is left to be settled after launch.
+- **Nothing says whether a field's type can change once it holds readings.** A field sheet offers
+  all five types on a tracker that already exists, the same as on one being made. Changing a number
+  that holds a month of blood pressure into free text would leave every past value meaning
+  something else, and pausing the old field and adding a new one is the route that keeps the
+  record whole. Whether the type locks once a tracker exists is open.
 - **A tracker's insights are not reachable from it.** A caregiver reading a tracker's entries has no
   way to the chart drawn from those same entries. Insights is deferred, so this waits with it.
 

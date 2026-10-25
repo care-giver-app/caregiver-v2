@@ -16,6 +16,7 @@ EXTERNAL = (
     "the phone",
     "the Settings app",
     "the mail app",
+    "the iPhone's color picker",
     "the terms",
     "the privacy policy",
     "the screen that raised it",

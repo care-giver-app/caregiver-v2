@@ -44,19 +44,20 @@ One pending invite: `jordan@email.com` (Caregiver · expires 7d).
 One canonical roster for Eleanor. **A tracker keeps ONE hue on every screen** (the review found
 Medication drawn violet on Add-Tracker but teal on Insights, and Weight teal↔violet — a direct hit to
 the "per-entity hue aids recognition" signature). Hues are from the tracker-hue palette (cyan `17:7` /
-teal `17:8` / violet `17:9` / info-blue `10:30`); reuse is fine, drift is not.
+teal `17:8` / violet `17:9` / info-blue `10:30`); reuse is fine, drift is not. The same goes for the
+icon, a `Name` of `Stride/Tracker Icon` (`171:960`), drawn white on a tile of the tracker's hue.
 
-| Tracker        | Contract `kind` | Presentation label | Hue       | Sample latest            |
-| -------------- | --------------- | ------------------ | --------- | ------------------------ |
-| Blood pressure | `measurement`   | Numeric            | cyan      | 128/82 mmHg              |
-| Medication     | `scheduled`     | Checklist          | violet    | Lisinopril 10 mg · taken |
-| Weight         | `measurement`   | Numeric            | teal      | 154.2 lb                 |
-| Pain level     | `measurement`   | Numeric            | info-blue | 2 / 10 · mild            |
-| Mood           | `event`         | Scale              | violet    | Good — calm, alert       |
-| Hydration      | `event`         | Count              | teal      | Glass of water           |
-| Sleep          | `event`         | Duration           | cyan      | 7 h 20 m                 |
-| Meals          | `event`         | Quick log          | cyan      | (no value) · **Due**     |
-| Walk           | `event`         | Count              | teal      | —                        |
+| Tracker        | Contract `kind` | Presentation label | Hue       | Icon       | Sample latest            |
+| -------------- | --------------- | ------------------ | --------- | ---------- | ------------------------ |
+| Blood pressure | `measurement`   | Numeric            | cyan      | Heart      | 128/82 mmHg              |
+| Medication     | `scheduled`     | Checklist          | violet    | Pill       | Lisinopril 10 mg · taken |
+| Weight         | `measurement`   | Numeric            | teal      | Scale      | 154.2 lb                 |
+| Pain level     | `measurement`   | Numeric            | info-blue | _none yet_ | 2 / 10 · mild            |
+| Mood           | `event`         | Scale              | violet    | Smile      | Good — calm, alert       |
+| Hydration      | `event`         | Count              | teal      | Droplet    | Glass of water           |
+| Sleep          | `event`         | Duration           | cyan      | Moon       | 7 h 20 m                 |
+| Meals          | `event`         | Quick log          | cyan      | Utensils   | (no value) · **Due**     |
+| Walk           | `event`         | Count              | teal      | Walk       | —                        |
 
 - **Count = 9 named; "12 active" is fine** — three more exist off-screen. But every screen must draw
   its visible subset from **this list**: the review found Insights showing Weight/Walk while Home/Trackers
