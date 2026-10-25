@@ -231,9 +231,9 @@ entry is in one of four states:
 - **Logged** — a caregiver logged it, so it carries the time it occurred and who logged it.
 - **Unrecorded** — its scheduled time has passed and no caregiver has logged it yet.
 - **Skipped** — a caregiver deliberately marked it as not happening, whether or not its time has
-  already passed, and the entry carries who skipped it and when. A skip is a decision, not a care
-  failure, so it never counts as unrecorded — and a decision has an author for the same reason a
-  logged entry does.
+  already passed, and the entry carries who skipped it and when, and a note if they leave one,
+  usually saying why. A skip is a decision, not a care failure, so it never counts as unrecorded —
+  and a decision has an author for the same reason a logged entry does.
 
 A caregiver logging an entry is what moves it to logged; the passage of time alone never does, so
 the app never records care that nobody gave. What the passage of time does do is move a scheduled
@@ -414,7 +414,7 @@ flowchart LR
     Home -- "tab bar" --> Settings
     Home -- "tab bar" --> Insights
     Team -- "pick a care receiver" --> Home
-    Settings -- "what you are told about" --> Team
+    Settings -- "team notification settings" --> Team
 ```
 
 Home, Team, Settings, and Insights are the four tabs. Trackers has no tab of its own and is pushed
@@ -791,8 +791,12 @@ their range, then trackers past their gap — a dose nobody can account for outr
 merely high, which outranks a tracker that has only gone quiet. Unrecorded care leads because it is
 the one of the three that goes stale: a reading out of range is as true next week as today, while
 the answer to whether this morning's dose was given lives in somebody's memory and does not keep.
-Home shows at most three at a time and says how many there are altogether, because a list that can
-grow without limit is one a caregiver stops reading at the top.
+Home shows at most three at a time, and never more than one for a tracker, because a list that can
+grow without limit is one a caregiver stops reading at the top, and a medication given twice a day
+would otherwise spend two of the three on itself. A tracker with more than one thing wrong shows the
+one that matters most by that same order, and the most recent of those: the evening dose nobody
+recorded rather than the morning one before it, since the evening is the one someone may still
+remember. The rest are not lost. They stand in their day's timeline and in the tracker's own list.
 
 When a team keeps a roster, Home also names who is on duty for this receiver right now. It is a
 coordination signal and nothing more — it never decides who may log an entry, and a team that keeps
@@ -821,10 +825,11 @@ receiver whose trackers have every one of them been paused is in the same positi
 had any — nothing is being collected — even though the Trackers list still shows the paused ones,
 since that is where the record lives. This outranks Home's ordinary quiet state: a receiver with
 nothing tracked has nothing needing attention by definition, and saying all is well would be true
-and useless.
+and useless. The day's timeline stays, because journal notes are still written and paused trackers'
+entries still belong to the days they happened on.
 
-Home holds the receiver's name with the care team, who is on duty, whatever needs attention, a
-coming up banner, the daily timeline, and a link to all of the receiver's trackers. Pulling down
+Home holds the receiver's name with the care team, who is on duty, whatever needs attention, what
+is coming up, the daily timeline, and a link to all of the receiver's trackers. Pulling down
 refreshes the whole screen.
 
 **The active care receiver.** Who Home is about, and the trackers that belong to them.
@@ -848,12 +853,18 @@ the reading, the second to log or skip the care. A gap alert has no entry to lea
 raised by the absence of one, so it leads to the tracker that has gone quiet. An entry reached this
 way names the field that fell outside its range and the range it was expected to hold to, since a
 caregiver arriving from an alert has to see what the alarm was about before they can decide anything
-about it. The count of everything needing attention leads to the Trackers list with its filter
-already on, so the three Home has room for are never the only three a caregiver can reach.
+about it. See all leads to the Trackers list with its needs-attention filter already on, so the
+three Home has room for are never the only three a caregiver can reach.
 
-**Coming up.** What is due next.
+**Coming up.** What is due next, for each tracker.
 
-The banner is there only when something is coming. A team that logs everything ad hoc has nothing
+Coming up holds one entry per tracker, that tracker's next scheduled entry, soonest first, and Home
+shows the first three. One per tracker, because a medication given twice a day would otherwise fill
+the space with its own doses and push next Thursday's appointment out of sight. The appointment is
+the one a caregiver most needs to see coming, precisely because it does not come round every day.
+See all opens Coming up, which holds the same list in full.
+
+The section is there only when something is coming. A team that logs everything ad hoc has nothing
 ahead of them, and a line permanently reading "nothing is coming up" is furniture rather than
 information — so it goes, and Home is shorter by the height of it. A caregiver can still watch Coming
 up empty out by logging the last thing on it, and it says so where they are standing rather than
@@ -881,7 +892,10 @@ is scheduled this morning and logged this evening is the same entry and should n
 when it changes state. What it offers changes with the state rather than with where it was opened
 from: a scheduled or unrecorded entry offers Log it and Skip, a logged one offers Edit and Delete,
 and a skipped one offers both: editing it logs the care, saying it happened after all, while
-deleting the skip leaves the occurrence waiting again for whoever marked the wrong dose.
+deleting the skip leaves the occurrence waiting again for whoever marked the wrong dose. Log it
+and Skip both open Quick log on that one entry, past the picking part and with the choice already
+made, because logging an entry means filling in what its fields hold and a skip is worth a word
+about why, and Quick log is where both already happen.
 It names the schedule an entry came from when it came from one, so a caregiver can tell this
 evening's dose from a reading somebody took because they felt like it, and it marks any value that
 fell outside its range, because an alert now leads here and the screen has to answer for itself why
@@ -902,12 +916,11 @@ one of them would read as an oversight.
 Jump to day, Edit entry, Edit journal note, and both delete confirmations are sheets; Entry detail
 and Journal note are pushed. The day stepper walks a day at a time and stops at today, so the
 timeline looks back but never forward, and the calendar stops there too. A day in the future holds
-nothing but plans, which Coming up already answers and groups into this week and later; a calendar
-that opened tomorrow would be a second door onto that question, answering it differently, and the two
-would drift. A caregiver who has stepped back returns in one tap: a Today
-button sits with the date
-whenever the timeline is showing any day but today, because the way out of the past should not cost
-as many taps as the way in.
+nothing but plans, which Coming up already answers; a calendar that opened tomorrow would be a
+second door onto that question, answering it differently, and the two would drift. A caregiver who
+has stepped back returns in one tap: a Today button sits with the date whenever the timeline is
+showing any day but today, because the way out of the past should not cost as many taps as the way
+in.
 
 **The tab bar.** Logging, and leaving Home for another tab.
 
@@ -999,10 +1012,13 @@ under what is coming up rather than in the day behind it.
     - who is on duty, when the team keeps a roster
     - >
       what needs attention: at most three, ordered unrecorded care first, then
-      readings outside their range, then trackers past their gap, with a count
-      of how many there are altogether. Unrecorded care leaves it forty-eight
-      hours after its scheduled time, settled or not
-    - a coming up banner, present only when something is scheduled ahead
+      readings outside their range, then trackers past their gap, and never more
+      than one for a tracker — the one that matters most, then the most recent.
+      Unrecorded care leaves it forty-eight hours after its scheduled time,
+      settled or not
+    - >
+      coming up: each tracker's next scheduled entry, soonest first, at most
+      three, present only when something is scheduled ahead
     - >
       the daily timeline for one day — entries and journal notes together in time
       order, holding the day's unrecorded and skipped occurrences alongside what
@@ -1024,10 +1040,13 @@ under what is coming up rather than in the day behind it.
     - action: a tracker past its gap
       to: Tracker detail
       as: push
-    - action: how many need attention altogether
+    - action: See all, under needs attention
       to: Trackers, with the needs-attention filter already chosen
       as: push
-    - action: the coming up banner
+    - action: an entry in coming up
+      to: Entry detail
+      as: push
+    - action: See all, under coming up
       when: something is scheduled ahead
       to: Coming up
       as: push
@@ -1039,6 +1058,14 @@ under what is coming up rather than in the day behind it.
       as: push
     - action: the calendar
       to: Jump to day
+      as: sheet
+    - action: Log an entry
+      when: nothing was logged or expected on the day shown
+      to: Quick log
+      as: sheet
+    - action: Write a note
+      when: nothing was logged or expected on the day shown
+      to: Quick log, with a journal note already picked
       as: sheet
     - action: the ⊕ button in the tab bar
       to: Quick log
@@ -1095,15 +1122,15 @@ under what is coming up rather than in the day behind it.
   scope: the active care receiver
   contains:
     - >
-      upcoming scheduled entries in two groups, this week and later, each with
-      its tracker, its time, and the schedule it came from
+      each tracker's next scheduled entry, soonest first, with its time and the
+      schedule it came from
   exits:
     - action: an upcoming entry
       to: Entry detail
       as: push
   empty: >
     everything on it was settled while a caregiver was looking at it — it says so
-    where they are rather than dropping them back on Home. Home's banner is absent
+    where they are rather than dropping them back on Home. Home's coming up is absent
     when nothing is scheduled, so this is the only way to arrive on an empty one
 
 - screen: Jump to day
@@ -1139,12 +1166,12 @@ under what is coming up rather than in the day behind it.
   exits:
     - action: Log it
       when: the entry is scheduled or unrecorded
-      to: Entry detail, now logged
-      as: stays
+      to: Quick log, at this entry's step with Log it chosen
+      as: sheet
     - action: Skip
       when: the entry is scheduled or unrecorded
-      to: Entry detail, now skipped
-      as: stays
+      to: Quick log, at this entry's step with Skip chosen
+      as: sheet
     - action: Edit
       when: the entry is logged
       to: Edit entry
@@ -1252,7 +1279,9 @@ under what is coming up rather than in the day behind it.
     the active care receiver. One sheet that runs in three parts — what to
     record, when it happened, then a step for each thing picked — and ends on a
     result. Raised from Tracker detail it is scoped to that tracker, and skips
-    the picking part only when that tracker has nothing waiting to pick between
+    the picking part only when that tracker has nothing waiting to pick between.
+    Raised from Entry detail it holds that one entry and starts past the
+    picking part
   contains:
     - >
       what to record: the occurrences the receiver has waiting — everything
@@ -1275,8 +1304,8 @@ under what is coming up rather than in the day behind it.
       and only when the time is in the future
     - a step for each thing picked, pre-filling rather than recording when the run is planning
     - >
-      a picked occurrence's step offers Log it or Skip, so one run covers an
-      evening where two doses were given and one was held
+      a picked occurrence's step offers Log it or Skip, with a note either way,
+      so one run covers an evening where two doses were given and one was held
     - >
       a result reporting item by item, since some may save while others do not
     - Add a tracker — admins only, offered whatever else the picker holds
@@ -1295,6 +1324,12 @@ under what is coming up rather than in the day behind it.
       as: back
     - action: Cancel, raised from Tracker detail
       to: Tracker detail
+      as: back
+    - action: Done, raised from Entry detail
+      to: Entry detail, now logged or skipped
+      as: back
+    - action: Cancel, raised from Entry detail
+      to: Entry detail
       as: back
     - action: step back a part
       to: Quick log, at the earlier part, with what was entered still there
@@ -1329,6 +1364,10 @@ under what is coming up rather than in the day behind it.
 - **Emergency contacts do not surface at the moment of trouble.** Home's header now reaches them in
   one tap, but nothing brings them up alongside an alert — the point at which a caregiver is most
   likely to need to call someone, and the one moment they should not have to go looking.
+- **Only each tracker's next entry is shown ahead.** Tomorrow evening's dose, or a second
+  appointment two weeks out, appears nowhere as an upcoming entry until it is the next one. A
+  tracker's Schedules screen says when its doses repeat, but a one-off planned entry sitting behind
+  another has no place to be seen in advance.
 - **A point on a chart does not open its entry.** The timeline, needs attention, Coming up, and a
   tracker's own list all lead to Entry detail, but a reading a caregiver has picked out of an insight
   is an entry they are looking at with no way to open it. Insights is deferred, so this waits with
@@ -1381,8 +1420,8 @@ collected.
 Every filter carries its count. That is what makes the row read as a set of filters rather than a
 heading, and it is how the active list reports the other two views without showing them — a
 caregiver sees that two trackers need attention and one is paused before choosing to look at either.
-Needs attention is where Home's count leads: Home shows at most three of the trackers in trouble and
-says how many there are altogether. A paused tracker is never among them, because its thresholds
+Needs attention is where Home's See all leads: Home shows at most three of the trackers in trouble,
+one thing for each. A paused tracker is never among them, because its thresholds
 have stopped and it cannot be one of the ones in trouble. The screen opens on active no matter how
 it was left, since a list that remembers being filtered is one where a caregiver decides trackers
 have gone missing.
@@ -1907,6 +1946,12 @@ an invite code is pasted here rather than only at the door. Being invited to a s
 ordinary case for anyone who helps two families, and an app that offers an invitation only to people
 with nowhere to be tells the second family to work it out themselves.
 
+A caregiver who leaves their last care team stays on Team, which says they are on no care team and
+offers the same ways in that Join a care team does: any invitation waiting for them, an invite code
+to paste, and a team of their own. They are already standing on the screen that does this, and
+sending them elsewhere would only be a second screen saying the same thing. The next launch takes
+them to Join a care team, as it would anyone with no team.
+
 **One care team.** Who is on it, who has been asked, and what it tells you about.
 
 Creating an invitation ends on the team rather than anywhere new, because the invitation is now a row
@@ -1920,10 +1965,10 @@ their own row is offered leaving and nothing else — the roster is the team's b
 membership is yours. What the last admin is refused, they are refused here, with the reason rather
 than a greyed-out row, because a control that is simply dead teaches nothing.
 
-**What you are told about** is where this team's reminders and alerts are chosen. Settings holds the
-channels — push, email, or neither, once for the account — and this holds the subject matter, team by
-team, because how someone wants to be reached does not change from one family to the next and how
-involved they are does.
+**Team notification settings** is where this team's reminders and alerts are chosen. Settings holds
+the channels — push, email, or neither, once for the account — and this holds the subject matter,
+team by team, because how someone wants to be reached does not change from one family to the next
+and how involved they are does.
 
 **One care receiver.** Everything about the person that is not an entry.
 
@@ -1934,6 +1979,12 @@ the instructions say, who to call, and who is meant to be there. The instruction
 changed them and when right on the screen, so a caregiver reading at 2am can tell standing orders
 from something written a year ago. Emergency contacts are rows with a phone number that dials, not a
 paragraph to read a number out of. Every caregiver reads all of it; only admins change any of it.
+
+A receiver added five minutes ago has none of this yet, and neither does one whose team coordinates
+informally. Each part says so in one line (no instructions yet, no emergency contacts yet, nobody
+assigned) and offers an admin the way to add one, while a caregiver sees the line alone. A blank
+space would read as a screen that failed to load, and a team that keeps no roster should see that it
+keeps none rather than nothing at all.
 
 Coverage sits here rather than on a screen of its own. A roster is a short thing — a handful of
 assignments and the one or two rules behind them — and the caregiver who opens a receiver to find
@@ -1949,7 +2000,7 @@ and that one asks first, because it takes every assignment it made that is still
 dropping a single Thursday loses nothing but that Thursday. The Tuesdays already past stay either
 way: they say who was responsible, and this week's decision does not get to rewrite that.
 
-Care team and Care receiver are pushed screens, as is What you are told about. Add care receiver,
+Care team and Care receiver are pushed screens, as is Team notification settings. Add care receiver,
 Create a care team, Invite a caregiver, the caregiver actions, Edit care receiver, Edit care
 instructions, Emergency contacts, an assignment, a coverage schedule, the removal confirmation, and
 the leave confirmation are all sheets. Two things stay put rather than navigating: calling a contact hands off to the phone,
@@ -2000,15 +2051,15 @@ caregiver.
     - action: accept or paste a code for a care team you already belong to
       to: Team, refused because you are already a member
       as: stays
-  empty: the caregiver belongs to no care team — ???
+  empty: >
+    the caregiver belongs to no care team — Team says so, and offers any
+    invitation waiting for them, an invite code to paste, and creating a care
+    team
   open:
     - >
       whether switching care receivers discards the Home tab's pushed stack.
       `root` is the only reading that does not leave a caregiver looking at
       another receiver's trackers, but the PRD does not say so outright
-    - >
-      what Team shows to a caregiver who has just left their last care team, and
-      whether it becomes Join a care team or something of its own
 
 - screen: Create a care team
   kind: sheet
@@ -2048,7 +2099,7 @@ caregiver.
       its caregivers and the role each of them holds, readable by every
       caregiver rather than admins alone
     - pending invitations, each with its invite code to copy — admins only
-    - what you are told about
+    - team notification settings
     - leave this care team
   exits:
     - action: Invite a caregiver
@@ -2066,8 +2117,8 @@ caregiver.
     - action: your own row
       to: Leave this care team?
       as: sheet
-    - action: What you are told about
-      to: What you are told about
+    - action: Team notification settings
+      to: Team notification settings
       as: push
     - action: Leave this care team
       to: Leave this care team?
@@ -2126,7 +2177,7 @@ caregiver.
       whether the team can still see who they were, and whether they read as a
       former caregiver here as they do on their entries
 
-- screen: What you are told about
+- screen: Team notification settings
   kind: push
   scope: >
     one care team, for the signed-in caregiver. The subject matter only —
@@ -2136,7 +2187,7 @@ caregiver.
     - which alerts this team should send you
   exits:
     - action: turn a reminder or an alert on or off
-      to: What you are told about
+      to: Team notification settings
       as: stays
 
 - screen: Leave this care team?
@@ -2201,19 +2252,21 @@ caregiver.
       to: A coverage schedule
       as: sheet
   empty:
-    - no care instructions have been written — ???
-    - no emergency contacts — ???
+    - >
+      no care instructions have been written — one line saying so, with a way
+      to write them for an admin
+    - >
+      no emergency contacts — one line saying so, with a way to add one for an
+      admin
     - >
       no assignments and no coverage schedules, which is every team that
-      coordinates informally — ???
+      coordinates informally — one line saying nobody is assigned, with a way to
+      add either for an admin
   open:
     - >
       nothing shows the time nobody is covering. The screen lists the
       assignments that exist rather than the hours that have none, so no screen
       answers "is Thursday covered?" for a Thursday nobody has filled
-    - >
-      what this screen shows a team that keeps no roster at all, given coverage
-      is optional and Home should not imply otherwise
 
 - screen: Edit care receiver
   kind: sheet
@@ -2338,13 +2391,6 @@ caregiver.
 - **What a former teammate looks like on the roster is undescribed.** Entries keep the name of a
   caregiver who left, the way they keep the name of one who closed their account, but nothing says
   whether the team can still see who that was, or whether they read as a former caregiver here too.
-- **Care receiver has three empty states and describes none of them.** No instructions written yet,
-  no emergency contacts, and no roster at all are each the ordinary condition of a receiver added
-  five minutes ago — and the third is the permanent condition of every team that coordinates
-  informally, which the PRD says is many of them.
-- **Team with no care teams is undescribed.** A caregiver who leaves their last team lands on a tab
-  built entirely around the teams they belong to, and whether it becomes Join a care team or
-  something of its own decides where they go next.
 - **Whether switching care receivers resets the Home tab is not stated.** If the pushed stack
   survives, a caregiver who switches while reading one receiver's Trackers is left looking at
   another receiver's trackers under the first one's name.
@@ -2362,19 +2408,43 @@ person, and a care team is not a property of a person; it is a thing several peo
 
 **Your account and this device.** Who you are to the app, and how you get in and out of it.
 
-Change email and Change password are sheets; Notifications is a pushed screen. Changing an address
-sends a code to the new one and is not finished until that code is entered, because an address nobody
-can prove they hold is a way to lose an account rather than a way to reach someone.
+Change name, Change email and Change password are sheets; Notifications is a pushed screen. A
+caregiver's name is theirs to change, because it is what every entry and note they write is signed
+with, on screens the whole team reads. Changing an address asks for the current password first,
+because the code that follows only proves the new address belongs to someone, not that the someone
+is you — without it, whoever picks up an unlocked phone could move the account to an address they
+hold and reset the password from there. The code goes to the new address, and the change is not
+finished until it is entered, because an address nobody can prove they hold is a way to lose an
+account rather than a way to reach someone.
+
+These sheets say plainly what went wrong: a current password that is not right, a code that is
+wrong, a code that has expired. Sign in is vaguer because it must not confirm that an account exists
+to whoever is typing, but a caregiver here is already signed in on this device, and the vagueness
+would protect nothing while costing them the answer.
 
 **Face ID** is a switch here rather than a one-time offer. The sheet that appears the first time a
 caregiver reaches Home is only the first time it is asked; afterwards this is where it is turned on
 and off, so a caregiver who declined it once is not locked out of it forever.
 
 **About this app** holds the version, the terms and the privacy policy a caregiver agreed to at
-signup, and the way to reach support — the same handoff Landing offers, so a caregiver who is signed
-in and stuck does not have to sign out to find it. The terms and the policy are read on the web
-rather than in the app, because they are the same documents the App Store requires a link to, and a
-second copy would eventually disagree with the first.
+signup, and **Send feedback**: the way a caregiver reports a bug or suggests something. It is
+written in the app rather than in a mail client, because a report that already carries the app's
+version and the device it ran on can be acted on, and one that has to describe them from memory
+usually cannot.
+
+A caregiver picks what kind of thing it is (a bug, a suggestion, something else), writes it, and
+sends it. It goes with their account, so the people behind the app can write back by email, and the
+sheet ends by saying so. A switch sends it anonymously instead, and anonymous means what it says:
+nothing that identifies the caregiver goes with it or is kept with it. Not their account, not their
+name, not their address. So an anonymous report ends without promising a reply. The version and the
+device still go, because neither says who someone is, and a bug report without them is a guess.
+Nothing sent is kept in the app. Feedback is a message, not a record.
+
+The support address stays on the screen as text, for anyone who would rather write an email. It is
+the same handoff Landing offers, since before sign-in there is no account to send a form from. The
+terms and the policy are read on the web rather than in the app, because they are the same
+documents the App Store requires a link to, and a second copy would eventually disagree with the
+first.
 
 **Signing out** asks first, and says what it takes with it. Face ID switches off and the saved
 password leaves the device; the remembered email stays and prefills the next sign in. A device two
@@ -2388,7 +2458,8 @@ or neither. Push is shown as the phone has it rather than as a switch the app ow
 the system settings when it is off, so a caregiver wondering why nothing arrives is told the true
 reason. Which reminders and which alerts a caregiver wants from a particular care team is set with
 that team, not here, because involvement differs from team to team while the way someone likes to be
-reached does not.
+reached does not. Notifications links there rather than only saying so, so the answer to where is
+one tap rather than a set of directions.
 
 **Closing an account.** The way out, and what it leaves behind.
 
@@ -2426,6 +2497,9 @@ put a family in it.
     - sign out
     - close your account
   exits:
+    - action: your name
+      to: Change name
+      as: sheet
     - action: Email
       to: Change email
       as: sheet
@@ -2447,10 +2521,6 @@ put a family in it.
     - action: About this app
       to: About this app
       as: push
-  open:
-    - >
-      your name is shown but nothing changes it, though a caregiver's name is
-      what every entry they log is attributed to
 
 - screen: About this app
   kind: push
@@ -2458,10 +2528,14 @@ put a family in it.
   contains:
     - the app's version
     - the terms and the privacy policy a caregiver agreed to at signup
+    - send feedback
     - >
       contact support, with support@caretosher.com shown as text and a tap that
       hands off to the mail app
   exits:
+    - action: Send feedback
+      to: Send feedback
+      as: sheet
     - action: Terms
       to: the terms, on the web
       as: out
@@ -2472,22 +2546,70 @@ put a family in it.
       to: the mail app, addressed to support@caretosher.com
       as: out
 
-- screen: Change email
+- screen: Send feedback
   kind: sheet
-  scope: the signed-in caregiver's email address
+  scope: >
+    one message from the signed-in caregiver to the people behind the app.
+    Nothing sent is kept in the app
   contains:
-    - the new address
-    - then the code sent to it, since an address nobody can prove they hold is a
-      way to lose an account rather than a way to reach someone
+    - what kind it is — a bug, a suggestion, or something else
+    - the message
+    - >
+      send anonymously, off unless turned on. When on, nothing that identifies
+      the caregiver goes with it — not their account, their name, or their
+      address
+    - the app's version and the device, which go either way
   exits:
-    - action: Confirm
+    - action: Send
+      to: >
+        Send feedback, saying it was sent, and that any reply will come by
+        email unless it was sent anonymously
+      as: stays
+    - action: Done
+      to: About this app
+      as: back
+    - action: Cancel
+      to: About this app
+      as: back
+
+- screen: Change name
+  kind: sheet
+  scope: >
+    the signed-in caregiver's name, which every entry and journal note they write
+    is signed with
+  contains:
+    - your name
+  exits:
+    - action: Save
       to: Settings
       as: back
     - action: Cancel
       to: Settings
       as: back
-  open:
-    - a wrong or expired code, as on Confirm code and Reset password
+
+- screen: Change email
+  kind: sheet
+  scope: the signed-in caregiver's email address
+  contains:
+    - >
+      your current password, since the code that follows proves only that the
+      new address belongs to someone, not that the someone is you
+    - the new address
+    - then the code sent to it, since an address nobody can prove they hold is a
+      way to lose an account rather than a way to reach someone
+  exits:
+    - action: Send code, with a current password that is not right
+      to: Change email, saying the password is not right
+      as: stays
+    - action: Confirm
+      to: Settings
+      as: back
+    - action: Confirm, with a code that is wrong or has expired
+      to: Change email, saying which, with a way to send a new code
+      as: stays
+    - action: Cancel
+      to: Settings
+      as: back
 
 - screen: Change password
   kind: sheet
@@ -2502,11 +2624,14 @@ put a family in it.
         Settings, with every other session ended and stored credentials cleared,
         while this device stays signed in
       as: back
+    - action: Save, with a current password that is not right
+      to: Change password, saying the current password is not right
+      as: stays
     - action: Cancel
       to: Settings
       as: back
   open:
-    - what a wrong current password shows, and whether attempts are limited
+    - whether attempts at the current password are limited
 
 - screen: Notifications
   kind: push
@@ -2530,13 +2655,9 @@ put a family in it.
     - action: turn email on or off
       to: Notifications
       as: stays
-    - action: what you are told about
+    - action: team notification settings
       to: Team
-      as: ???
-  open:
-    - >
-      whether the pointer to per-team subject matter is a link a caregiver can
-      follow, or only a sentence explaining where to go
+      as: tab
 
 - screen: Sign out?
   kind: sheet
@@ -2597,15 +2718,13 @@ put a family in it.
 
 #### Gaps in this flow
 
-- **A caregiver cannot change their name.** Settings shows it beside the email and offers no way to
-  edit it, though a caregiver's name is what every entry they log and every journal note they write
-  is attributed to, on screens the whole team reads.
-- **The code and password failures are undescribed here too.** Change email takes a six-digit code
-  and Change password takes the current password, and neither says what a wrong one shows. This is
-  the same hole as Confirm code and Reset password, and it should be answered once for all four.
-- **Whether Notifications links to a care team is unsettled.** The screen has to explain that
-  subject matter is chosen per team; whether it can also take the caregiver there decides how many
-  taps that costs.
+- **Feedback can carry care information out of the app.** A caregiver describing a bug may paste a
+  reading, a dose, or a care receiver's name into the message, and it leaves the app for wherever
+  feedback is read. Nothing says whether the sheet warns against this, or what the privacy policy
+  promises about it.
+- **Whether attempts at the current password are limited is unstated.** Change email and Change
+  password both ask for it and both say plainly when it is wrong, which is right for someone already
+  signed in — but nothing says how many tries a borrowed phone gets before the sheets stop asking.
 
 ### Insights
 

@@ -65,9 +65,9 @@ awaiting approval · `approved` merged to `main`.
 | ---------- | -------------- | -------- | --------- | ----- |
 | Getting in | approved       | approved | —         | —     |
 | Trackers   | approved       | approved | —         | —     |
-| Home       | draft          | —        | —         | —     |
-| Team       | draft          | —        | —         | —     |
-| Settings   | draft          | —        | —         | —     |
+| Home       | approved       | approved | —         | —     |
+| Team       | approved       | approved | —         | —     |
+| Settings   | approved       | approved | —         | —     |
 | Insights   | deferred       | deferred | deferred  | —     |
 
 **Data model pass:** — (gates every Endpoints cell above)
