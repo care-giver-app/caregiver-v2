@@ -54,6 +54,16 @@ zone changes — they move, or spend the winter somewhere warmer — their routi
 wall-clock times and shift with them, because an 8:00am dose is a dose taken after waking up, not a
 dose taken at a particular instant.
 
+A care receiver can be **archived** when the team stops caring for them — they moved into a
+facility, or they died. Archiving stops the future without touching the past, as pausing does for a
+tracker: the receiver leaves Home, the receiver switcher and Quick log, their schedules stop
+generating, and nothing about them reminds or alerts anyone. Everything recorded about them stays,
+readable by the team from Team but no longer changed, and an admin can restore them, returning
+everything as it was. The app offers no way to delete a receiver. A team that has just lost someone
+should not be one tap from erasing the record of the last year of that person's care, and a delete
+would take every other caregiver's entries and notes with it. Erasing a receiver entirely is
+something a family asks support for, which removes everything recorded about them.
+
 **Care team** — A shared space containing one or more care receivers and the caregivers who look
 after them. Every care receiver, tracker, and entry belongs to exactly one care team.
 
@@ -63,6 +73,13 @@ team always has at least one admin, and nothing anyone does may leave it without
 admin cannot demote themselves, leave the team, or close their account until someone else has been
 promoted. A team with no admin could never invite a caregiver, add a receiver, or make a tracker
 again, and no path inside the app leads back out of that.
+
+A care team ends when its last caregiver closes it. Leaving is refused to the last admin, but the
+last caregiver on a team is by definition its last admin, and refusing them a way out would leave a
+team nobody can join, holding a receiver's whole record with no way to reach it. So the last
+caregiver is offered **Close this care team** in place of Leave: the team is archived, nobody can
+reach it any longer, and everything recorded in it is kept. As with a receiver, erasing a team
+entirely is something support does on request, never a button in the app.
 
 **Admin** — A role held by one or more caregivers on a care team. Admins invite and remove
 caregivers, promote other caregivers to admin and demote them again, and manage the team's care
@@ -179,6 +196,13 @@ stay on every entry already carrying them and still plot in insights, where the 
 day it was paused. This is the same thing one level down and for the same reason: a team that stopped
 taking a pulse alongside the blood pressure has not stopped having taken it. A paused field resumes
 where it left off. A field is never deleted, because deleting one would take real readings with it.
+
+A choice field takes one answer or several, decided when the field is made — how much of a meal went
+down has one answer, the symptoms someone had this morning may have three. Its options can be added,
+renamed, and **retired**, but never deleted: a retired option leaves the logging form the way a
+paused field does, while every entry that chose it still says so, and a renamed option reads under
+its new name everywhere, because it is still the same option. A team that misspelled "Okay" should
+be able to fix it without last month's entries disagreeing with this month's.
 
 **Threshold** — An optional expectation on a tracker, in one of two forms. A **range** on a numeric
 field — an expected low and high, such as 90/60 to 140/90 for blood pressure — raises an alert when a
@@ -804,10 +828,12 @@ no assignments simply sees nothing there, because coverage is optional and Home 
 otherwise.
 
 Home is always about somebody. The app chooses the active care receiver rather than asking — the
-last one a caregiver looked at, or the first alphabetically across their teams if there is no last
-one — because most teams look after one person, and asking that caregiver to pick them out of a list
-of one every time they arrive is a question with a single answer. Choosing stays theirs to make on
-Team, whenever there is more than one to choose between.
+last one a caregiver looked at on this device, or the first alphabetically across their teams if
+there is no last one — because most teams look after one person, and asking that caregiver to pick
+them out of a list of one every time they arrive is a question with a single answer. Choosing stays
+theirs to make on Team, whenever there is more than one to choose between. An archived receiver is
+never chosen: if the one Home was about is archived, the app chooses again by the same rule, and
+archived receivers do not count when Home asks whether a team has anyone to care for.
 
 The one time Home has nobody to be about is a care team with no care receivers, which is every team
 in the minutes after it is created. Home says so, and says what happens next — which differs by who
@@ -1498,9 +1524,9 @@ Adding a field and writing a schedule are each a sheet of their own over the edi
 each is one thing with its own handful of decisions and neither survives being squeezed into a row.
 A field is a name, a type — a number, free text, a yes/no, a choice from a fixed list, a date and
 time — the unit of a number or the options of a choice, whether it is required, and the range a
-numeric value is expected to stay inside. On a tracker that exists it offers pause rather than
-delete, and says which of the two it is doing, because its values sit on every entry already
-carrying them. A schedule is a recurrence, the values it pre-fills, whether the team should be told
+numeric value is expected to stay inside. A field on a tracker that exists is paused rather than
+deleted, from its switch on Edit tracker, because its values sit on every entry already carrying
+them. A schedule is a recurrence, the values it pre-fills, whether the team should be told
 if the care goes unrecorded, a label, and an end date if it has one; left unlabelled it takes a name
 derived from itself, so three schedules on one tracker read as a regimen rather than as three copies
 of the tracker's name. Removing a schedule sits where the schedule does and asks before it acts,
@@ -1775,6 +1801,9 @@ reading questions.
       its type, one of five — a number, free text, a yes/no, a choice from a fixed
       list, or a date and time — with the unit of a number, typed in, or the
       options of a choice
+    - >
+      on a choice only: whether it takes one answer or several, and its options,
+      which can be added, renamed and retired but never deleted
     - whether it is required
     - >
       on a number only: whether it alerts at all, and when it does, the range its
@@ -2018,7 +2047,7 @@ caregiver.
     receiver is switched on
   contains:
     - each care team the caregiver belongs to, and their role in it
-    - each team's care receivers
+    - each team's care receivers, archived ones aside
     - invitations waiting for your email, each with its team and who invited you
     - paste an invite code
     - create a care team
@@ -2100,7 +2129,10 @@ caregiver.
       caregiver rather than admins alone
     - pending invitations, each with its invite code to copy — admins only
     - team notification settings
-    - leave this care team
+    - the team's archived care receivers, in a group of their own
+    - >
+      leave this care team — or, for the last caregiver on it, close this care
+      team
   exits:
     - action: Invite a caregiver
       admin: true
@@ -2126,6 +2158,13 @@ caregiver.
     - action: Leave this care team, when you are the team's only admin
       to: Care team, refused with the reason rather than a greyed-out row
       as: stays
+    - action: an archived care receiver
+      to: Care receiver
+      as: push
+    - action: Close this care team
+      when: you are the last caregiver on it
+      to: Close this care team?
+      as: sheet
   open:
     - >
       a pending invitation can be copied but not withdrawn or amended, and the
@@ -2183,8 +2222,9 @@ caregiver.
     one care team, for the signed-in caregiver. The subject matter only —
     Settings holds the channels, once for the account
   contains:
-    - which reminders this team should send you
-    - which alerts this team should send you
+    - >
+      which kinds of reminder and alert this team should send you — chosen by
+      kind for the whole team, not tracker by tracker
   exits:
     - action: turn a reminder or an alert on or off
       to: Team notification settings
@@ -2204,6 +2244,24 @@ caregiver.
       to: Care team
       as: back
     - action: Leave
+      to: Team
+      as: back
+
+- screen: Close this care team?
+  kind: sheet
+  scope: one care team, closed by the last caregiver on it
+  contains:
+    - >
+      what goes — the team, which nobody can reach any longer, its receivers
+      with it
+    - >
+      what stays — everything recorded in it, kept rather than erased, which
+      only support can do on request
+  exits:
+    - action: Cancel
+      to: Care team
+      as: back
+    - action: Close team
       to: Team
       as: back
 
@@ -2227,10 +2285,23 @@ caregiver.
     - who is on duty
     - the assignments ahead
     - the coverage schedules behind them, in a separate labelled group
+    - >
+      when archived, all of it unchanged but read-only, with a way for an admin
+      to restore them
   exits:
     - action: call an emergency contact
       to: the phone
       as: out
+    - action: Archive
+      admin: true
+      when: the receiver is not archived
+      to: Archive this care receiver?
+      as: sheet
+    - action: Restore
+      admin: true
+      when: the receiver is archived
+      to: Care receiver, no longer archived
+      as: stays
     - action: Edit
       admin: true
       to: Edit care receiver
@@ -2267,6 +2338,24 @@ caregiver.
       nothing shows the time nobody is covering. The screen lists the
       assignments that exist rather than the hours that have none, so no screen
       answers "is Thursday covered?" for a Thursday nobody has filled
+
+- screen: Archive this care receiver?
+  kind: sheet
+  scope: one care receiver; admins only
+  contains:
+    - >
+      what stops — Home, the switcher and Quick log no longer show them, their
+      schedules stop, and nothing about them reminds or alerts anyone
+    - >
+      what stays — everything recorded about them, readable from Team, and the
+      way back, since an admin can restore them
+  exits:
+    - action: Cancel
+      to: Care receiver
+      as: back
+    - action: Archive
+      to: Care receiver, now archived
+      as: back
 
 - screen: Edit care receiver
   kind: sheet
@@ -2374,11 +2463,6 @@ caregiver.
 
 #### Gaps in this flow
 
-- **Nothing describes a care team ending.** A caregiver can leave, and the last admin is stopped from
-  leaving — but the last _caregiver_ of a team is by definition its last admin, and refusing them
-  leaves a team nobody can join, empty of people and holding a receiver's whole record with no way to
-  reach it. Whether a team can be deleted, what becomes of its receivers and their entries, and
-  whether anyone but its members should be able to do it are all unanswered.
 - **A pending invitation can be copied but not withdrawn or changed.** An admin who invited the
   wrong address has no way to cancel or amend it, and the two-week expiry is the only thing that
   ends it. This is also what leaves a spent invitation on screen: two invitations sent to one
