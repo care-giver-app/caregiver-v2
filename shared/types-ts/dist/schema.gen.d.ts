@@ -357,6 +357,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    '/v1/me': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signed-in caregiver and the care teams they belong to
+         * @description The sign-in resolution. An empty `teams` sends the caregiver to Join a care team; anything else sends them to Home. Archived teams are not listed. The caller's record is created on first call from the verified ID token.
+         */
+        get: operations['getMyAccount'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/teams': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a care team; the caller becomes its first admin */
+        post: operations['createTeam'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/invitations/mine': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pending invitations addressed to the caller's verified email
+         * @description Includes invitations to teams the caller already belongs to; redeeming one of those is refused with 409. Expired, accepted, and revoked invitations are not listed.
+         */
+        get: operations['listInvitationsForMe'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/invitations/redeem': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join a care team as a caregiver, by invite code
+         * @description Serves both accepting an invitation found under /v1/invitations/mine and pasting a code. The code travels in the body, never the path, so it does not land in access logs. The caller's email is not checked against the invitation (Hide My Email); membership is.
+         */
+        post: operations['redeemInvitation'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -561,6 +638,37 @@ export interface components {
             items: components['schemas']['ScheduledItem'][];
             next_cursor?: string;
         };
+        Caregiver: {
+            /** @description Cognito sub */
+            user_id: string;
+            /** Format: email */
+            email: string;
+            name: string;
+        };
+        TeamMembership: {
+            team_id: string;
+            name: string;
+            role: components['schemas']['Role'];
+        };
+        MyAccount: {
+            caregiver: components['schemas']['Caregiver'];
+            teams: components['schemas']['TeamMembership'][];
+        };
+        CreateTeamRequest: {
+            name: string;
+        };
+        InvitationForMe: {
+            code: string;
+            team_id: string;
+            team_name: string;
+            /** @description The inviting admin's name, or "a former caregiver" */
+            invited_by_name: string;
+            /** Format: date-time */
+            expires_at: string;
+        };
+        RedeemInvitationRequest: {
+            code: string;
+        };
         Error: {
             message: string;
         };
@@ -613,6 +721,24 @@ export interface components {
         };
         /** @description Invitation expired or already used */
         Gone: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description The caller already belongs to this care team */
+        AlreadyMember: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description The code is unknown, expired, already used, or revoked. One answer for all four, per the PRD — none of them changes what the caregiver does next. */
+        InvitationNotValid: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1431,6 +1557,102 @@ export interface operations {
                 };
             };
             401: components['responses']['Unauthorized'];
+        };
+    };
+    getMyAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['MyAccount'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+        };
+    };
+    createTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['CreateTeamRequest'];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TeamMembership'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+        };
+    };
+    listInvitationsForMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['InvitationForMe'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+        };
+    };
+    redeemInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['RedeemInvitationRequest'];
+            };
+        };
+        responses: {
+            /** @description Joined */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TeamMembership'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            409: components['responses']['AlreadyMember'];
+            410: components['responses']['InvitationNotValid'];
         };
     };
 }
