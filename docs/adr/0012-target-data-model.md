@@ -92,10 +92,13 @@ push is delivered; one row per installed app. New.
 `created_by`, `created_at`. Replaces `care-group`. "Close this care team" archives it.
 
 **Membership** (`membership`, PK `user_id`, SK `team_id`; GSI `team-index`) — `role`
-(`admin|caregiver`), `joined_at`, and the team's notification kinds for this caregiver:
-`notify_reminders`, `notify_range_alerts`, `notify_gap_alerts`, `notify_unrecorded_alerts` (all
-default on). Leaving or being removed deletes the row; the record stays because it points at the
-user, not the membership. "At least one admin" is enforced by the API in a transaction.
+(`admin|caregiver`), `joined_at`, and which kinds of notification this caregiver wants from this
+team: `notify_reminders`, `notify_range_alerts`, `notify_gap_alerts`, `notify_unrecorded_alerts`
+(all default on). A membership is one caregiver on one team, so the choices are that caregiver's
+own — nobody else on the team is affected — and they cover every receiver and tracker in the team,
+matching the PRD's "by kind for the whole team, not tracker by tracker". Leaving or being removed
+deletes the row; the record stays because it points at the user, not the membership. "At least one
+admin" is enforced by the API in a transaction.
 
 **Invitation** (`invitation`, PK `code`; GSIs `team-index`, `email-index`; TTL `expires_at`) —
 `email`, `status` (`pending|accepted|revoked`), `invited_by`, `created_at`, `expires_at` (14 days).
