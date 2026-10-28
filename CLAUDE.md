@@ -70,7 +70,7 @@ awaiting approval · `approved` merged to `main`.
 | Settings   | approved       | approved | —         | —     |
 | Insights   | deferred       | deferred | deferred  | —     |
 
-**Data model pass:** — (gates every Endpoints cell above)
+**Data model pass:** approved — `docs/adr/0012-target-data-model.md` (gates every Endpoints cell above)
 
 ## Layout & modules
 
