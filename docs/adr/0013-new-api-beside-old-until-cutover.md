@@ -25,6 +25,11 @@ without touching what the installed app depends on, for the months until cutover
 receives the new code and the new, empty tables as each area lands, but nothing calls them until the
 flag flips. A long-lived branch would drift from `main` for months and redefine "approved".
 
+The new tables are named `caregiver-{stage}-v1-{entity}` (for example `caregiver-prod-v1-entry`).
+ADR 0012 gave several of them the same names as tables that already exist — `user`, `membership`,
+`invitation`, `receiver`, `tracker` — and both sets must exist side by side until cutover. The `v1-`
+prefix matches the API's, satisfies ADR 0011, and stays after the old tables are deleted.
+
 Cutover is then: run the ADR 0012 migration, flip the flag, ship the iOS build, and in a later
 release delete the unprefixed paths and the old tables. `/v1` stays as the API's version prefix.
 
