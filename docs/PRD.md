@@ -478,23 +478,28 @@ created but never confirmed goes to Confirm code with a fresh code, but only aft
 has been supplied — so a caregiver learns their account exists by having already proved it is theirs.
 Revealing it on the address alone would hand back exactly what the identical message was protecting.
 
-After five failed attempts the account is locked for fifteen minutes. The lock is on the account
-rather than the device, because a device lock is escaped by reinstalling and punishes a family
-sharing one iPad. The screen says that the account is locked and when it will clear, rather than
-repeating that the credentials are wrong — a caregiver told the same thing six times learns nothing
-about why the sixth time was different. Forgot password stays available throughout, because it is a
-way in that does not depend on remembering anything. Nothing about the lock needs anyone's help: it
-clears on its own, because an account a family cannot get back into without an intervention is an
-account they cannot get back into.
+After five failed attempts the account is locked — briefly at first, and for longer with each
+failure after that, up to about fifteen minutes. The lock is on the account rather than the device,
+because a device lock is escaped by reinstalling and punishes a family sharing one iPad. The screen
+says that the account is locked and to try again in a few minutes, rather than repeating that the
+credentials are wrong — a caregiver told the same thing six times learns nothing about why the sixth
+time was different. It does not name the minute the lock clears, because how long it lasts depends
+on the attempts before it, and a time that turned out wrong would teach a caregiver to stop
+believing the screen. Forgot password stays available throughout, because it is a way in that does
+not depend on remembering anything. Nothing about the lock needs anyone's help: it clears on its
+own, because an account a family cannot get back into without an intervention is an account they
+cannot get back into.
 
-A code the app emails — to confirm an account, or to reset a password — lives ten minutes, and the
-lock covers everything that issues or checks one. A locked-out caregiver cannot resend their way
-around it, and Sign up cannot be used to mint a fresh code for an account that is locked, since a
-lock that only guarded the screen it was tripped on would leave Sign up as a way to ask for another
-code. Because the code dies before the lock lifts, five guesses is all any code ever gets. There is
-a sixty-second wait between resends, so a caregiver who presses it twice does not spend two of those
-guesses on a code that has already been replaced — long enough that a double tap costs nothing, and
-short enough that someone whose first email went to spam is not left waiting on the second.
+A code the app emails lives a day when it confirms an account, and an hour when it resets a
+password. Confirming is the step a new caregiver is likeliest to walk away from — the email lands
+while they are making dinner — and a code still good the next morning finishes a signup rather than
+restarting it. A reset is asked for by someone already stuck at the door, and an hour is long enough
+to find the email and short enough that a reset nobody finished does not stay usable. Asking for
+codes and entering them are limited on their own, to a handful of tries an hour, so neither Resend
+nor Sign up becomes a way to guess at a code without end. There is a sixty-second wait between
+resends, so a caregiver who presses it twice does not replace their first code before it arrives —
+long enough that a double tap costs nothing, and short enough that someone whose first email went
+to spam is not left waiting on the second.
 
 **Reset password is the way back in, whatever went wrong.** It answers every address identically —
 that if an account exists, a code is on its way — because a screen that said otherwise would let
@@ -608,7 +613,8 @@ sign out, which is a caregiver saying they want out.
       as: sheet
     - action: Sign in
       when: five attempts have failed
-      to: Sign in, locked for fifteen minutes, saying so and saying when it clears
+      to: >
+        Sign in, locked for a few minutes, saying so and to try again shortly
       as: stays
     - action: Forgot password?
       to: Reset password

@@ -93,16 +93,16 @@ func (e HealthStatus) Valid() bool {
 
 // Defines values for Role.
 const (
-	Admin     Role = "admin"
-	Caregiver Role = "caregiver"
+	RoleAdmin     Role = "admin"
+	RoleCaregiver Role = "caregiver"
 )
 
 // Valid indicates whether the value is a known member of the Role enum.
 func (e Role) Valid() bool {
 	switch e {
-	case Admin:
+	case RoleAdmin:
 		return true
-	case Caregiver:
+	case RoleCaregiver:
 		return true
 	default:
 		return false
@@ -154,6 +154,15 @@ type CareGroupMembership struct {
 	Role        Role   `json:"role"`
 }
 
+// Caregiver defines model for Caregiver.
+type Caregiver struct {
+	Email openapi_types.Email `json:"email"`
+	Name  string              `json:"name"`
+
+	// UserId Cognito sub
+	UserId string `json:"user_id"`
+}
+
 // CreateCareGroupRequest defines model for CreateCareGroupRequest.
 type CreateCareGroupRequest struct {
 	Name string `json:"name"`
@@ -169,6 +178,11 @@ type CreateInvitationRequest struct {
 type CreateReceiverRequest struct {
 	DateOfBirth *string `json:"date_of_birth,omitempty"`
 	Name        string  `json:"name"`
+}
+
+// CreateTeamRequest defines model for CreateTeamRequest.
+type CreateTeamRequest struct {
+	Name string `json:"name"`
 }
 
 // Error defines model for Error.
@@ -238,6 +252,17 @@ type Invitation struct {
 	Token     string              `json:"token"`
 }
 
+// InvitationForMe defines model for InvitationForMe.
+type InvitationForMe struct {
+	Code      string    `json:"code"`
+	ExpiresAt time.Time `json:"expires_at"`
+
+	// InvitedByName The inviting admin's name, or "a former caregiver"
+	InvitedByName string `json:"invited_by_name"`
+	TeamId        string `json:"team_id"`
+	TeamName      string `json:"team_name"`
+}
+
 // Me defines model for Me.
 type Me struct {
 	Memberships []MembershipView `json:"memberships"`
@@ -258,6 +283,12 @@ type MembershipView struct {
 	Role        Role   `json:"role"`
 }
 
+// MyAccount defines model for MyAccount.
+type MyAccount struct {
+	Caregiver Caregiver        `json:"caregiver"`
+	Teams     []TeamMembership `json:"teams"`
+}
+
 // PendingInvitation defines model for PendingInvitation.
 type PendingInvitation struct {
 	CareGroupId   string `json:"care_group_id"`
@@ -276,6 +307,11 @@ type Receiver struct {
 	DateOfBirth *string   `json:"date_of_birth,omitempty"`
 	Name        string    `json:"name"`
 	ReceiverId  string    `json:"receiver_id"`
+}
+
+// RedeemInvitationRequest defines model for RedeemInvitationRequest.
+type RedeemInvitationRequest struct {
+	Code string `json:"code"`
 }
 
 // Role defines model for Role.
@@ -305,6 +341,13 @@ type ScheduledItemWrite struct {
 	Note         *string                 `json:"note,omitempty"`
 	ScheduledFor time.Time               `json:"scheduled_for"`
 	Values       *map[string]interface{} `json:"values,omitempty"`
+}
+
+// TeamMembership defines model for TeamMembership.
+type TeamMembership struct {
+	Name   string `json:"name"`
+	Role   Role   `json:"role"`
+	TeamId string `json:"team_id"`
 }
 
 // Threshold defines model for Threshold.
@@ -364,6 +407,9 @@ type User struct {
 	UserId    string              `json:"user_id"`
 }
 
+// AlreadyMember defines model for AlreadyMember.
+type AlreadyMember = Error
+
 // BadRequest defines model for BadRequest.
 type BadRequest = Error
 
@@ -375,6 +421,9 @@ type Forbidden = Error
 
 // Gone defines model for Gone.
 type Gone = Error
+
+// InvitationNotValid defines model for InvitationNotValid.
+type InvitationNotValid = Error
 
 // NotFound defines model for NotFound.
 type NotFound = Error
@@ -443,6 +492,12 @@ type UpdateEventJSONRequestBody = EventWrite
 
 // CreateScheduledItemJSONRequestBody defines body for CreateScheduledItem for application/json ContentType.
 type CreateScheduledItemJSONRequestBody = ScheduledItemWrite
+
+// RedeemInvitationJSONRequestBody defines body for RedeemInvitation for application/json ContentType.
+type RedeemInvitationJSONRequestBody = RedeemInvitationRequest
+
+// CreateTeamJSONRequestBody defines body for CreateTeam for application/json ContentType.
+type CreateTeamJSONRequestBody = CreateTeamRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -539,6 +594,18 @@ type ServerInterface interface {
 	// Add a scheduled item to a scheduled tracker
 	// (POST /trackers/{trackerId}/scheduled-items)
 	CreateScheduledItem(w http.ResponseWriter, r *http.Request, trackerId string)
+	// Pending invitations addressed to the caller's verified email
+	// (GET /v1/invitations/mine)
+	ListInvitationsForMe(w http.ResponseWriter, r *http.Request)
+	// Join a care team as a caregiver, by invite code
+	// (POST /v1/invitations/redeem)
+	RedeemInvitation(w http.ResponseWriter, r *http.Request)
+	// The signed-in caregiver and the care teams they belong to
+	// (GET /v1/me)
+	GetMyAccount(w http.ResponseWriter, r *http.Request)
+	// Create a care team; the caller becomes its first admin
+	// (POST /v1/teams)
+	CreateTeam(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1672,6 +1739,86 @@ func (siw *ServerInterfaceWrapper) CreateScheduledItem(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// ListInvitationsForMe operation middleware
+func (siw *ServerInterfaceWrapper) ListInvitationsForMe(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInvitationsForMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RedeemInvitation operation middleware
+func (siw *ServerInterfaceWrapper) RedeemInvitation(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RedeemInvitation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMyAccount operation middleware
+func (siw *ServerInterfaceWrapper) GetMyAccount(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMyAccount(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTeam operation middleware
+func (siw *ServerInterfaceWrapper) CreateTeam(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTeam(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -1823,9 +1970,15 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/trackers/{trackerId}/events/{eventId}", wrapper.UpdateEvent)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/trackers/{trackerId}/scheduled-items", wrapper.ListScheduledItems)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/trackers/{trackerId}/scheduled-items", wrapper.CreateScheduledItem)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/invitations/mine", wrapper.ListInvitationsForMe)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/invitations/redeem", wrapper.RedeemInvitation)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMyAccount)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/teams", wrapper.CreateTeam)
 
 	return m
 }
+
+type AlreadyMemberJSONResponse Error
 
 type BadRequestJSONResponse Error
 
@@ -1834,6 +1987,8 @@ type ConflictJSONResponse Error
 type ForbiddenJSONResponse Error
 
 type GoneJSONResponse Error
+
+type InvitationNotValidJSONResponse Error
 
 type NotFoundJSONResponse Error
 
@@ -3706,6 +3861,204 @@ func (response CreateScheduledItem404JSONResponse) VisitCreateScheduledItemRespo
 	return err
 }
 
+type ListInvitationsForMeRequestObject struct {
+}
+
+type ListInvitationsForMeResponseObject interface {
+	VisitListInvitationsForMeResponse(w http.ResponseWriter) error
+}
+
+type ListInvitationsForMe200JSONResponse []InvitationForMe
+
+func (response ListInvitationsForMe200JSONResponse) VisitListInvitationsForMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInvitationsForMe401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListInvitationsForMe401JSONResponse) VisitListInvitationsForMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RedeemInvitationRequestObject struct {
+	Body *RedeemInvitationJSONRequestBody
+}
+
+type RedeemInvitationResponseObject interface {
+	VisitRedeemInvitationResponse(w http.ResponseWriter) error
+}
+
+type RedeemInvitation200JSONResponse TeamMembership
+
+func (response RedeemInvitation200JSONResponse) VisitRedeemInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RedeemInvitation400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response RedeemInvitation400JSONResponse) VisitRedeemInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RedeemInvitation401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response RedeemInvitation401JSONResponse) VisitRedeemInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RedeemInvitation409JSONResponse struct{ AlreadyMemberJSONResponse }
+
+func (response RedeemInvitation409JSONResponse) VisitRedeemInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RedeemInvitation410JSONResponse struct{ InvitationNotValidJSONResponse }
+
+func (response RedeemInvitation410JSONResponse) VisitRedeemInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(410)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMyAccountRequestObject struct {
+}
+
+type GetMyAccountResponseObject interface {
+	VisitGetMyAccountResponse(w http.ResponseWriter) error
+}
+
+type GetMyAccount200JSONResponse MyAccount
+
+func (response GetMyAccount200JSONResponse) VisitGetMyAccountResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMyAccount401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetMyAccount401JSONResponse) VisitGetMyAccountResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTeamRequestObject struct {
+	Body *CreateTeamJSONRequestBody
+}
+
+type CreateTeamResponseObject interface {
+	VisitCreateTeamResponse(w http.ResponseWriter) error
+}
+
+type CreateTeam201JSONResponse TeamMembership
+
+func (response CreateTeam201JSONResponse) VisitCreateTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTeam400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateTeam400JSONResponse) VisitCreateTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTeam401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response CreateTeam401JSONResponse) VisitCreateTeamResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Create a care group; caller becomes Admin
@@ -3801,6 +4154,18 @@ type StrictServerInterface interface {
 	// Add a scheduled item to a scheduled tracker
 	// (POST /trackers/{trackerId}/scheduled-items)
 	CreateScheduledItem(ctx context.Context, request CreateScheduledItemRequestObject) (CreateScheduledItemResponseObject, error)
+	// Pending invitations addressed to the caller's verified email
+	// (GET /v1/invitations/mine)
+	ListInvitationsForMe(ctx context.Context, request ListInvitationsForMeRequestObject) (ListInvitationsForMeResponseObject, error)
+	// Join a care team as a caregiver, by invite code
+	// (POST /v1/invitations/redeem)
+	RedeemInvitation(ctx context.Context, request RedeemInvitationRequestObject) (RedeemInvitationResponseObject, error)
+	// The signed-in caregiver and the care teams they belong to
+	// (GET /v1/me)
+	GetMyAccount(ctx context.Context, request GetMyAccountRequestObject) (GetMyAccountResponseObject, error)
+	// Create a care team; the caller becomes its first admin
+	// (POST /v1/teams)
+	CreateTeam(ctx context.Context, request CreateTeamRequestObject) (CreateTeamResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -4703,59 +5068,182 @@ func (sh *strictHandler) CreateScheduledItem(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// ListInvitationsForMe operation middleware
+func (sh *strictHandler) ListInvitationsForMe(w http.ResponseWriter, r *http.Request) {
+	var request ListInvitationsForMeRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListInvitationsForMe(ctx, request.(ListInvitationsForMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListInvitationsForMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListInvitationsForMeResponseObject); ok {
+		if err := validResponse.VisitListInvitationsForMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RedeemInvitation operation middleware
+func (sh *strictHandler) RedeemInvitation(w http.ResponseWriter, r *http.Request) {
+	var request RedeemInvitationRequestObject
+
+	var body RedeemInvitationJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RedeemInvitation(ctx, request.(RedeemInvitationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RedeemInvitation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RedeemInvitationResponseObject); ok {
+		if err := validResponse.VisitRedeemInvitationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMyAccount operation middleware
+func (sh *strictHandler) GetMyAccount(w http.ResponseWriter, r *http.Request) {
+	var request GetMyAccountRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMyAccount(ctx, request.(GetMyAccountRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMyAccount")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMyAccountResponseObject); ok {
+		if err := validResponse.VisitGetMyAccountResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTeam operation middleware
+func (sh *strictHandler) CreateTeam(w http.ResponseWriter, r *http.Request) {
+	var request CreateTeamRequestObject
+
+	var body CreateTeamJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTeam(ctx, request.(CreateTeamRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTeam")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTeamResponseObject); ok {
+		if err := validResponse.VisitCreateTeamResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"2W87ngQs9pSXsnsmnIXOrla37+v/BQAA//8=",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

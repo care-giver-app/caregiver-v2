@@ -543,6 +543,83 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/TrackerTemplate' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  # ---------------------------------------------------------------------------
+  # /v1 — the target model (ADR 0012), served beside the paths above until the
+  # cutover removes them (ADR 0013). Reads and writes only the new tables.
+  # ---------------------------------------------------------------------------
+  /v1/me:
+    get:
+      operationId: getMyAccount
+      summary: The signed-in caregiver and the care teams they belong to
+      description: >
+        The sign-in resolution. An empty `teams` sends the caregiver to Join a care
+        team; anything else sends them to Home. Archived teams are not listed. The
+        caller's record is created on first call from the verified ID token.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyAccount' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/teams:
+    post:
+      operationId: createTeam
+      summary: Create a care team; the caller becomes its first admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTeamRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamMembership' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/invitations/mine:
+    get:
+      operationId: listInvitationsForMe
+      summary: Pending invitations addressed to the caller's verified email
+      description: >
+        Includes invitations to teams the caller already belongs to; redeeming one
+        of those is refused with 409. Expired, accepted, and revoked invitations
+        are not listed.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/InvitationForMe' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/invitations/redeem:
+    post:
+      operationId: redeemInvitation
+      summary: Join a care team as a caregiver, by invite code
+      description: >
+        Serves both accepting an invitation found under /v1/invitations/mine and
+        pasting a code. The code travels in the body, never the path, so it does
+        not land in access logs. The caller's email is not checked against the
+        invitation (Hide My Email); membership is.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RedeemInvitationRequest' }
+      responses:
+        '200':
+          description: Joined
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamMembership' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/AlreadyMember' }
+        '410': { $ref: '#/components/responses/InvitationNotValid' }
 components:
   securitySchemes:
     bearerAuth:
@@ -836,6 +913,50 @@ components:
           type: array
           items: { $ref: '#/components/schemas/ScheduledItem' }
         next_cursor: { type: string }
+    # --- /v1 ---------------------------------------------------------------
+    Caregiver:
+      type: object
+      required: [user_id, email, name]
+      properties:
+        user_id: { type: string, description: Cognito sub }
+        email: { type: string, format: email }
+        name: { type: string }
+    TeamMembership:
+      type: object
+      required: [team_id, name, role]
+      properties:
+        team_id: { type: string }
+        name: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+    MyAccount:
+      type: object
+      required: [caregiver, teams]
+      properties:
+        caregiver: { $ref: '#/components/schemas/Caregiver' }
+        teams:
+          type: array
+          items: { $ref: '#/components/schemas/TeamMembership' }
+    CreateTeamRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+    InvitationForMe:
+      type: object
+      required: [code, team_id, team_name, invited_by_name, expires_at]
+      properties:
+        code: { type: string }
+        team_id: { type: string }
+        team_name: { type: string }
+        invited_by_name:
+          type: string
+          description: The inviting admin's name, or "a former caregiver"
+        expires_at: { type: string, format: date-time }
+    RedeemInvitationRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, minLength: 1 }
     Error:
       type: object
       required: [message]
@@ -874,6 +995,20 @@ components:
             $ref: '#/components/schemas/Error'
     Gone:
       description: Invitation expired or already used
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    AlreadyMember:
+      description: The caller already belongs to this care team
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InvitationNotValid:
+      description: >
+        The code is unknown, expired, already used, or revoked. One answer for all
+        four, per the PRD — none of them changes what the caregiver does next.
       content:
         application/json:
           schema:
