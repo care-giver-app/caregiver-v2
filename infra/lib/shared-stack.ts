@@ -10,6 +10,85 @@ import { defaultFlagContent } from './appconfig-content';
 
 export type Stage = 'dev' | 'prod';
 
+export type V1Entity =
+  | 'user'
+  | 'device'
+  | 'team'
+  | 'membership'
+  | 'invitation'
+  | 'receiver'
+  | 'care-instructions'
+  | 'tracker'
+  | 'schedule'
+  | 'entry'
+  | 'journal-note'
+  | 'coverage-schedule'
+  | 'assignment';
+
+interface V1TableSpec {
+  pk: string;
+  sk?: string;
+  ttl?: string;
+  indexes?: { name: string; pk: string; sk?: string }[];
+}
+
+// Keys and indexes per docs/adr/0012-target-data-model.md.
+const v1TableSpecs: Record<V1Entity, V1TableSpec> = {
+  user: { pk: 'user_id', indexes: [{ name: 'email-index', pk: 'email' }] },
+  device: { pk: 'user_id', sk: 'device_id' },
+  team: { pk: 'team_id' },
+  membership: {
+    pk: 'user_id',
+    sk: 'team_id',
+    indexes: [{ name: 'team-index', pk: 'team_id', sk: 'user_id' }],
+  },
+  invitation: {
+    pk: 'code',
+    ttl: 'expires_at',
+    indexes: [
+      { name: 'team-index', pk: 'team_id' },
+      { name: 'email-index', pk: 'email' },
+    ],
+  },
+  receiver: {
+    pk: 'receiver_id',
+    indexes: [{ name: 'team-index', pk: 'team_id', sk: 'created_at' }],
+  },
+  'care-instructions': { pk: 'receiver_id' },
+  tracker: {
+    pk: 'tracker_id',
+    indexes: [{ name: 'receiver-index', pk: 'receiver_id', sk: 'created_at' }],
+  },
+  schedule: {
+    pk: 'schedule_id',
+    indexes: [{ name: 'tracker-index', pk: 'tracker_id', sk: 'created_at' }],
+  },
+  entry: {
+    pk: 'entry_id',
+    indexes: [
+      { name: 'tracker-time', pk: 'tracker_id', sk: 'timeline_at' },
+      { name: 'receiver-time', pk: 'receiver_id', sk: 'timeline_at' },
+      { name: 'open-index', pk: 'receiver_id', sk: 'open_at' },
+      { name: 'schedule-index', pk: 'schedule_id', sk: 'occurrence_at' },
+    ],
+  },
+  'journal-note': {
+    pk: 'note_id',
+    indexes: [{ name: 'receiver-time', pk: 'receiver_id', sk: 'at' }],
+  },
+  'coverage-schedule': {
+    pk: 'coverage_schedule_id',
+    indexes: [{ name: 'receiver-index', pk: 'receiver_id', sk: 'created_at' }],
+  },
+  assignment: {
+    pk: 'assignment_id',
+    indexes: [
+      { name: 'receiver-time', pk: 'receiver_id', sk: 'starts_at' },
+      { name: 'coverage-schedule-index', pk: 'coverage_schedule_id', sk: 'starts_at' },
+    ],
+  },
+};
+
 export interface SharedStackProps extends cdk.StackProps {
   stage: Stage;
 }
@@ -29,6 +108,8 @@ export class SharedStack extends cdk.Stack {
     events: dynamodb.Table;
     scheduledItems: dynamodb.Table;
   };
+  /** The ADR 0012 target model, beside the tables above until cutover (ADR 0013). */
+  public readonly v1Tables: Record<V1Entity, dynamodb.Table>;
   public readonly userPool: cognito.UserPool;
   public readonly userPoolClient: cognito.UserPoolClient;
 
@@ -211,6 +292,27 @@ export class SharedStack extends cdk.Stack {
       events,
       scheduledItems,
     };
+
+    const v1Tables = {} as Record<V1Entity, dynamodb.Table>;
+    for (const [entity, spec] of Object.entries(v1TableSpecs) as [V1Entity, V1TableSpec][]) {
+      const id = `V1${entity.replace(/(^|-)(\w)/g, (_, __, c: string) => c.toUpperCase())}Table`;
+      const table = new dynamodb.Table(this, id, {
+        ...tableBase,
+        tableName: `caregiver-${props.stage}-v1-${entity}`,
+        partitionKey: { name: spec.pk, type: s },
+        sortKey: spec.sk ? { name: spec.sk, type: s } : undefined,
+        timeToLiveAttribute: spec.ttl,
+      });
+      for (const ix of spec.indexes ?? []) {
+        table.addGlobalSecondaryIndex({
+          indexName: ix.name,
+          partitionKey: { name: ix.pk, type: s },
+          sortKey: ix.sk ? { name: ix.sk, type: s } : undefined,
+        });
+      }
+      v1Tables[entity] = table;
+    }
+    this.v1Tables = v1Tables;
 
     this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: `caregiver-${props.stage}`,
