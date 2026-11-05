@@ -9,9 +9,11 @@ import (
 
 	"github.com/care-giver-app/caregiver-v2/api/internal/handlers"
 	"github.com/care-giver-app/caregiver-v2/api/internal/middleware"
+	v1 "github.com/care-giver-app/caregiver-v2/api/internal/v1"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/config"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/flags"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/store"
+	v1store "github.com/care-giver-app/caregiver-v2/shared/go-common/v1/store"
 )
 
 func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
@@ -76,6 +78,19 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 
 	mux.Handle("GET /tracker-templates", authn.Wrap(http.HandlerFunc(tpl.List)))
 
+	// /v1 — the target model, served beside the routes above until cutover.
+	v1Stores, err := newV1Stores(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	v1authn := v1.NewAuthenticator(v1Stores)
+	v1teams := v1.NewTeams(v1Stores)
+	v1inv := v1.NewInvitations(v1Stores)
+	mux.Handle("GET /v1/me", v1authn.Wrap(v1.NewMe(v1Stores)))
+	mux.Handle("POST /v1/teams", v1authn.Wrap(http.HandlerFunc(v1teams.Create)))
+	mux.Handle("GET /v1/me/invitations", v1authn.Wrap(http.HandlerFunc(v1inv.Mine)))
+	mux.Handle("POST /v1/invitations/redeem", v1authn.Wrap(http.HandlerFunc(v1inv.Redeem)))
+
 	return middleware.RequestLogger(log)(mux), nil
 }
 
@@ -100,4 +115,21 @@ func newStores(ctx context.Context) (*store.Stores, error) {
 		return nil, err
 	}
 	return store.New(client, names), nil
+}
+
+func newV1Stores(ctx context.Context) (*v1store.Stores, error) {
+	names := v1store.TableNames{
+		Users:       os.Getenv("V1_USERS_TABLE"),
+		Teams:       os.Getenv("V1_TEAMS_TABLE"),
+		Memberships: os.Getenv("V1_MEMBERSHIPS_TABLE"),
+		Invitations: os.Getenv("V1_INVITATIONS_TABLE"),
+	}
+	if names.Users == "" || names.Teams == "" || names.Memberships == "" || names.Invitations == "" {
+		return nil, fmt.Errorf("V1_USERS_TABLE/V1_TEAMS_TABLE/V1_MEMBERSHIPS_TABLE/V1_INVITATIONS_TABLE must all be set")
+	}
+	client, err := v1store.NewClient(ctx, os.Getenv("DYNAMODB_ENDPOINT"))
+	if err != nil {
+		return nil, err
+	}
+	return v1store.New(client, names), nil
 }
