@@ -55,6 +55,11 @@ gap)` in its catalog entry and a bullet in that flow's _Gaps in this flow_. Gues
   nothing reaches, or a screen with no way out.
 - **Branch off `main`, open PRs, never merge.** Trevor merges — merging to `main` deploys to prod,
   where his family is.
+- **Feature files test the PRD; they never define it.** Each area's Build gate adds Gherkin
+  scenarios under `api/features/<area>/` for what the PRD says a caregiver can see, each citing the
+  PRD section it checks. When a scenario and the PRD disagree, the PRD wins and the scenario is
+  fixed. Mechanics a caregiver cannot see — races, clocks, DynamoDB limits, logging — stay in Go
+  tests.
 
 ### Where we are
 
@@ -86,6 +91,7 @@ awaiting approval · `approved` merged to `main`.
 | `shared/types-go/`                        | Generated Go types (Go 1.24.3). Do not hand-edit `*.gen.go`.                                      |
 | `shared/types-swift/`, `shared/types-ts/` | Generated Swift / TS clients.                                                                     |
 | `api/`                                    | Go Lambda HTTP API. `cmd/lambda/mux.go` wires routes; `internal/{handlers,middleware,httpx}`.     |
+| `api/features/`                           | Gherkin acceptance scenarios per area, run in-process by `go test` and against dev by `make`.     |
 | `services/`                               | Async/scheduled Lambdas. Empty for now.                                                           |
 | `infra/`                                  | AWS CDK (TypeScript). `lib/{shared,api,observability,billing}-stack.ts`, `bin/app.ts`.            |
 | `ios/`                                    | The iOS client. `ios/design-system.md` catalogs existing components; `ios/fixtures.md` is the one |
@@ -143,6 +149,7 @@ Receivers/Trackers; all members log Events.**
 # Go (Docker required for store/handler/middleware tests)
 cd shared/go-common && go test ./...
 cd api && go test ./...
+make -C api smoke-dev                     # the api/features scenarios against api-v2-dev (needs AWS creds)
 
 # Regenerate types after a contract change
 cd shared/types-go && make codegen

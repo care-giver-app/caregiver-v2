@@ -1,0 +1,139 @@
+package features_test
+
+import (
+	"context"
+	"strconv"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+
+	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/domain"
+	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/store"
+)
+
+// person is someone named in a feature ("Sam"). Their email is generated so
+// every scenario, and every dev run, uses addresses nobody else has.
+type person struct {
+	label  string // as written in the feature, and used as their display name
+	email  string
+	userID string // the Cognito sub (dev) or a synthesized one (in-process)
+	token  string // the Cognito ID token (dev only)
+}
+
+// answer is what the API said.
+type answer struct {
+	request string // "POST /v1/teams", for failure messages
+	status  int
+	body    []byte
+}
+
+// driver is how the steps reach the API. Both drivers run the same steps.
+type driver interface {
+	// newPerson gives a person an identity: synthesized claims in-process, a
+	// real Cognito user in dev.
+	newPerson(ctx context.Context, p *person) error
+	// call makes one request as p, or as nobody when p is nil.
+	call(ctx context.Context, p *person, method, path string, body any) (answer, error)
+	// db is direct access to the v1 tables, for rows no endpoint writes yet.
+	db() tables
+	// cleanup removes everything the scenario made. In-process it does
+	// nothing: every scenario's ids are unique within one throwaway container.
+	cleanup(ctx context.Context, rows []rowKey, people []*person) error
+}
+
+// rowKey names one row a scenario made, so the dev driver can delete it.
+type rowKey struct {
+	table string
+	key   map[string]types.AttributeValue
+}
+
+type tables struct {
+	client *dynamodb.Client
+	names  store.TableNames
+}
+
+func s(v string) types.AttributeValue { return &types.AttributeValueMemberS{Value: v} }
+
+func userKey(n store.TableNames, userID string) rowKey {
+	return rowKey{n.Users, map[string]types.AttributeValue{"user_id": s(userID)}}
+}
+
+func teamKey(n store.TableNames, teamID string) rowKey {
+	return rowKey{n.Teams, map[string]types.AttributeValue{"team_id": s(teamID)}}
+}
+
+func membershipKey(n store.TableNames, userID, teamID string) rowKey {
+	return rowKey{n.Memberships, map[string]types.AttributeValue{"user_id": s(userID), "team_id": s(teamID)}}
+}
+
+func invitationKey(n store.TableNames, code string) rowKey {
+	return rowKey{n.Invitations, map[string]types.AttributeValue{"code": s(code)}}
+}
+
+func (t tables) putInvitation(ctx context.Context, inv domain.Invitation) error {
+	item, err := attributevalue.MarshalMap(inv)
+	if err != nil {
+		return err
+	}
+	_, err = t.client.PutItem(ctx, &dynamodb.PutItemInput{TableName: aws.String(t.names.Invitations), Item: item})
+	return err
+}
+
+func (t tables) putMembership(ctx context.Context, m domain.Membership) error {
+	item, err := attributevalue.MarshalMap(m)
+	if err != nil {
+		return err
+	}
+	_, err = t.client.PutItem(ctx, &dynamodb.PutItemInput{TableName: aws.String(t.names.Memberships), Item: item})
+	return err
+}
+
+func (t tables) update(ctx context.Context, k rowKey, expr string, names map[string]string, values map[string]types.AttributeValue) error {
+	_, err := t.client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName:                 aws.String(k.table),
+		Key:                       k.key,
+		UpdateExpression:          aws.String(expr),
+		ExpressionAttributeNames:  names,
+		ExpressionAttributeValues: values,
+	})
+	return err
+}
+
+// closeAccount does what closing an account does to the user row: the person
+// goes (name and address removed), the row stays, marked closed.
+func (t tables) closeAccount(ctx context.Context, userID string, now time.Time) error {
+	return t.update(ctx, userKey(t.names, userID),
+		"SET #s = :closed, #n = :empty, closed_at = :now REMOVE email",
+		map[string]string{"#s": "status", "#n": "name"},
+		map[string]types.AttributeValue{
+			":closed": s(string(domain.UserClosed)), ":empty": s(""), ":now": s(now.UTC().Format(time.RFC3339Nano)),
+		})
+}
+
+// closeTeam archives a team, which is what "Close this care team" does.
+func (t tables) closeTeam(ctx context.Context, teamID, by string, now time.Time) error {
+	return t.update(ctx, teamKey(t.names, teamID),
+		"SET #s = :archived, archived_by = :by, archived_at = :now",
+		map[string]string{"#s": "status"},
+		map[string]types.AttributeValue{
+			":archived": s(string(domain.TeamArchived)), ":by": s(by), ":now": s(now.UTC().Format(time.RFC3339Nano)),
+		})
+}
+
+func (t tables) setInvitationStatus(ctx context.Context, code string, status domain.InvitationStatus) error {
+	return t.update(ctx, invitationKey(t.names, code), "SET #s = :s",
+		map[string]string{"#s": "status"}, map[string]types.AttributeValue{":s": s(string(status))})
+}
+
+func (t tables) setInvitationExpiry(ctx context.Context, code string, at time.Time) error {
+	return t.update(ctx, invitationKey(t.names, code), "SET expires_at = :e", nil,
+		map[string]types.AttributeValue{":e": &types.AttributeValueMemberN{Value: strconv.FormatInt(at.Unix(), 10)}})
+}
+
+func (t tables) deleteRow(ctx context.Context, k rowKey) error {
+	_, err := t.client.DeleteItem(ctx, &dynamodb.DeleteItemInput{TableName: aws.String(k.table), Key: k.key})
+	return err
+}
