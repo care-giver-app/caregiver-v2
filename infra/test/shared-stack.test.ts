@@ -49,7 +49,7 @@ describe('SharedStack', () => {
       stage: 'dev',
     });
     const t = Template.fromStack(stack);
-    t.resourceCountIs('AWS::DynamoDB::Table', 8);
+    t.resourceCountIs('AWS::DynamoDB::Table', 8 + 13);
     for (const name of [
       'caregiver-dev-user',
       'caregiver-dev-care-group',
@@ -62,6 +62,36 @@ describe('SharedStack', () => {
     ]) {
       t.hasResourceProperties('AWS::DynamoDB::Table', { TableName: name });
     }
+  });
+
+  test('shared stack creates the ADR 0012 tables with a v1- prefix', () => {
+    const app = new cdk.App();
+    const stack = new SharedStack(app, 'CaregiverDev-SharedV1', {
+      env: { account: '123456789012', region: 'us-east-2' },
+      stage: 'dev',
+    });
+    const t = Template.fromStack(stack);
+    for (const entity of [
+      'user',
+      'device',
+      'team',
+      'membership',
+      'invitation',
+      'receiver',
+      'care-instructions',
+      'tracker',
+      'schedule',
+      'entry',
+      'journal-note',
+      'coverage-schedule',
+      'assignment',
+    ]) {
+      t.hasResourceProperties('AWS::DynamoDB::Table', { TableName: `caregiver-dev-v1-${entity}` });
+    }
+    t.hasResourceProperties('AWS::DynamoDB::Table', {
+      TableName: 'caregiver-dev-v1-invitation',
+      TimeToLiveSpecification: { AttributeName: 'expires_at', Enabled: true },
+    });
   });
 
   test('invitation table has a TTL on expires_at', () => {
