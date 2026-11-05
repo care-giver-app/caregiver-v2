@@ -145,6 +145,10 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
       - name: CDK deploy dev
         run: pnpm --filter @caregiver/infra exec cdk deploy --all --context stage=dev --require-approval never
+      # Same job as the deploy, so the deploy-dev lock keeps another PR from redeploying dev
+      # between the two. Creates throwaway Cognito users and rows, and deletes them afterwards.
+      - name: Smoke test dev (api/features)
+        run: make -C api smoke-dev
 
   ios:
     name: iOS build + test

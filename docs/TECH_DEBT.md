@@ -128,3 +128,18 @@ Surfaced during manual use of the C1-UI build; not yet fixed. Both pre-date the 
   `shared/openapi/openapi.yaml`, and the API still enforces the email-match rule for admin invites.
   Whether the field comes off the schema belongs to the **data model pass** — recorded here so it is
   not discovered mid-build.
+
+## Found during the Getting in build (2026-11-05)
+
+- **One admin role for every CI run, dev and prod alike** — `CaregiverGitHubDeploy` (defined outside
+  this repo) has `AdministratorAccess`, and its trust policy accepts any ref of
+  `care-giver-app/caregiver-v2`. PR deploys to dev, the dev smoke tests, and `cd-main`'s prod deploy
+  all assume it, so code on any PR branch runs with credentials that can change prod. _Fix:_ split
+  into a dev role (trusted for `pull_request`) and a prod role trusted only for `ref:refs/heads/main`,
+  each scoped to the CDK bootstrap roles it needs; give the smoke step its own dev-only role (Cognito
+  admin on the dev pool, the `caregiver-dev-v1-*` tables, read on dev stack outputs). _Trigger:_
+  before anyone else gets push access, or before the product opens to more tenants.
+- **v1 `ListPendingByEmail` reads one Query page** — `shared/go-common/v1/store/invitation.go`. Same
+  shape as the B1 `queryPending` item above: `status='pending'` is a post-read filter, so pending
+  invitations past the first 1 MB page are missed. _Fix:_ paginate on `LastEvaluatedKey`. _Trigger:_
+  an email accumulating many accepted/revoked invitations.
