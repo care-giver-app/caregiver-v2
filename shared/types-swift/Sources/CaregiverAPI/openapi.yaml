@@ -579,7 +579,7 @@ paths:
               schema: { $ref: '#/components/schemas/TeamMembership' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-  /v1/invitations/mine:
+  /v1/me/invitations:
     get:
       operationId: listInvitationsForMe
       summary: Pending invitations addressed to the caller's verified email
@@ -601,7 +601,7 @@ paths:
       operationId: redeemInvitation
       summary: Join a care team as a caregiver, by invite code
       description: >
-        Serves both accepting an invitation found under /v1/invitations/mine and
+        Serves both accepting an invitation found under /v1/me/invitations and
         pasting a code. The code travels in the body, never the path, so it does
         not land in access logs. The caller's email is not checked against the
         invitation (Hide My Email); membership is.

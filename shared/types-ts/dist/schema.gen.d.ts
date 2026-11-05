@@ -394,7 +394,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    '/v1/invitations/mine': {
+    '/v1/me/invitations': {
         parameters: {
             query?: never;
             header?: never;
@@ -425,7 +425,7 @@ export interface paths {
         put?: never;
         /**
          * Join a care team as a caregiver, by invite code
-         * @description Serves both accepting an invitation found under /v1/invitations/mine and pasting a code. The code travels in the body, never the path, so it does not land in access logs. The caller's email is not checked against the invitation (Hide My Email); membership is.
+         * @description Serves both accepting an invitation found under /v1/me/invitations and pasting a code. The code travels in the body, never the path, so it does not land in access logs. The caller's email is not checked against the invitation (Hide My Email); membership is.
          */
         post: operations['redeemInvitation'];
         delete?: never;
