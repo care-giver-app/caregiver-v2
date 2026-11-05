@@ -1,0 +1,30 @@
+name: ios-cache
+
+# Builds iOS on main so its DerivedData cache is saved where every PR can read
+# it. A cache saved by a PR run is visible only to that PR.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - 'shared/types-swift/**'
+      - 'shared/openapi/openapi.yaml'
+      - '.github/actions/ios-build/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ios-cache
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  warm:
+    name: Warm iOS build cache
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/ios-build
+        with:
+          action: build-for-testing

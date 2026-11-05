@@ -1,0 +1,57 @@
+name: iOS build
+description: >
+  Generates the Xcode project and runs xcodebuild with DerivedData cached, so
+  Amplify, the AWS Common Runtime, and the OpenAPI generator plugin are compiled
+  once rather than on every run. Our own sources always rebuild (checkout gives
+  them fresh mtimes); restored dependencies do not.
+inputs:
+  action:
+    description: xcodebuild action — `test` for PRs, `build-for-testing` to warm the cache
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install XcodeGen
+      shell: bash
+      run: brew install xcodegen
+
+    - name: Cache key
+      id: key
+      shell: bash
+      # Xcode version is in the key: products from one compiler are useless to another.
+      run: echo "xcode=$(xcodebuild -version | shasum | cut -c1-12)" >> "$GITHUB_OUTPUT"
+
+    # actions/cache saves only on an exact-key miss. PR runs can read caches saved
+    # on main, which is what ios-cache.yml keeps warm; bump v1 to force a rebuild.
+    - name: Restore DerivedData
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ runner.temp }}/DerivedData/Build
+          ${{ runner.temp }}/DerivedData/SourcePackages
+          ${{ runner.temp }}/DerivedData/ModuleCache.noindex
+        key: ios-dd-v1-${{ steps.key.outputs.xcode }}-${{ hashFiles('ios/project.yml', 'shared/types-swift/Package.swift') }}
+        restore-keys: |
+          ios-dd-v1-${{ steps.key.outputs.xcode }}-
+
+    - name: xcodebuild ${{ inputs.action }}
+      shell: bash
+      run: |
+        cd ios
+        xcodegen generate
+        # Pick whatever iPhone simulator the runner's Xcode ships (device names
+        # vary by Xcode version, so resolve it rather than hard-coding).
+        DEVICE=$(xcrun simctl list devices available \
+          | grep -oE 'iPhone [0-9][^(]*' | head -1 | sed 's/ *$//')
+        echo "Using simulator: $DEVICE"
+        # -skipPackagePluginValidation: CaregiverAPI generates its sources via
+        # the swift-openapi-generator build-tool plugin, which xcodebuild won't
+        # run non-interactively without this flag.
+        xcodebuild ${{ inputs.action }} \
+          -scheme Caregiver \
+          -destination "platform=iOS Simulator,name=$DEVICE" \
+          -derivedDataPath "${{ runner.temp }}/DerivedData" \
+          -skipPackagePluginValidation \
+          -resultBundlePath TestResults \
+          COMPILER_INDEX_STORE_ENABLE=NO \
+          CODE_SIGNING_ALLOWED=NO
