@@ -33,6 +33,13 @@ export interface ApiStackProps extends cdk.StackProps {
     events: dynamodb.ITable;
     scheduledItems: dynamodb.ITable;
   };
+  /** The ADR 0012 tables the /v1 routes use so far; each area adds its own. */
+  v1Tables: {
+    user: dynamodb.ITable;
+    team: dynamodb.ITable;
+    membership: dynamodb.ITable;
+    invitation: dynamodb.ITable;
+  };
 }
 
 export class ApiStack extends cdk.Stack {
@@ -109,6 +116,16 @@ export class ApiStack extends cdk.Stack {
     this.apiFunction.addEnvironment('TRACKERS_TABLE', props.tables.trackers.tableName);
     this.apiFunction.addEnvironment('EVENTS_TABLE', props.tables.events.tableName);
     this.apiFunction.addEnvironment('SCHEDULED_ITEMS_TABLE', props.tables.scheduledItems.tableName);
+
+    // Granted one by one: callers may pass every v1 table, and the API gets only these.
+    const { user, team, membership, invitation } = props.v1Tables;
+    for (const table of [user, team, membership, invitation]) {
+      table.grantReadWriteData(this.apiFunction);
+    }
+    this.apiFunction.addEnvironment('V1_USERS_TABLE', user.tableName);
+    this.apiFunction.addEnvironment('V1_TEAMS_TABLE', team.tableName);
+    this.apiFunction.addEnvironment('V1_MEMBERSHIPS_TABLE', membership.tableName);
+    this.apiFunction.addEnvironment('V1_INVITATIONS_TABLE', invitation.tableName);
 
     // AppConfig actions: `StartConfigurationSession` is a control-plane call that
     // doesn't accept a resource ARN, and `GetLatestConfiguration` operates on
@@ -210,6 +227,10 @@ export class ApiStack extends cdk.Stack {
       { path: '/scheduled-items/{scheduledItemId}', methods: [apigw.HttpMethod.GET] },
       { path: '/scheduled-items/{scheduledItemId}', methods: [apigw.HttpMethod.PUT] },
       { path: '/scheduled-items/{scheduledItemId}', methods: [apigw.HttpMethod.DELETE] },
+      { path: '/v1/me', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/teams', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/me/invitations', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/invitations/redeem', methods: [apigw.HttpMethod.POST] },
     ];
     for (const route of authedRoutes) {
       httpApi.addRoutes({

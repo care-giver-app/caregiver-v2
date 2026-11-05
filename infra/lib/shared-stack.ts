@@ -333,6 +333,8 @@ export class SharedStack extends cdk.Stack {
       userPoolClientName: `caregiver-${props.stage}-app`,
       authFlows: { userSrp: true, adminUserPassword: true },
       generateSecret: false,
+      // A wrong password and an unknown email answer alike, as the PRD's Sign in asks.
+      preventUserExistenceErrors: true,
     });
 
     new cdk.CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
