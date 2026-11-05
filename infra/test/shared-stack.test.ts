@@ -115,5 +115,8 @@ describe('SharedStack', () => {
     const t = Template.fromStack(stack);
     t.hasResourceProperties('AWS::Cognito::UserPool', { UserPoolName: 'caregiver-dev' });
     t.resourceCountIs('AWS::Cognito::UserPoolClient', 1);
+    t.hasResourceProperties('AWS::Cognito::UserPoolClient', {
+      PreventUserExistenceErrors: 'ENABLED',
+    });
   });
 });

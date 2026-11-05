@@ -18,6 +18,7 @@ describe('ApiStack', () => {
       userPool: shared.userPool,
       userPoolClient: shared.userPoolClient,
       tables: shared.tables,
+      v1Tables: shared.v1Tables,
     });
     const template = Template.fromStack(stack);
     template.hasResourceProperties('AWS::Lambda::Function', {
@@ -67,6 +68,7 @@ describe('ApiStack', () => {
       userPool: shared.userPool,
       userPoolClient: shared.userPoolClient,
       tables: shared.tables,
+      v1Tables: shared.v1Tables,
     });
     const template = Template.fromStack(stack);
     // Dev uses api-v2-dev (NOT v1's api-dev), with a DNS-validated regional cert.
@@ -98,6 +100,7 @@ describe('ApiStack', () => {
       userPool: shared.userPool,
       userPoolClient: shared.userPoolClient,
       tables: shared.tables,
+      v1Tables: shared.v1Tables,
     });
     const template = Template.fromStack(stack);
     template.hasResourceProperties('AWS::ApiGatewayV2::DomainName', {
@@ -124,11 +127,12 @@ describe('ApiStack', () => {
       userPool: shared.userPool,
       userPoolClient: shared.userPoolClient,
       tables: shared.tables,
+      v1Tables: shared.v1Tables,
     });
     const t = Template.fromStack(apiStack);
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
-    t.resourceCountIs('AWS::ApiGatewayV2::Route', 31);
+    t.resourceCountIs('AWS::ApiGatewayV2::Route', 35);
 
     for (const routeKey of [
       'GET /me',
@@ -147,6 +151,10 @@ describe('ApiStack', () => {
       'GET /scheduled-items/{scheduledItemId}',
       'PUT /scheduled-items/{scheduledItemId}',
       'DELETE /scheduled-items/{scheduledItemId}',
+      'GET /v1/me',
+      'POST /v1/teams',
+      'GET /v1/me/invitations',
+      'POST /v1/invitations/redeem',
     ]) {
       t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
         RouteKey: routeKey,
@@ -158,6 +166,40 @@ describe('ApiStack', () => {
         RouteKey: routeKey,
         AuthorizationType: 'NONE',
       });
+    }
+  });
+
+  test('gives the API the getting-in v1 tables and no others', () => {
+    const app = new cdk.App();
+    const env = { account: '123456789012', region: 'us-east-2' };
+    const shared = new SharedStack(app, 'CaregiverDev-Shared', { env, stage: 'dev' });
+    const apiStack = new ApiStack(app, 'CaregiverDev-Api', {
+      env,
+      stage: 'dev',
+      version: '0.0.0',
+      appConfigApplicationId: 'app',
+      appConfigEnvironmentId: 'envid',
+      appConfigProfileId: 'prof',
+      userPool: shared.userPool,
+      userPoolClient: shared.userPoolClient,
+      tables: shared.tables,
+      v1Tables: shared.v1Tables,
+    });
+    const t = Template.fromStack(apiStack);
+    const json = JSON.stringify(t.toJSON());
+    for (const name of [
+      'V1_USERS_TABLE',
+      'V1_TEAMS_TABLE',
+      'V1_MEMBERSHIPS_TABLE',
+      'V1_INVITATIONS_TABLE',
+    ]) {
+      expect(json).toContain(name);
+    }
+    for (const id of ['V1UserTable', 'V1TeamTable', 'V1MembershipTable', 'V1InvitationTable']) {
+      expect(json).toContain(id);
+    }
+    for (const id of ['V1EntryTable', 'V1TrackerTable', 'V1ReceiverTable']) {
+      expect(json).not.toContain(id);
     }
   });
 });

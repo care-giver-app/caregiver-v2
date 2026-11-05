@@ -31,6 +31,7 @@ const api = new ApiStack(app, `${prefix}-Api`, {
   userPool: shared.userPool,
   userPoolClient: shared.userPoolClient,
   tables: shared.tables,
+  v1Tables: shared.v1Tables,
 });
 new ObservabilityStack(app, `${prefix}-Observability`, {
   env,
