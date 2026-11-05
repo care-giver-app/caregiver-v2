@@ -17,7 +17,9 @@ packages:
     path: ../shared/types-swift
   Amplify:
     url: https://github.com/aws-amplify/amplify-swift
-    from: '2.39.0'
+    # Exact pin: Package.resolved lives in the gitignored .xcodeproj, so a range
+    # lets CI float to whatever is newest (2.63.0 broke the build, Nov 2026).
+    exactVersion: '2.58.2'
 targets:
   Caregiver:
     type: application
