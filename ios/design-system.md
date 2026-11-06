@@ -7,11 +7,11 @@ for that.
 
 ## Buttons & actions
 
-| Component      | Used for                                                                          |
-| -------------- | --------------------------------------------------------------------------------- |
-| `StrideButton` | The primary tappable action on a screen (continue, save, confirm, retry).         |
-| `StrideChip`   | A small selectable pill for filters or single-choice pickers (e.g. role, status). |
-| `StrideBadge`  | A short status label (Due, Missed, Logged, You…) tucked into a row or card.       |
+| Component      | Used for                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------- |
+| `StrideButton` | The primary tappable action on a screen (continue, save, confirm, retry); `.compact` for an inline Try again. |
+| `StrideChip`   | A small selectable pill for filters or single-choice pickers (e.g. role, status).                             |
+| `StrideBadge`  | A short status label (Due, Missed, Logged, You…) tucked into a row or card.                                   |
 
 ## Inputs & forms
 
@@ -38,6 +38,7 @@ for that.
 | `StrideTemplateCard`   | A tracker-template picker card in the add-tracker wizard grid.                         |
 | `StrideSelectTile`     | A selectable tile in a picker grid (e.g. choosing a tracker to log).                   |
 | `StrideComingUpBanner` | A tappable banner surfacing the single soonest upcoming scheduled item.                |
+| `StrideInvitationRow`  | An invitation waiting for your email — care team, who invited you, and Accept.         |
 
 ## Navigation & structure
 
@@ -46,6 +47,7 @@ for that.
 | `StrideTabBar`            | The app's bottom tab bar (Home/Insights/Team/Settings) with a quick-log FAB.         |
 | `StrideSectionHeader`     | A section label above a group of content, with an optional "See all" action.         |
 | `StrideStepDots`          | Step progress dots for a multi-step wizard.                                          |
+| `strideBackButton()`      | A pushed screen's "‹ Back" button, keeping the edge swipe back.                      |
 | `StrideTimeframeSelector` | A segmented control for choosing an analytics timeframe (Week/Month/3M/Year/Custom). |
 
 ## Feedback & state
@@ -53,6 +55,7 @@ for that.
 | Component           | Used for                                                         |
 | ------------------- | ---------------------------------------------------------------- |
 | `StrideDialog`      | A modal confirm/alert dialog with a title, message, and actions. |
+| `StrideAlertBanner` | An inline message under a form field — error or neutral info.    |
 | `StrideLoadingView` | A full-space loading spinner placeholder.                        |
 | `StrideEmptyState`  | A full-space "nothing here" placeholder message.                 |
 | `StrideErrorState`  | A full-space error message with a retry action.                  |
