@@ -25,6 +25,15 @@ struct RootView: View {
                 CreateGroupView(userName: me.userName)
             case .ready(let me):
                 mainStack(me)
+            case .v1NoTeam(let account):
+                NavigationStack {
+                    JoinCareTeamView(account: account,
+                                     service: .live(session.api),
+                                     onJoined: { await session.refresh() })
+                }
+                .tint(Theme.Colors.accent)
+            case .v1Ready(let account):
+                V1PlaceholderView(account: account, onSignOut: { await session.signOut() })
             }
         }
         .task {

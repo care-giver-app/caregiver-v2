@@ -38,6 +38,7 @@ for that.
 | `StrideTemplateCard`   | A tracker-template picker card in the add-tracker wizard grid.                         |
 | `StrideSelectTile`     | A selectable tile in a picker grid (e.g. choosing a tracker to log).                   |
 | `StrideComingUpBanner` | A tappable banner surfacing the single soonest upcoming scheduled item.                |
+| `StrideInvitationRow`  | An invitation waiting for your email — care team, who invited you, and Accept.         |
 
 ## Navigation & structure
 
@@ -53,6 +54,7 @@ for that.
 | Component           | Used for                                                         |
 | ------------------- | ---------------------------------------------------------------- |
 | `StrideDialog`      | A modal confirm/alert dialog with a title, message, and actions. |
+| `StrideAlertBanner` | An inline message under a form field — error or neutral info.    |
 | `StrideLoadingView` | A full-space loading spinner placeholder.                        |
 | `StrideEmptyState`  | A full-space "nothing here" placeholder message.                 |
 | `StrideErrorState`  | A full-space error message with a retry action.                  |
