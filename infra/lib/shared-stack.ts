@@ -6,7 +6,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { defaultFlagContent } from './appconfig-content';
+import { flagContent } from './appconfig-content';
 
 export type Stage = 'dev' | 'prod';
 
@@ -151,7 +151,7 @@ export class SharedStack extends cdk.Stack {
       applicationId: appConfigApp.ref,
       configurationProfileId: profile.ref,
       contentType: 'application/json',
-      content: JSON.stringify(defaultFlagContent),
+      content: JSON.stringify(flagContent(props.stage)),
     });
 
     const strategy = new appconfig.CfnDeploymentStrategy(this, 'FlagsStrategy', {

@@ -119,4 +119,30 @@ describe('SharedStack', () => {
       PreventUserExistenceErrors: 'ENABLED',
     });
   });
+
+  test('v1_api is on in dev and off in prod, and the schema requires it', () => {
+    for (const [stage, enabled] of [
+      ['dev', true],
+      ['prod', false],
+    ] as const) {
+      const app = new cdk.App();
+      const stack = new SharedStack(
+        app,
+        `Caregiver${stage === 'dev' ? 'Dev' : 'Prod'}-SharedFlags`,
+        {
+          env: { account: '123456789012', region: 'us-east-2' },
+          stage,
+        },
+      );
+      const t = Template.fromStack(stack);
+      const versions = t.findResources('AWS::AppConfig::HostedConfigurationVersion');
+      const content = JSON.parse(Object.values(versions)[0].Properties.Content);
+      expect(content.v1_api).toEqual({ enabled });
+
+      const profiles = t.findResources('AWS::AppConfig::ConfigurationProfile');
+      const schema = JSON.parse(Object.values(profiles)[0].Properties.Validators[0].Content);
+      expect(schema.required).toContain('v1_api');
+      expect(Object.keys(content).sort()).toEqual(Object.keys(schema.properties).sort());
+    }
+  });
 });

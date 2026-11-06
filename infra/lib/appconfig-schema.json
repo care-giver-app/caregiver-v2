@@ -6,11 +6,23 @@
       "type": "object",
       "required": ["enabled"],
       "properties": {
-        "enabled": { "type": "boolean" }
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "v1_api": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
       },
       "additionalProperties": false
     }
   },
-  "required": ["flags_demo"],
+  "required": ["flags_demo", "v1_api"],
   "additionalProperties": false
 }
