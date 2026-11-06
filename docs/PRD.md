@@ -548,6 +548,20 @@ and already used all read as no longer valid — because the difference between 
 app can see, and none of the three changes what the caregiver does next, which is to ask whoever
 invited them for another. The Team tab answers a pasted code the same way, for the same reason.
 
+An invitation can go stale while the screen is open. Accepting one that has expired or been used
+since the list appeared is answered as no longer valid, like a pasted code, and the list is fetched
+again so the dead row is not left there to be tapped twice. Redeeming a code for a team the
+caregiver has joined in the meantime — on another device, say — is not an error at all: the sign-in
+resolution runs again and lands them on Home, because the only true thing left to say is that they
+are on a team now. When the invitations cannot be fetched, the screen says so and offers to try
+again rather than showing an empty list, because an empty list reads as nobody having invited you,
+which is the wrong thing to believe while an invitation is waiting. Pasting a code still works,
+since it does not depend on the list.
+
+Join a care team also offers Sign out, through the same confirmation Settings uses. It is the only
+screen a caregiver with no team can reach, so without it someone signed in to the wrong account
+would have no way back to Landing short of deleting the app.
+
 Creating a team lands on Team rather than Home. A team made a moment ago has no care receiver, so
 Home would open on its own empty state, describing the absence of something the caregiver has not
 had a chance to do yet — while Team is where the team they just made lives, and where Add care
@@ -730,6 +744,7 @@ sign out, which is a caregiver saying they want out.
     - invitations waiting for your email, each with its care team and who invited you
     - paste an invite code
     - create a team instead
+    - sign out
   exits:
     - action: Accept an invitation
       to: Home
@@ -743,9 +758,28 @@ sign out, which is a caregiver saying they want out.
     - action: Create a team instead
       to: Create your first care team
       as: push
+    - action: Accept an invitation
+      when: it has expired or been used since the list appeared
+      to: >
+        Join a care team, saying only that the invitation is no longer valid,
+        with the list fetched again
+      as: stays
+    - action: accept or paste a code for a care team joined since the screen opened
+      to: Home
+      as: root
+    - action: Try again
+      when: the invitations could not be fetched
+      to: Join a care team, fetching them again
+      as: stays
+    - action: Sign out
+      to: Sign out?
+      as: sheet
   empty: >
     no invitations waiting — the screen is the invite-code field and the offer to
     create a team
+  failed: >
+    the invitations could not be fetched — saying so, with Try again; pasting a
+    code still works
 
 - screen: Create your first care team
   kind: push
@@ -2762,7 +2796,7 @@ put a family in it.
       unlocks nothing on its own
   exits:
     - action: Cancel
-      to: Settings
+      to: the screen that raised it
       as: back
     - action: Sign out
       to: Landing
