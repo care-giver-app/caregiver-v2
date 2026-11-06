@@ -39,8 +39,8 @@ func TestFeatures(t *testing.T) {
 		},
 		Options: &godog.Options{
 			Format:   "pretty",
-			Paths:    []string{"getting_in"},
-			Strict:   true, // an undefined or pending step fails the run
+			Paths:    []string{"."}, // every area folder under features/, so a new one is never skipped
+			Strict:   true,          // an undefined or pending step fails the run
 			TestingT: t,
 		},
 	}
