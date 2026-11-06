@@ -14,7 +14,7 @@ enum RedeemOutcome: Equatable, Sendable {
     case joined
     /// 410 — unknown, expired, already used, or revoked; one answer for all four.
     case noLongerValid
-    /// 409 — the caller already belongs to this care team.
+    /// 409 — the caller already belongs to this care team; not an error (PRD).
     case alreadyMember
     /// 400 — with the server's message, when it sent one.
     case rejected(String?)

@@ -7,7 +7,6 @@ struct CreateFirstCareTeamView: View {
     let onCreated: () async -> Void
 
     @State private var model: CreateFirstCareTeamModel?
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Group {
@@ -19,19 +18,8 @@ struct CreateFirstCareTeamView: View {
         }
         .strideBackground()
         .toolbar(.visible, for: .navigationBar)
-        // Back buttons always read "‹ Back"; the iOS 26 system one is a bare chevron.
-        .navigationBarBackButtonHidden()
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: {
-                    HStack(spacing: Theme.Spacing.xs) {
-                        Image(systemName: "chevron.left")
-                        Text("Back")
-                    }
-                    .accessibilityElement(children: .combine)
-                }
-            }
-        }
+        // Back buttons always read "‹ Back"; this keeps the edge swipe back too.
+        .strideBackButton()
         .toolbarBackground(.hidden, for: .navigationBar)
         .tint(Theme.Colors.accent)
         .onAppear {

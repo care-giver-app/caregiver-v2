@@ -7,11 +7,11 @@ for that.
 
 ## Buttons & actions
 
-| Component      | Used for                                                                          |
-| -------------- | --------------------------------------------------------------------------------- |
-| `StrideButton` | The primary tappable action on a screen (continue, save, confirm, retry).         |
-| `StrideChip`   | A small selectable pill for filters or single-choice pickers (e.g. role, status). |
-| `StrideBadge`  | A short status label (Due, Missed, Logged, You…) tucked into a row or card.       |
+| Component      | Used for                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------- |
+| `StrideButton` | The primary tappable action on a screen (continue, save, confirm, retry); `.compact` for an inline Try again. |
+| `StrideChip`   | A small selectable pill for filters or single-choice pickers (e.g. role, status).                             |
+| `StrideBadge`  | A short status label (Due, Missed, Logged, You…) tucked into a row or card.                                   |
 
 ## Inputs & forms
 
@@ -47,6 +47,7 @@ for that.
 | `StrideTabBar`            | The app's bottom tab bar (Home/Insights/Team/Settings) with a quick-log FAB.         |
 | `StrideSectionHeader`     | A section label above a group of content, with an optional "See all" action.         |
 | `StrideStepDots`          | Step progress dots for a multi-step wizard.                                          |
+| `strideBackButton()`      | A pushed screen's "‹ Back" button, keeping the edge swipe back.                      |
 | `StrideTimeframeSelector` | A segmented control for choosing an analytics timeframe (Week/Month/3M/Year/Custom). |
 
 ## Feedback & state

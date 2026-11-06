@@ -7,13 +7,18 @@ final class JoinCareTeamModel {
     enum Invitations: Equatable {
         case loading
         case loaded([PendingInvitation])
-        case failed(AppError)
+        /// The list could not be fetched. Shown as its own state, never as an empty
+        /// list, which would read as nobody having invited you (PRD).
+        case failed
     }
 
-    /// The PRD: invalid, expired, and already used all read the same way.
-    static let noLongerValid = AppError(message: "This invite code is no longer valid")
-    /// The PRD is silent on this copy (reported as a gap).
-    static let alreadyMember = AppError(message: "You're already on this care team")
+    /// A pasted code the app will not take. The PRD: invalid, expired, and already
+    /// used all read the same way.
+    static let codeNoLongerValid = AppError(message: "This invite code is no longer valid")
+    /// A listed invitation that expired or was used since the list appeared.
+    static let invitationNoLongerValid = AppError(message: "That invitation is no longer valid.")
+    /// The failed state's banner, shown where the list goes.
+    static let invitationsFailedMessage = "Couldn't load your invitations."
 
     private(set) var invitations: Invitations = .loading
     var code = ""
@@ -35,19 +40,32 @@ final class JoinCareTeamModel {
 
     var isBusy: Bool { acceptingCode != nil || isJoining }
 
+    /// Fetches the invitations. A list already on screen stays there until the
+    /// answer replaces it, so a re-fetch does not flash a spinner.
     func load() async {
         do {
             invitations = .loaded(try await service.listInvitations())
         } catch {
-            invitations = .failed(AppError.from(error))
+            invitations = .failed
         }
+    }
+
+    /// Try again, from the failed state.
+    func retry() async {
+        invitations = .loading
+        await load()
     }
 
     func accept(_ invitation: PendingInvitation) async {
         guard !isBusy else { return }
         acceptingCode = invitation.code
         defer { acceptingCode = nil }
-        await redeem(invitation.code)
+        if await redeem(invitation.code) == .noLongerValid {
+            // Stale since the list appeared: say so, and fetch the list again so
+            // the dead row is not left there to be tapped twice.
+            error = Self.invitationNoLongerValid
+            await load()
+        }
     }
 
     func joinWithCode() async {
@@ -56,24 +74,32 @@ final class JoinCareTeamModel {
         guard !trimmed.isEmpty, !isBusy else { return }
         isJoining = true
         defer { isJoining = false }
-        await redeem(trimmed)
+        if await redeem(trimmed) == .noLongerValid {
+            error = Self.codeNoLongerValid
+        }
     }
 
-    private func redeem(_ code: String) async {
+    /// Redeems `code`, handling every answer but `.noLongerValid`, whose message
+    /// depends on whether the code came from the list or was pasted. Returns the
+    /// outcome, or nil when the call threw.
+    private func redeem(_ code: String) async -> RedeemOutcome? {
         error = nil
         do {
-            switch try await service.redeem(code) {
-            case .joined:
+            let outcome = try await service.redeem(code)
+            switch outcome {
+            case .joined, .alreadyMember:
+                // 409 is not an error: they are on a team now, so the sign-in
+                // resolution runs again and lands them there (PRD).
                 await onJoined()
             case .noLongerValid:
-                error = Self.noLongerValid
-            case .alreadyMember:
-                error = Self.alreadyMember
+                break
             case .rejected(let message):
                 error = AppError.forStatus(400, serverMessage: message)
             }
+            return outcome
         } catch {
             self.error = AppError.from(error)
+            return nil
         }
     }
 }

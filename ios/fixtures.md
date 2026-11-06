@@ -123,10 +123,13 @@ canonical and nothing in the PRD retires them.
 | Its care receivers           | **Eleanor** (active) · **Harold** · Rosa                                   | Eleanor and Harold are the two drawn on the Team list.            |
 | Second care team             | **Johnson Family**                                                         | Trevor is a **caregiver** here — no Add care receiver.            |
 | Its care receiver            | **Walter** · Mountain time                                                 | New fixture — the second team needs one receiver to be real.      |
-| Inbound pending invitation   | **Delgado Family** · caregiver · expires in 7d                             | New fixture — a team Trevor is _not_ on, waiting on the Team tab. |
+| Inbound pending invitation   | **Delgado Family** · caregiver · expires in 7d · invited by **Lucia**      | New fixture — a team Trevor is _not_ on, waiting on the Team tab. |
 | Eleanor's time zone          | Central time                                                               | Walter is Mountain time, so the zone rule is visible.             |
 | Eleanor's emergency contacts | Dana · daughter · (555) 014-2277 · Dr. Ahn · primary care · (555) 019-9040 | New fixtures.                                                     |
 | Eleanor's coverage           | Dana Thu 8a–4p · Trevor Tue 8a–4p, both from repeating rules               | New fixtures.                                                     |
+
+**Lucia**, who invited Trevor to Delgado Family, is a new fixture: nobody above would plausibly be
+on the Delgados' team. The same invitation is the one waiting on Join a care team.
 
 **Roster and invite are unchanged from above:** Trevor (You · admin) · Dana (admin) · Marcus
 (caregiver), one pending invite `jordan@email.com` (caregiver · expires 7d). Dana reads as an **admin**

@@ -9,15 +9,21 @@ private actor Calls {
     func create(_ name: String) { created.append(name) }
 }
 
+/// Counts list fetches.
+private actor Counter {
+    var count = 0
+    func next() -> Int { count += 1; return count }
+}
+
 @MainActor
 final class JoinCareTeamModelTests: XCTestCase {
-    private let riverside = PendingInvitation(code: "abc123", teamName: "The Riverside Group", invitedByName: "Dana")
+    private let delgado = PendingInvitation(code: "abc123", teamName: "Delgado Family", invitedByName: "Lucia")
 
     private func make(redeem: @escaping @Sendable (String) async throws -> RedeemOutcome,
                       calls: Calls,
                       joined: @escaping () -> Void = {}) -> JoinCareTeamModel {
         let service = GettingInService(
-            listInvitations: { [riverside] in [riverside] },
+            listInvitations: { [delgado] in [delgado] },
             redeem: { code in
                 await calls.redeem(code)
                 return try await redeem(code)
@@ -30,7 +36,7 @@ final class JoinCareTeamModelTests: XCTestCase {
     func testLoadListsInvitations() async {
         let model = make(redeem: { _ in .joined }, calls: Calls())
         await model.load()
-        XCTAssertEqual(model.invitations, .loaded([riverside]))
+        XCTAssertEqual(model.invitations, .loaded([delgado]))
     }
 
     func testLoadFailureIsShown() async {
@@ -40,14 +46,56 @@ final class JoinCareTeamModelTests: XCTestCase {
             onJoined: {}
         )
         await model.load()
-        XCTAssertEqual(model.invitations, .failed(.transport))
+        XCTAssertEqual(model.invitations, .failed)
+    }
+
+    func testTryAgainAfterAFailureShowsTheList() async {
+        var fail = true
+        let model = JoinCareTeamModel(
+            service: GettingInService(
+                listInvitations: { [delgado] in
+                    if await MainActor.run(body: { fail }) { throw URLError(.notConnectedToInternet) }
+                    return [delgado]
+                },
+                redeem: { _ in .joined }, createTeam: { _ in .created }),
+            onJoined: {}
+        )
+        await model.load()
+        XCTAssertEqual(model.invitations, .failed)
+        fail = false
+        await model.retry()
+        XCTAssertEqual(model.invitations, .loaded([delgado]))
+    }
+
+    func testTryAgainThatFailsAgainStaysFailed() async {
+        let model = JoinCareTeamModel(
+            service: GettingInService(listInvitations: { throw URLError(.timedOut) },
+                                      redeem: { _ in .joined }, createTeam: { _ in .created }),
+            onJoined: {}
+        )
+        await model.load()
+        await model.retry()
+        XCTAssertEqual(model.invitations, .failed)
+    }
+
+    func testPastingStillWorksWhenTheListFailed() async {
+        var joined = 0
+        let model = JoinCareTeamModel(
+            service: GettingInService(listInvitations: { throw URLError(.timedOut) },
+                                      redeem: { _ in .joined }, createTeam: { _ in .created }),
+            onJoined: { joined += 1 }
+        )
+        await model.load()
+        model.code = "xyz789"
+        await model.joinWithCode()
+        XCTAssertEqual(joined, 1)
     }
 
     func testAcceptRedeemsThatInvitationsCodeAndRefreshes() async {
         let calls = Calls()
         var joined = 0
         let model = make(redeem: { _ in .joined }, calls: calls, joined: { joined += 1 })
-        await model.accept(riverside)
+        await model.accept(delgado)
         let redeemed = await calls.redeemed
         XCTAssertEqual(redeemed, ["abc123"])
         XCTAssertEqual(joined, 1)
@@ -82,17 +130,69 @@ final class JoinCareTeamModelTests: XCTestCase {
         let model = make(redeem: { _ in .noLongerValid }, calls: Calls(), joined: { joined += 1 })
         model.code = "expired"
         await model.joinWithCode()
-        XCTAssertEqual(model.error, JoinCareTeamModel.noLongerValid)
+        XCTAssertEqual(model.error, JoinCareTeamModel.codeNoLongerValid)
         XCTAssertEqual(model.error?.message, "This invite code is no longer valid")
         XCTAssertEqual(joined, 0)
     }
 
-    func testAlreadyMemberShowsMessage() async {
+    func testStaleInvitationSaysSoAndFetchesTheListAgain() async {
+        let listed = Counter()
+        var joined = 0
+        let delgado = self.delgado
+        let model = JoinCareTeamModel(
+            service: GettingInService(
+                listInvitations: {
+                    // The first fetch shows the invitation; after it goes stale it is gone.
+                    let n = await listed.next()
+                    return n == 1 ? [delgado] : []
+                },
+                redeem: { _ in .noLongerValid },
+                createTeam: { _ in .created }),
+            onJoined: { joined += 1 }
+        )
+        await model.load()
+        await model.accept(delgado)
+        XCTAssertEqual(model.error, JoinCareTeamModel.invitationNoLongerValid)
+        XCTAssertEqual(model.error?.message, "That invitation is no longer valid.")
+        let fetches = await listed.count
+        XCTAssertEqual(fetches, 2)
+        XCTAssertEqual(model.invitations, .loaded([]))
+        XCTAssertEqual(joined, 0)
+        XCTAssertNil(model.acceptingCode)
+    }
+
+    func testPastedNoLongerValidCodeDoesNotRefetchTheList() async {
+        let listed = Counter()
+        let model = JoinCareTeamModel(
+            service: GettingInService(
+                listInvitations: { _ = await listed.next(); return [] },
+                redeem: { _ in .noLongerValid },
+                createTeam: { _ in .created }),
+            onJoined: {}
+        )
+        await model.load()
+        model.code = "expired"
+        await model.joinWithCode()
+        XCTAssertEqual(model.error, JoinCareTeamModel.codeNoLongerValid)
+        let fetches = await listed.count
+        XCTAssertEqual(fetches, 1)
+    }
+
+    func testAlreadyMemberOnAcceptRefreshesWithNoMessage() async {
         var joined = 0
         let model = make(redeem: { _ in .alreadyMember }, calls: Calls(), joined: { joined += 1 })
-        await model.accept(riverside)
-        XCTAssertEqual(model.error?.message, "You're already on this care team")
-        XCTAssertEqual(joined, 0)
+        await model.accept(delgado)
+        XCTAssertNil(model.error)
+        XCTAssertEqual(joined, 1)
+    }
+
+    func testAlreadyMemberOnPasteRefreshesWithNoMessage() async {
+        var joined = 0
+        let model = make(redeem: { _ in .alreadyMember }, calls: Calls(), joined: { joined += 1 })
+        model.code = "abc123"
+        await model.joinWithCode()
+        XCTAssertNil(model.error)
+        XCTAssertEqual(joined, 1)
     }
 
     func testBadRequestShowsServerMessage() async {
@@ -191,5 +291,33 @@ final class CreateFirstCareTeamModelTests: XCTestCase {
         model.name = "x"
         await model.create()
         XCTAssertEqual(model.error, .transport)
+    }
+}
+
+@MainActor
+final class SignOutActionTests: XCTestCase {
+    func testConfirmForgetsThisDeviceThenSignsOut() async {
+        var steps: [String] = []
+        let action = SignOutAction(forgetDeviceSignIn: { steps.append("forget") },
+                                   signOut: { steps.append("signOut") })
+        await action()
+        XCTAssertEqual(steps, ["forget", "signOut"])
+    }
+
+    func testConfirmFromJoinACareTeamLandsSignedOut() async {
+        var handlerCalls = 0
+        let session = Session(
+            bootstrap: { throw Session.NotSignedIn() },
+            bootstrapV1: { Account(name: "Trevor", email: "twilliams0095@gmail.com", teams: []) },
+            fetchFlags: { FeatureFlags(enabled: [FeatureFlags.v1API]) },
+            signOutHandler: { handlerCalls += 1 }
+        )
+        await session.refresh()
+        XCTAssertEqual(session.state, .v1NoTeam(Account(name: "Trevor", email: "twilliams0095@gmail.com", teams: [])))
+        let action = SignOutAction(forgetDeviceSignIn: {}, signOut: { await session.signOut() })
+        await action()
+        XCTAssertEqual(handlerCalls, 1)
+        XCTAssertEqual(session.state, .signedOut)
+        XCTAssertTrue(session.signedOutExplicitly)
     }
 }

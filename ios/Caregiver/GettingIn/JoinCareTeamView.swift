@@ -1,14 +1,17 @@
 import SwiftUI
 
 /// Join a care team — the root when a signed-in caregiver belongs to no care team
-/// (PRD "Getting into the app"; Figma 358:3354 / 358:3386 / 358:3406).
+/// (PRD "Getting into the app"; Figma 358:3354 / 358:3386 / 358:3406 / 497:218 / 497:243).
 struct JoinCareTeamView: View {
     let account: Account
     let service: GettingInService
     let onJoined: () async -> Void
+    /// `session.signOut()`, run once Sign out? is confirmed.
+    let onSignOut: () async -> Void
 
     @State private var model: JoinCareTeamModel?
     @State private var showCreate = false
+    @State private var showSignOut = false
 
     var body: some View {
         Group {
@@ -23,6 +26,9 @@ struct JoinCareTeamView: View {
         .navigationDestination(isPresented: $showCreate) {
             CreateFirstCareTeamView(service: service, onCreated: onJoined)
         }
+        .sheet(isPresented: $showSignOut) {
+            SignOutSheet(action: SignOutAction(signOut: onSignOut))
+        }
         .task {
             if model == nil {
                 let model = JoinCareTeamModel(service: service, onJoined: onJoined)
@@ -36,6 +42,16 @@ struct JoinCareTeamView: View {
         @Bindable var model = model
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                // Figma 497:215 — trailing, styled like Sign in's "Forgot password?".
+                HStack {
+                    Spacer()
+                    Button("Sign out") { showSignOut = true }
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.Colors.accent)
+                        .disabled(model.isBusy)
+                }
+                .padding(.bottom, 18)
+
                 GettingInHeading(title: "Join a care team",
                                  subtitle: "Accept an invitation, or paste an invite code")
                     .padding(.bottom, Theme.Spacing.lg)
@@ -67,7 +83,7 @@ struct JoinCareTeamView: View {
                 .padding(.top, 26)
             }
             .padding(.horizontal, Theme.Spacing.lg)
-            .padding(.top, 28)
+            .padding(.top, Theme.Spacing.xs)
             .padding(.bottom, Theme.Spacing.lg)
         }
         .scrollBounceBehavior(.basedOnSize)
@@ -80,8 +96,14 @@ struct JoinCareTeamView: View {
             ProgressView()
                 .tint(Theme.Colors.accent)
                 .frame(maxWidth: .infinity, alignment: .leading)
-        case .failed(let error):
-            StrideAlertBanner(message: error.message)
+        case .failed:
+            // Figma 497:218: saying so, with Try again, where the list goes.
+            VStack(alignment: .leading, spacing: 10) {
+                StrideAlertBanner(message: JoinCareTeamModel.invitationsFailedMessage)
+                StrideButton(title: "Try again", style: .compact) {
+                    Task { await model.retry() }
+                }
+            }
         case .loaded(let invitations) where invitations.isEmpty:
             Text("No invitations are waiting for \(account.email).")
                 .font(.system(size: 14))
@@ -113,7 +135,7 @@ struct JoinCareTeamView: View {
     NavigationStack {
         JoinCareTeamView(account: GettingInFixtures.trevorNoTeam,
                          service: GettingInFixtures.service(),
-                         onJoined: {})
+                         onJoined: {}, onSignOut: {})
     }
 }
 
@@ -121,7 +143,15 @@ struct JoinCareTeamView: View {
     NavigationStack {
         JoinCareTeamView(account: GettingInFixtures.trevorNoTeam,
                          service: GettingInFixtures.service(invitations: []),
-                         onJoined: {})
+                         onJoined: {}, onSignOut: {})
+    }
+}
+
+#Preview("Invitations failed") {
+    NavigationStack {
+        JoinCareTeamView(account: GettingInFixtures.trevorNoTeam,
+                         service: GettingInFixtures.service(invitationsFail: true),
+                         onJoined: {}, onSignOut: {})
     }
 }
 
@@ -129,7 +159,7 @@ struct JoinCareTeamView: View {
     NavigationStack {
         JoinCareTeamView(account: GettingInFixtures.trevorNoTeam,
                          service: GettingInFixtures.service(redeem: .noLongerValid),
-                         onJoined: {})
+                         onJoined: {}, onSignOut: {})
     }
 }
 #endif

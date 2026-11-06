@@ -29,7 +29,8 @@ struct RootView: View {
                 NavigationStack {
                     JoinCareTeamView(account: account,
                                      service: .live(session.api),
-                                     onJoined: { await session.refresh() })
+                                     onJoined: { await session.refresh() },
+                                     onSignOut: { await session.signOut() })
                 }
                 .tint(Theme.Colors.accent)
             case .v1Ready(let account):

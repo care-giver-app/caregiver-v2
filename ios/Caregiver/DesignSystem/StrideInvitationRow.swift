@@ -50,8 +50,8 @@ struct StrideInvitationRow: View {
 
 #Preview("Waiting + accepting") {
     VStack(spacing: 10) {
-        StrideInvitationRow(team: "The Riverside Group", invitedBy: "Dana", onAccept: {})
-        StrideInvitationRow(team: "Johnson Family", invitedBy: "Marcus", isAccepting: true, onAccept: {})
+        StrideInvitationRow(team: "Delgado Family", invitedBy: "Lucia", onAccept: {})
+        StrideInvitationRow(team: "Delgado Family", invitedBy: "Lucia", isAccepting: true, onAccept: {})
     }
     .padding(Theme.Spacing.lg)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
