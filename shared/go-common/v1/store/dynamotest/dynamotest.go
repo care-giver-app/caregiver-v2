@@ -20,6 +20,20 @@ import (
 // returns Stores wired to it. The container is terminated via t.Cleanup.
 func Start(t *testing.T) *store.Stores {
 	t.Helper()
+	return StartLocal(t).Stores
+}
+
+// Local is a running DynamoDB Local with the v1 tables, for tests that also
+// need to write rows no store method writes (closing an account or a team).
+type Local struct {
+	Stores *store.Stores
+	Client *dynamodb.Client
+	Names  store.TableNames
+}
+
+// StartLocal is Start, also returning the raw client and table names.
+func StartLocal(t *testing.T) Local {
+	t.Helper()
 	ctx := context.Background()
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -61,7 +75,7 @@ func Start(t *testing.T) *store.Stores {
 		Invitations: "test-v1-invitation",
 	}
 	createTables(t, ctx, client, names)
-	return store.New(client, names)
+	return Local{Stores: store.New(client, names), Client: client, Names: names}
 }
 
 func createTables(t *testing.T, ctx context.Context, c *dynamodb.Client, n store.TableNames) {

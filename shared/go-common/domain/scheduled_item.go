@@ -5,7 +5,7 @@ import "time"
 // ScheduledItem is a discrete, dated, planned entry on a scheduled-kind tracker.
 // It is a near-twin of Event: the same denormalized ids and values map (validated
 // against the tracker's fields via ValidateValues), but future-facing
-// (scheduled_for) rather than past (occurred_at). See api/specs/scheduled-items.md.
+// (scheduled_for) rather than past (occurred_at).
 type ScheduledItem struct {
 	ScheduledItemID string         `dynamodbav:"scheduled_item_id" json:"scheduled_item_id"`
 	TrackerID       string         `dynamodbav:"tracker_id" json:"tracker_id"`
