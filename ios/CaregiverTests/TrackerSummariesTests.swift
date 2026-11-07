@@ -103,7 +103,8 @@ final class TrackerSummariesTests: XCTestCase {
     // MARK: recency text
 
     func testRecencyTextBuckets() {
-        let now = Date()
+        // Noon, so "2h ago" never crosses midnight into "Yesterday".
+        let now = Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date())!
         let t = tracker(kind: .event)
         XCTAssertEqual(summary(t, lastAt: now.addingTimeInterval(-30 * 60)).recencyText(now: now), "30m ago")
         XCTAssertEqual(summary(t, lastAt: now.addingTimeInterval(-2 * 3600)).recencyText(now: now), "2h ago")
