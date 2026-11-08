@@ -66,14 +66,14 @@ gap)` in its catalog entry and a bullet in that flow's _Gaps in this flow_. Gues
 Update this table in the same commit that advances a gate. `—` not started · `draft` presented,
 awaiting approval · `approved` merged to `main`.
 
-| Area       | Screen catalog | Figma UI | Endpoints | Built |
-| ---------- | -------------- | -------- | --------- | ----- |
-| Getting in | approved       | approved | approved  | —     |
-| Trackers   | approved       | approved | —         | —     |
-| Home       | approved       | approved | —         | —     |
-| Team       | approved       | approved | —         | —     |
-| Settings   | approved       | approved | —         | —     |
-| Insights   | deferred       | deferred | deferred  | —     |
+| Area       | Screen catalog | Figma UI | Endpoints | Built    |
+| ---------- | -------------- | -------- | --------- | -------- |
+| Getting in | approved       | approved | approved  | approved |
+| Trackers   | approved       | approved | —         | —        |
+| Home       | approved       | approved | —         | —        |
+| Team       | approved       | approved | —         | —        |
+| Settings   | approved       | approved | —         | —        |
+| Insights   | deferred       | deferred | deferred  | —        |
 
 **Data model pass:** approved — `docs/adr/0012-target-data-model.md` (gates every Endpoints cell above)
 
