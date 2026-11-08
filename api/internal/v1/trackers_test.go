@@ -312,7 +312,9 @@ func TestTrackers_Edit(t *testing.T) {
 	edit := func(color, gap, fields string) string {
 		return `{"name":"Body weight","icon":"scalemass","color":"` + color + `","gap_hours":` + gap + `,"fields":[` + fields + `]}`
 	}
-	put := func(body string) *httptest.ResponseRecorder { return f.do("admin", http.MethodPut, "/v1/trackers/tr1", body) }
+	put := func(body string) *httptest.ResponseRecorder {
+		return f.do("admin", http.MethodPut, "/v1/trackers/tr1", body)
+	}
 
 	for name, body := range map[string]string{
 		"omitted field":   edit("#4F8EF7", "null", weight),
