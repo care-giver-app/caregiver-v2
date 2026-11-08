@@ -66,9 +66,14 @@ struct StrideButton: View {
                 .font(Theme.Typography.headline)
                 .frame(maxWidth: .infinity, minHeight: Metrics.height)
                 .foregroundStyle(Theme.Colors.textPrimary)
+                // Figma `Stride/Button` secondary (e.g. 353:3204): a white fill and a
+                // hairline border, so it reads on the gradient and on a white sheet.
+                .background {
+                    RoundedRectangle(cornerRadius: Metrics.radius).fill(Theme.Colors.surface)
+                }
                 .overlay(
                     RoundedRectangle(cornerRadius: Metrics.radius)
-                        .stroke(Theme.Colors.textSecondary.opacity(0.55), lineWidth: 1.5)
+                        .stroke(Theme.Colors.border, lineWidth: 1)
                 )
         }
         .buttonStyle(StridePressStyle())

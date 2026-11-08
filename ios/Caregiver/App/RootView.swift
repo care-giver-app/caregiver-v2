@@ -1,13 +1,11 @@
 import SwiftUI
 
-enum AuthScreen { case landing, signIn, signUp }
-
 struct RootView: View {
     @Environment(Session.self) private var session
     @State private var auth = AuthModel()
-    @State private var authScreen: AuthScreen = .landing
     @AppStorage("faceIDEnabled") private var faceIDEnabled = false
-    @State private var showEnableFaceID = false
+    @AppStorage(DeviceSignIn.faceIDOfferedKey) private var faceIDOffered = false
+    @State private var showOfferFaceID = false
     @State private var receiverContext = ReceiverContext()
     @State private var summaries = TrackerSummariesModel()
     @State private var selectedTab: StrideTab = .home
@@ -44,24 +42,31 @@ struct RootView: View {
         .onChange(of: session.state) {
             switch session.state {
             case .signedOut:
-                authScreen = .landing
+                auth.reset()
                 summaries.reset()
-                if !session.signedOutExplicitly && faceIDEnabled && BiometricAuth.isAvailable {
+                // Never after a deliberate sign out: that is a caregiver saying they want out.
+                if !session.signedOutExplicitly && faceIDEnabled && BiometricAuth.isAvailable
+                    && auth.hasStoredCredentials {
                     Task {
-                        let granted = await BiometricAuth.authenticate(reason: "Sign in to Caregiver")
+                        let granted = await BiometricAuth.authenticate(reason: "Sign in to CareToSher")
                         if granted { await auth.signInWithBiometrics() }
                     }
                 }
-            case .ready:
-                if BiometricAuth.isAvailable && !faceIDEnabled {
-                    showEnableFaceID = true
+            // `.v1Ready` stands in for Home while flag `v1_api` is on.
+            case .ready, .v1Ready:
+                if AuthModel.shouldOfferFaceID(biometryAvailable: BiometricAuth.isAvailable,
+                                               enabled: faceIDEnabled,
+                                               alreadyOffered: faceIDOffered,
+                                               hasPassword: auth.hasPasswordInMemory) {
+                    faceIDOffered = true
+                    showOfferFaceID = true
                 }
             default:
                 break
             }
         }
-        .sheet(isPresented: $showEnableFaceID) {
-            EnableBiometricSheet {
+        .sheet(isPresented: $showOfferFaceID) {
+            OfferFaceIDSheet {
                 auth.enableBiometrics()
                 faceIDEnabled = true
             }
@@ -133,17 +138,24 @@ private extension View {
 
 // MARK: - Auth flow
 private extension RootView {
-    @ViewBuilder var authFlow: some View {
-        switch authScreen {
-        case .landing:
-            AuthLandingView(
-                onSignIn: { authScreen = .signIn },
-                onSignUp: { authScreen = .signUp }
-            )
-        case .signIn:
-            SignInView(model: auth, onCreateAccount: { authScreen = .signUp })
-        case .signUp:
-            SignUpView(model: auth, onSignIn: { authScreen = .signIn })
+    /// Landing, with Sign in or Sign up pushed over it — never both: they swap —
+    /// and the one sheet Getting in raises (PRD "Getting into the app").
+    var authFlow: some View {
+        @Bindable var auth = auth
+        return NavigationStack(path: $auth.path) {
+            AuthLandingView(onSignIn: { auth.show(.signIn) },
+                            onSignUp: { auth.show(.signUp) })
+                .navigationDestination(for: AuthScreen.self) { screen in
+                    switch screen {
+                    case .signIn: SignInView(model: auth)
+                    case .signUp: SignUpView(model: auth)
+                    }
+                }
+        }
+        .tint(Theme.Colors.accent)
+        .sheet(isPresented: Binding(get: { auth.sheet != nil },
+                                    set: { if !$0 { auth.dismissSheet() } })) {
+            AuthSheetView(model: auth)
         }
     }
 }
