@@ -73,6 +73,21 @@ func TestTracker_CreateGetPutList(t *testing.T) {
 	if _, err := s.Trackers.Get(ctx, "missing"); !errors.Is(err, store.ErrNotFound) {
 		t.Fatal("put must not create")
 	}
+	// A pause landing between Edit's read and its Save survives the Save.
+	stale, _ := s.Trackers.Get(ctx, "tr1")
+	if _, err := s.Trackers.SetStatus(ctx, "tr1", domain.TrackerPaused, "u2", now); err != nil {
+		t.Fatalf("pause: %v", err)
+	}
+	stale.Name = "BP edited"
+	if err := s.Trackers.Put(ctx, stale); err != nil {
+		t.Fatalf("stale put: %v", err)
+	}
+	if after, _ := s.Trackers.Get(ctx, "tr1"); after.Name != "BP edited" || after.Status != domain.TrackerPaused || after.PausedAt == nil {
+		t.Fatalf("edit undid the pause: %+v", after)
+	}
+	if _, err := s.Trackers.SetStatus(ctx, "tr1", domain.TrackerActive, "u2", now); err != nil {
+		t.Fatalf("resume: %v", err)
+	}
 
 	list, err := s.Trackers.ListByReceiver(ctx, "r1")
 	if err != nil || len(list) != 2 || list[0].TrackerID != "tr0" || list[1].TrackerID != "tr1" {

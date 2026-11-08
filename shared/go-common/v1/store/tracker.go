@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -45,10 +47,42 @@ func (s *TrackerStore) Create(ctx context.Context, t domain.Tracker) error {
 	return s.put(ctx, t, "attribute_not_exists(tracker_id)")
 }
 
-// Put overwrites an existing tracker (Edit tracker's Save). It returns
-// ErrNotFound if the tracker no longer exists.
+// editedAttrs are what Edit tracker's Save changes. Status and its by/at stay
+// with SetStatus, so a pause landing mid-edit is never undone.
+var editedAttrs = []string{"name", "icon", "color", "fields", "gap_hours"}
+
+// Put writes Edit tracker's Save onto an existing tracker: only editedAttrs, an
+// absent one removed. It returns ErrNotFound if the tracker no longer exists.
 func (s *TrackerStore) Put(ctx context.Context, t domain.Tracker) error {
-	err := s.put(ctx, t, "attribute_exists(tracker_id)")
+	item, err := MarshalItem(t)
+	if err != nil {
+		return err
+	}
+	names := map[string]string{}
+	values := map[string]types.AttributeValue{}
+	var set, remove []string
+	for i, a := range editedAttrs {
+		n := fmt.Sprintf("#a%d", i)
+		names[n] = a
+		if v, ok := item[a]; ok {
+			values[fmt.Sprintf(":a%d", i)] = v
+			set = append(set, fmt.Sprintf("%s = :a%d", n, i))
+		} else {
+			remove = append(remove, n)
+		}
+	}
+	expr := "SET " + strings.Join(set, ", ")
+	if len(remove) > 0 {
+		expr += " REMOVE " + strings.Join(remove, ", ")
+	}
+	_, err = s.client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName:                 aws.String(s.table),
+		Key:                       map[string]types.AttributeValue{"tracker_id": &types.AttributeValueMemberS{Value: t.TrackerID}},
+		UpdateExpression:          aws.String(expr),
+		ConditionExpression:       aws.String("attribute_exists(tracker_id)"),
+		ExpressionAttributeNames:  names,
+		ExpressionAttributeValues: values,
+	})
 	var ccf *types.ConditionalCheckFailedException
 	if errors.As(err, &ccf) {
 		return ErrNotFound

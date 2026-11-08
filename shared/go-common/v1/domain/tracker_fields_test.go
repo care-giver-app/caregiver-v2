@@ -180,6 +180,7 @@ func TestApplyFieldChanges_rejects(t *testing.T) {
 		{"field left out", []FieldWrite{sys, mood(bothOpts...)}, ErrFieldOmitted},
 		{"option left out", []FieldWrite{sys, mood(OptionWrite{OptionID: "good", Label: "Good"}), pulse}, ErrOptionOmitted},
 		{"type changed", []FieldWrite{{FieldID: "sys", Label: "Systolic", Type: FieldText}, mood(bothOpts...), pulse}, ErrFieldTypeChanged},
+		{"answers changed", []FieldWrite{sys, {FieldID: "mood", Label: "Mood", Type: FieldChoice, Multiple: true, Options: bothOpts}, pulse}, ErrFieldAnswersChanged},
 		{"unknown field", []FieldWrite{sys, mood(bothOpts...), pulse, {FieldID: "nope", Label: "X", Type: FieldText}}, ErrUnknownField},
 		{"field twice", []FieldWrite{sys, sys, mood(bothOpts...), pulse}, ErrUnknownField},
 		{"unknown option", []FieldWrite{sys, mood(append(bothOpts, OptionWrite{OptionID: "nope", Label: "X"})...), pulse}, ErrUnknownOption},

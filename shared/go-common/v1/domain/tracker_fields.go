@@ -30,6 +30,9 @@ var (
 	ErrOptionOmitted = invalid("an existing choice option was left out")
 	// ErrFieldTypeChanged: an edit changed an existing field's type, which is fixed.
 	ErrFieldTypeChanged = invalid("an existing field's type cannot change")
+	// ErrFieldAnswersChanged: an edit switched an existing choice between one
+	// answer and several, which is decided when the field is made.
+	ErrFieldAnswersChanged = invalid("an existing choice cannot change between one answer and several")
 	// ErrUnknownField: an edit named a field_id the tracker does not have, or named one twice.
 	ErrUnknownField = invalid("unknown field_id")
 	// ErrUnknownOption: an edit named an option_id the field does not have, or named one twice.
@@ -120,6 +123,9 @@ func ApplyFieldChanges(existing []Field, ws []FieldWrite, now time.Time) ([]Fiel
 			seen[w.FieldID] = true
 			if w.Type != f.Type {
 				return nil, fieldErr(ErrFieldTypeChanged, f.Label)
+			}
+			if w.Multiple != f.Multiple {
+				return nil, fieldErr(ErrFieldAnswersChanged, f.Label)
 			}
 			old = &f
 		}
