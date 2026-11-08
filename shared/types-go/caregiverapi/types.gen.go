@@ -46,27 +46,132 @@ func (e BreachBound) Valid() bool {
 	}
 }
 
+// Defines values for ChoiceOptionStatus.
+const (
+	ChoiceOptionStatusActive  ChoiceOptionStatus = "active"
+	ChoiceOptionStatusRetired ChoiceOptionStatus = "retired"
+)
+
+// Valid indicates whether the value is a known member of the ChoiceOptionStatus enum.
+func (e ChoiceOptionStatus) Valid() bool {
+	switch e {
+	case ChoiceOptionStatusActive:
+		return true
+	case ChoiceOptionStatusRetired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChoiceOptionWriteStatus.
+const (
+	ChoiceOptionWriteStatusActive  ChoiceOptionWriteStatus = "active"
+	ChoiceOptionWriteStatusRetired ChoiceOptionWriteStatus = "retired"
+)
+
+// Valid indicates whether the value is a known member of the ChoiceOptionWriteStatus enum.
+func (e ChoiceOptionWriteStatus) Valid() bool {
+	switch e {
+	case ChoiceOptionWriteStatusActive:
+		return true
+	case ChoiceOptionWriteStatusRetired:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EntryState.
+const (
+	EntryStateLogged     EntryState = "logged"
+	EntryStateScheduled  EntryState = "scheduled"
+	EntryStateSkipped    EntryState = "skipped"
+	EntryStateUnrecorded EntryState = "unrecorded"
+)
+
+// Valid indicates whether the value is a known member of the EntryState enum.
+func (e EntryState) Valid() bool {
+	switch e {
+	case EntryStateLogged:
+		return true
+	case EntryStateScheduled:
+		return true
+	case EntryStateSkipped:
+		return true
+	case EntryStateUnrecorded:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FieldKind.
+const (
+	FieldKindBoolean  FieldKind = "boolean"
+	FieldKindChoice   FieldKind = "choice"
+	FieldKindDatetime FieldKind = "datetime"
+	FieldKindNumber   FieldKind = "number"
+	FieldKindText     FieldKind = "text"
+)
+
+// Valid indicates whether the value is a known member of the FieldKind enum.
+func (e FieldKind) Valid() bool {
+	switch e {
+	case FieldKindBoolean:
+		return true
+	case FieldKindChoice:
+		return true
+	case FieldKindDatetime:
+		return true
+	case FieldKindNumber:
+		return true
+	case FieldKindText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FieldStatus.
+const (
+	FieldStatusActive FieldStatus = "active"
+	FieldStatusPaused FieldStatus = "paused"
+)
+
+// Valid indicates whether the value is a known member of the FieldStatus enum.
+func (e FieldStatus) Valid() bool {
+	switch e {
+	case FieldStatusActive:
+		return true
+	case FieldStatusPaused:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FieldType.
 const (
-	Boolean  FieldType = "boolean"
-	Datetime FieldType = "datetime"
-	Enum     FieldType = "enum"
-	Number   FieldType = "number"
-	Text     FieldType = "text"
+	FieldTypeBoolean  FieldType = "boolean"
+	FieldTypeDatetime FieldType = "datetime"
+	FieldTypeEnum     FieldType = "enum"
+	FieldTypeNumber   FieldType = "number"
+	FieldTypeText     FieldType = "text"
 )
 
 // Valid indicates whether the value is a known member of the FieldType enum.
 func (e FieldType) Valid() bool {
 	switch e {
-	case Boolean:
+	case FieldTypeBoolean:
 		return true
-	case Datetime:
+	case FieldTypeDatetime:
 		return true
-	case Enum:
+	case FieldTypeEnum:
 		return true
-	case Number:
+	case FieldTypeNumber:
 		return true
-	case Text:
+	case FieldTypeText:
 		return true
 	default:
 		return false
@@ -91,6 +196,21 @@ func (e HealthStatus) Valid() bool {
 	}
 }
 
+// Defines values for RecurrenceFreq.
+const (
+	Weekly RecurrenceFreq = "weekly"
+)
+
+// Valid indicates whether the value is a known member of the RecurrenceFreq enum.
+func (e RecurrenceFreq) Valid() bool {
+	switch e {
+	case Weekly:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Role.
 const (
 	RoleAdmin     Role = "admin"
@@ -103,6 +223,27 @@ func (e Role) Valid() bool {
 	case RoleAdmin:
 		return true
 	case RoleCaregiver:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TrackerAttentionKind.
+const (
+	TrackerAttentionKindGap        TrackerAttentionKind = "gap"
+	TrackerAttentionKindOutOfRange TrackerAttentionKind = "out_of_range"
+	TrackerAttentionKindUnrecorded TrackerAttentionKind = "unrecorded"
+)
+
+// Valid indicates whether the value is a known member of the TrackerAttentionKind enum.
+func (e TrackerAttentionKind) Valid() bool {
+	switch e {
+	case TrackerAttentionKindGap:
+		return true
+	case TrackerAttentionKindOutOfRange:
+		return true
+	case TrackerAttentionKindUnrecorded:
 		return true
 	default:
 		return false
@@ -124,6 +265,57 @@ func (e TrackerKind) Valid() bool {
 	case TrackerKindMeasurement:
 		return true
 	case TrackerKindScheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TrackerStatus.
+const (
+	TrackerStatusActive TrackerStatus = "active"
+	TrackerStatusPaused TrackerStatus = "paused"
+)
+
+// Valid indicates whether the value is a known member of the TrackerStatus enum.
+func (e TrackerStatus) Valid() bool {
+	switch e {
+	case TrackerStatusActive:
+		return true
+	case TrackerStatusPaused:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Weekday.
+const (
+	FR Weekday = "FR"
+	MO Weekday = "MO"
+	SA Weekday = "SA"
+	SU Weekday = "SU"
+	TH Weekday = "TH"
+	TU Weekday = "TU"
+	WE Weekday = "WE"
+)
+
+// Valid indicates whether the value is a known member of the Weekday enum.
+func (e Weekday) Valid() bool {
+	switch e {
+	case FR:
+		return true
+	case MO:
+		return true
+	case SA:
+		return true
+	case SU:
+		return true
+	case TH:
+		return true
+	case TU:
+		return true
+	case WE:
 		return true
 	default:
 		return false
@@ -154,6 +346,16 @@ type CareGroupMembership struct {
 	Role        Role   `json:"role"`
 }
 
+// CareReceiver defines model for CareReceiver.
+type CareReceiver struct {
+	Name       string `json:"name"`
+	ReceiverId string `json:"receiver_id"`
+	TeamId     string `json:"team_id"`
+
+	// TimeZone IANA zone every wall-clock time about this receiver is read in
+	TimeZone string `json:"time_zone"`
+}
+
 // Caregiver defines model for Caregiver.
 type Caregiver struct {
 	Email openapi_types.Email `json:"email"`
@@ -162,6 +364,38 @@ type Caregiver struct {
 	// UserId Cognito sub
 	UserId string `json:"user_id"`
 }
+
+// CatalogTemplate defines model for CatalogTemplate.
+type CatalogTemplate struct {
+	Color      string              `json:"color"`
+	Fields     []TrackerFieldWrite `json:"fields"`
+	GapHours   *int                `json:"gap_hours,omitempty"`
+	Icon       string              `json:"icon"`
+	Name       string              `json:"name"`
+	TemplateId string              `json:"template_id"`
+}
+
+// ChoiceOption defines model for ChoiceOption.
+type ChoiceOption struct {
+	Label    string             `json:"label"`
+	OptionId string             `json:"option_id"`
+	Status   ChoiceOptionStatus `json:"status"`
+}
+
+// ChoiceOptionStatus defines model for ChoiceOption.Status.
+type ChoiceOptionStatus string
+
+// ChoiceOptionWrite defines model for ChoiceOptionWrite.
+type ChoiceOptionWrite struct {
+	Label string `json:"label"`
+
+	// OptionId Absent for a new option
+	OptionId *string                  `json:"option_id,omitempty"`
+	Status   *ChoiceOptionWriteStatus `json:"status,omitempty"`
+}
+
+// ChoiceOptionWriteStatus defines model for ChoiceOptionWrite.Status.
+type ChoiceOptionWriteStatus string
 
 // CreateCareGroupRequest defines model for CreateCareGroupRequest.
 type CreateCareGroupRequest struct {
@@ -184,6 +418,39 @@ type CreateReceiverRequest struct {
 type CreateTeamRequest struct {
 	Name string `json:"name"`
 }
+
+// Entry defines model for Entry.
+type Entry struct {
+	// At When the care happened if logged, otherwise when it was due
+	At time.Time `json:"at"`
+
+	// ByName Who logged or skipped it, or "a former caregiver"; absent while unrecorded
+	ByName     *string `json:"by_name,omitempty"`
+	EntryId    string  `json:"entry_id"`
+	Note       *string `json:"note,omitempty"`
+	ScheduleId *string `json:"schedule_id,omitempty"`
+
+	// ScheduleName Present when it came from a schedule
+	ScheduleName *string `json:"schedule_name,omitempty"`
+
+	// State Unrecorded is never stored; it is a scheduled entry whose time has passed.
+	State     EntryState `json:"state"`
+	TrackerId string     `json:"tracker_id"`
+
+	// Values Keyed by field_id; a choice is a list of option_ids
+	Values map[string]interface{} `json:"values"`
+}
+
+// EntryPage defines model for EntryPage.
+type EntryPage struct {
+	Entries []Entry `json:"entries"`
+
+	// NextCursor Absent on the last page
+	NextCursor *string `json:"next_cursor,omitempty"`
+}
+
+// EntryState Unrecorded is never stored; it is a scheduled entry whose time has passed.
+type EntryState string
 
 // Error defines model for Error.
 type Error struct {
@@ -227,6 +494,12 @@ type Field struct {
 	Type      FieldType  `json:"type"`
 	Unit      *string    `json:"unit,omitempty"`
 }
+
+// FieldKind defines model for FieldKind.
+type FieldKind string
+
+// FieldStatus defines model for FieldStatus.
+type FieldStatus string
 
 // FieldType defines model for FieldType.
 type FieldType string
@@ -289,6 +562,32 @@ type MyAccount struct {
 	Teams     []TeamMembership `json:"teams"`
 }
 
+// NewSchedule defines model for NewSchedule.
+type NewSchedule struct {
+	EndsOn        *openapi_types.Date    `json:"ends_on,omitempty"`
+	Label         *string                `json:"label,omitempty"`
+	PlannedValues map[string]interface{} `json:"planned_values"`
+
+	// ReplaceGap Confirms that the first schedule turns the tracker's gap off
+	ReplaceGap *bool `json:"replace_gap,omitempty"`
+
+	// Rule A rule, not a preset (ADR 0012). The app's choices write into it — every week, two weeks, month and two months are intervals of 1, 2, 4 and 8 weeks. More frequencies can be added later without migrating data.
+	Rule            Recurrence `json:"rule"`
+	Time            string     `json:"time"`
+	UnrecordedAlert bool       `json:"unrecorded_alert"`
+}
+
+// NewTracker defines model for NewTracker.
+type NewTracker struct {
+	Color    string              `json:"color"`
+	Fields   []TrackerFieldWrite `json:"fields"`
+	GapHours *int                `json:"gap_hours,omitempty"`
+
+	// Icon An SF Symbol name
+	Icon string `json:"icon"`
+	Name string `json:"name"`
+}
+
 // PendingInvitation defines model for PendingInvitation.
 type PendingInvitation struct {
 	CareGroupId   string `json:"care_group_id"`
@@ -309,6 +608,16 @@ type Receiver struct {
 	ReceiverId  string    `json:"receiver_id"`
 }
 
+// Recurrence A rule, not a preset (ADR 0012). The app's choices write into it — every week, two weeks, month and two months are intervals of 1, 2, 4 and 8 weeks. More frequencies can be added later without migrating data.
+type Recurrence struct {
+	ByDay    []Weekday      `json:"by_day"`
+	Freq     RecurrenceFreq `json:"freq"`
+	Interval int            `json:"interval"`
+}
+
+// RecurrenceFreq defines model for Recurrence.Freq.
+type RecurrenceFreq string
+
 // RedeemInvitationRequest defines model for RedeemInvitationRequest.
 type RedeemInvitationRequest struct {
 	Code string `json:"code"`
@@ -316,6 +625,18 @@ type RedeemInvitationRequest struct {
 
 // Role defines model for Role.
 type Role string
+
+// ScheduleWrite defines model for ScheduleWrite.
+type ScheduleWrite struct {
+	EndsOn        *openapi_types.Date    `json:"ends_on,omitempty"`
+	Label         *string                `json:"label,omitempty"`
+	PlannedValues map[string]interface{} `json:"planned_values"`
+
+	// Rule A rule, not a preset (ADR 0012). The app's choices write into it — every week, two weeks, month and two months are intervals of 1, 2, 4 and 8 weeks. More frequencies can be added later without migrating data.
+	Rule            Recurrence `json:"rule"`
+	Time            string     `json:"time"`
+	UnrecordedAlert bool       `json:"unrecorded_alert"`
+}
 
 // ScheduledItem defines model for ScheduledItem.
 type ScheduledItem struct {
@@ -371,8 +692,145 @@ type Tracker struct {
 	TrackerId   string      `json:"tracker_id"`
 }
 
+// TrackerAttention One thing wrong with a tracker right now, worked out when it is read. `unrecorded` — an occurrence whose time has passed with nothing logged or skipped, for forty-eight hours after that time, whether or not it alerts anyone (`entry_id`, `occurrence_at`). `out_of_range` — a number field whose latest logged reading is outside its range (`entry_id`, `field_id`, `value`, `range`). `gap` — longer than `gap_hours` since the last entry, or since the tracker was created when there has never been one (`since`, `gap_hours`).
+type TrackerAttention struct {
+	EntryId      *string              `json:"entry_id,omitempty"`
+	FieldId      *string              `json:"field_id,omitempty"`
+	GapHours     *int                 `json:"gap_hours,omitempty"`
+	Kind         TrackerAttentionKind `json:"kind"`
+	OccurrenceAt *time.Time           `json:"occurrence_at,omitempty"`
+
+	// Range Where a number is expected to stay. Either bound may be left open. A number field with no range never alerts.
+	Range *ValueRange `json:"range,omitempty"`
+	Since *time.Time  `json:"since,omitempty"`
+	Value *float32    `json:"value,omitempty"`
+}
+
+// TrackerAttentionKind defines model for TrackerAttention.Kind.
+type TrackerAttentionKind string
+
+// TrackerChanges Everything Edit tracker's Save commits; schedules and pausing are separate.
+type TrackerChanges struct {
+	Color string `json:"color"`
+
+	// Fields Every existing field by its `field_id`, in the order to show them, plus any new ones without one
+	Fields []TrackerFieldWrite `json:"fields"`
+
+	// GapHours null turns the gap off
+	GapHours *int   `json:"gap_hours"`
+	Icon     string `json:"icon"`
+	Name     string `json:"name"`
+
+	// RemoveSchedules Confirms that turning the gap on removes every schedule
+	RemoveSchedules *bool `json:"remove_schedules,omitempty"`
+}
+
+// TrackerDetail defines model for TrackerDetail.
+type TrackerDetail struct {
+	// Attention Empty when nothing is wrong, and always empty when paused
+	Attention []TrackerAttention `json:"attention"`
+	Color     string             `json:"color"`
+	CreatedAt time.Time          `json:"created_at"`
+
+	// Fields Every field it has ever had, paused ones included, in order
+	Fields []TrackerField `json:"fields"`
+
+	// GapHours Absent when no gap watches it. Never present alongside schedules.
+	GapHours      *int          `json:"gap_hours,omitempty"`
+	Icon          string        `json:"icon"`
+	LastLoggedAt  *time.Time    `json:"last_logged_at,omitempty"`
+	Name          string        `json:"name"`
+	PausedAt      *time.Time    `json:"paused_at,omitempty"`
+	ReceiverId    string        `json:"receiver_id"`
+	ScheduleCount int           `json:"schedule_count"`
+	Status        TrackerStatus `json:"status"`
+	TeamId        string        `json:"team_id"`
+	TrackerId     string        `json:"tracker_id"`
+}
+
+// TrackerField defines model for TrackerField.
+type TrackerField struct {
+	// FieldId Stable, never reused within its tracker
+	FieldId string `json:"field_id"`
+	Label   string `json:"label"`
+
+	// Multiple choice only — one answer or several
+	Multiple *bool `json:"multiple,omitempty"`
+
+	// Options choice only. Never shrinks; options are retired instead.
+	Options *[]ChoiceOption `json:"options,omitempty"`
+
+	// Range Where a number is expected to stay. Either bound may be left open. A number field with no range never alerts.
+	Range    *ValueRange `json:"range,omitempty"`
+	Required bool        `json:"required"`
+	Status   FieldStatus `json:"status"`
+	Type     FieldKind   `json:"type"`
+
+	// Unit number only
+	Unit *string `json:"unit,omitempty"`
+}
+
+// TrackerFieldWrite defines model for TrackerFieldWrite.
+type TrackerFieldWrite struct {
+	// FieldId Absent for a new field
+	FieldId  *string              `json:"field_id,omitempty"`
+	Label    string               `json:"label"`
+	Multiple *bool                `json:"multiple,omitempty"`
+	Options  *[]ChoiceOptionWrite `json:"options,omitempty"`
+
+	// Range Where a number is expected to stay. Either bound may be left open. A number field with no range never alerts.
+	Range    *ValueRange  `json:"range,omitempty"`
+	Required bool         `json:"required"`
+	Status   *FieldStatus `json:"status,omitempty"`
+	Type     FieldKind    `json:"type"`
+	Unit     *string      `json:"unit,omitempty"`
+}
+
 // TrackerKind defines model for TrackerKind.
 type TrackerKind string
+
+// TrackerRow defines model for TrackerRow.
+type TrackerRow struct {
+	Color string `json:"color"`
+	Icon  string `json:"icon"`
+
+	// LastLoggedAt Absent when nothing has ever been logged against it
+	LastLoggedAt *time.Time `json:"last_logged_at,omitempty"`
+	Name         string     `json:"name"`
+
+	// NeedsAttention Always false when paused
+	NeedsAttention bool          `json:"needs_attention"`
+	PausedAt       *time.Time    `json:"paused_at,omitempty"`
+	Status         TrackerStatus `json:"status"`
+	TrackerId      string        `json:"tracker_id"`
+}
+
+// TrackerSchedule defines model for TrackerSchedule.
+type TrackerSchedule struct {
+	EndsOn *openapi_types.Date `json:"ends_on,omitempty"`
+
+	// Label What an admin typed; absent when left blank
+	Label *string `json:"label,omitempty"`
+
+	// Name The label, or a name derived from the schedule when it has none
+	Name string `json:"name"`
+
+	// PlannedValues Pre-filled values keyed by field_id; a choice is a list of option_ids
+	PlannedValues map[string]interface{} `json:"planned_values"`
+
+	// Rule A rule, not a preset (ADR 0012). The app's choices write into it — every week, two weeks, month and two months are intervals of 1, 2, 4 and 8 weeks. More frequencies can be added later without migrating data.
+	Rule       Recurrence         `json:"rule"`
+	ScheduleId string             `json:"schedule_id"`
+	StartsOn   openapi_types.Date `json:"starts_on"`
+
+	// Time Local HH:MM in the receiver's time zone
+	Time            string `json:"time"`
+	TrackerId       string `json:"tracker_id"`
+	UnrecordedAlert bool   `json:"unrecorded_alert"`
+}
+
+// TrackerStatus defines model for TrackerStatus.
+type TrackerStatus string
 
 // TrackerTemplate defines model for TrackerTemplate.
 type TrackerTemplate struct {
@@ -407,6 +865,15 @@ type User struct {
 	UserId    string              `json:"user_id"`
 }
 
+// ValueRange Where a number is expected to stay. Either bound may be left open. A number field with no range never alerts.
+type ValueRange struct {
+	High *float32 `json:"high,omitempty"`
+	Low  *float32 `json:"low,omitempty"`
+}
+
+// Weekday defines model for Weekday.
+type Weekday string
+
 // AlreadyMember defines model for AlreadyMember.
 type AlreadyMember = Error
 
@@ -427,6 +894,9 @@ type InvitationNotValid = Error
 
 // NotFound defines model for NotFound.
 type NotFound = Error
+
+// SchedulesOrGap defines model for SchedulesOrGap.
+type SchedulesOrGap = Error
 
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = Error
@@ -463,6 +933,14 @@ type ListScheduledItemsParams struct {
 	To     *time.Time `form:"to,omitempty" json:"to,omitempty"`
 }
 
+// ListTrackerEntriesParams defines parameters for ListTrackerEntries.
+type ListTrackerEntriesParams struct {
+	From   *openapi_types.Date `form:"from,omitempty" json:"from,omitempty"`
+	To     *openapi_types.Date `form:"to,omitempty" json:"to,omitempty"`
+	Cursor *string             `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *int                `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // CreateCareGroupJSONRequestBody defines body for CreateCareGroup for application/json ContentType.
 type CreateCareGroupJSONRequestBody = CreateCareGroupRequest
 
@@ -496,8 +974,20 @@ type CreateScheduledItemJSONRequestBody = ScheduledItemWrite
 // RedeemInvitationJSONRequestBody defines body for RedeemInvitation for application/json ContentType.
 type RedeemInvitationJSONRequestBody = RedeemInvitationRequest
 
+// AddTrackerJSONRequestBody defines body for AddTracker for application/json ContentType.
+type AddTrackerJSONRequestBody = NewTracker
+
+// ChangeScheduleJSONRequestBody defines body for ChangeSchedule for application/json ContentType.
+type ChangeScheduleJSONRequestBody = ScheduleWrite
+
 // CreateTeamJSONRequestBody defines body for CreateTeam for application/json ContentType.
 type CreateTeamJSONRequestBody = CreateTeamRequest
+
+// EditTrackerJSONRequestBody defines body for EditTracker for application/json ContentType.
+type EditTrackerJSONRequestBody = TrackerChanges
+
+// AddScheduleJSONRequestBody defines body for AddSchedule for application/json ContentType.
+type AddScheduleJSONRequestBody = NewSchedule
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -603,9 +1093,48 @@ type ServerInterface interface {
 	// Pending invitations addressed to the caller's verified email
 	// (GET /v1/me/invitations)
 	ListInvitationsForMe(w http.ResponseWriter, r *http.Request)
+	// Every tracker of one care receiver, active and paused
+	// (GET /v1/receivers/{receiverId}/trackers)
+	ListReceiverTrackers(w http.ResponseWriter, r *http.Request, receiverId string)
+	// Create a tracker for an active care receiver (admin only)
+	// (POST /v1/receivers/{receiverId}/trackers)
+	AddTracker(w http.ResponseWriter, r *http.Request, receiverId string)
+	// Remove this schedule? — Remove (admin only)
+	// (DELETE /v1/schedules/{scheduleId})
+	RemoveSchedule(w http.ResponseWriter, r *http.Request, scheduleId string)
+	// A schedule's Save, for an existing schedule (admin only)
+	// (PUT /v1/schedules/{scheduleId})
+	ChangeSchedule(w http.ResponseWriter, r *http.Request, scheduleId string)
 	// Create a care team; the caller becomes its first admin
 	// (POST /v1/teams)
 	CreateTeam(w http.ResponseWriter, r *http.Request)
+	// The care team's care receivers, oldest first
+	// (GET /v1/teams/{teamId}/receivers)
+	ListTeamReceivers(w http.ResponseWriter, r *http.Request, teamId string)
+	// The tracker template catalogue
+	// (GET /v1/tracker-templates)
+	ListTemplates(w http.ResponseWriter, r *http.Request)
+	// One tracker, with what is wrong with it right now
+	// (GET /v1/trackers/{trackerId})
+	GetTrackerDetail(w http.ResponseWriter, r *http.Request, trackerId string)
+	// Edit tracker's Save (admin only)
+	// (PUT /v1/trackers/{trackerId})
+	EditTracker(w http.ResponseWriter, r *http.Request, trackerId string)
+	// A tracker's entries, newest first
+	// (GET /v1/trackers/{trackerId}/entries)
+	ListTrackerEntries(w http.ResponseWriter, r *http.Request, trackerId string, params ListTrackerEntriesParams)
+	// Pause a tracker (admin only)
+	// (POST /v1/trackers/{trackerId}/pause)
+	PauseTracker(w http.ResponseWriter, r *http.Request, trackerId string)
+	// Resume a paused tracker (admin only)
+	// (POST /v1/trackers/{trackerId}/resume)
+	ResumeTracker(w http.ResponseWriter, r *http.Request, trackerId string)
+	// A tracker's schedules, readable by anyone on the team
+	// (GET /v1/trackers/{trackerId}/schedules)
+	ListTrackerSchedules(w http.ResponseWriter, r *http.Request, trackerId string)
+	// A schedule's Save, for a new schedule (admin only)
+	// (POST /v1/trackers/{trackerId}/schedules)
+	AddSchedule(w http.ResponseWriter, r *http.Request, trackerId string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1799,6 +2328,134 @@ func (siw *ServerInterfaceWrapper) ListInvitationsForMe(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// ListReceiverTrackers operation middleware
+func (siw *ServerInterfaceWrapper) ListReceiverTrackers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "receiverId" -------------
+	var receiverId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "receiverId", r.PathValue("receiverId"), &receiverId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "receiverId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListReceiverTrackers(w, r, receiverId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddTracker operation middleware
+func (siw *ServerInterfaceWrapper) AddTracker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "receiverId" -------------
+	var receiverId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "receiverId", r.PathValue("receiverId"), &receiverId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "receiverId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddTracker(w, r, receiverId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveSchedule operation middleware
+func (siw *ServerInterfaceWrapper) RemoveSchedule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "scheduleId" -------------
+	var scheduleId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "scheduleId", r.PathValue("scheduleId"), &scheduleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scheduleId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveSchedule(w, r, scheduleId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ChangeSchedule operation middleware
+func (siw *ServerInterfaceWrapper) ChangeSchedule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "scheduleId" -------------
+	var scheduleId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "scheduleId", r.PathValue("scheduleId"), &scheduleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scheduleId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ChangeSchedule(w, r, scheduleId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateTeam operation middleware
 func (siw *ServerInterfaceWrapper) CreateTeam(w http.ResponseWriter, r *http.Request) {
 
@@ -1810,6 +2467,337 @@ func (siw *ServerInterfaceWrapper) CreateTeam(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateTeam(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTeamReceivers operation middleware
+func (siw *ServerInterfaceWrapper) ListTeamReceivers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "teamId" -------------
+	var teamId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "teamId", r.PathValue("teamId"), &teamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "teamId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTeamReceivers(w, r, teamId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTemplates operation middleware
+func (siw *ServerInterfaceWrapper) ListTemplates(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTemplates(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTrackerDetail operation middleware
+func (siw *ServerInterfaceWrapper) GetTrackerDetail(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTrackerDetail(w, r, trackerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EditTracker operation middleware
+func (siw *ServerInterfaceWrapper) EditTracker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EditTracker(w, r, trackerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTrackerEntries operation middleware
+func (siw *ServerInterfaceWrapper) ListTrackerEntries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTrackerEntriesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTrackerEntries(w, r, trackerId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PauseTracker operation middleware
+func (siw *ServerInterfaceWrapper) PauseTracker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PauseTracker(w, r, trackerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResumeTracker operation middleware
+func (siw *ServerInterfaceWrapper) ResumeTracker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResumeTracker(w, r, trackerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTrackerSchedules operation middleware
+func (siw *ServerInterfaceWrapper) ListTrackerSchedules(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTrackerSchedules(w, r, trackerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddSchedule operation middleware
+func (siw *ServerInterfaceWrapper) AddSchedule(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "trackerId" -------------
+	var trackerId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "trackerId", r.PathValue("trackerId"), &trackerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "trackerId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddSchedule(w, r, trackerId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1973,7 +2961,20 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/invitations/redeem", wrapper.RedeemInvitation)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me", wrapper.GetMyAccount)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/me/invitations", wrapper.ListInvitationsForMe)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/receivers/{receiverId}/trackers", wrapper.ListReceiverTrackers)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/receivers/{receiverId}/trackers", wrapper.AddTracker)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/v1/schedules/{scheduleId}", wrapper.RemoveSchedule)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/schedules/{scheduleId}", wrapper.ChangeSchedule)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/teams", wrapper.CreateTeam)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/teams/{teamId}/receivers", wrapper.ListTeamReceivers)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/tracker-templates", wrapper.ListTemplates)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/trackers/{trackerId}", wrapper.GetTrackerDetail)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/v1/trackers/{trackerId}", wrapper.EditTracker)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/trackers/{trackerId}/entries", wrapper.ListTrackerEntries)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/trackers/{trackerId}/pause", wrapper.PauseTracker)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/trackers/{trackerId}/resume", wrapper.ResumeTracker)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/trackers/{trackerId}/schedules", wrapper.ListTrackerSchedules)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/trackers/{trackerId}/schedules", wrapper.AddSchedule)
 
 	return m
 }
@@ -1991,6 +2992,8 @@ type GoneJSONResponse Error
 type InvitationNotValidJSONResponse Error
 
 type NotFoundJSONResponse Error
+
+type SchedulesOrGapJSONResponse Error
 
 type UnauthorizedJSONResponse Error
 
@@ -4009,6 +5012,286 @@ func (response ListInvitationsForMe401JSONResponse) VisitListInvitationsForMeRes
 	return err
 }
 
+type ListReceiverTrackersRequestObject struct {
+	ReceiverId string `json:"receiverId"`
+}
+
+type ListReceiverTrackersResponseObject interface {
+	VisitListReceiverTrackersResponse(w http.ResponseWriter) error
+}
+
+type ListReceiverTrackers200JSONResponse []TrackerRow
+
+func (response ListReceiverTrackers200JSONResponse) VisitListReceiverTrackersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReceiverTrackers401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListReceiverTrackers401JSONResponse) VisitListReceiverTrackersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReceiverTrackers403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListReceiverTrackers403JSONResponse) VisitListReceiverTrackersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReceiverTrackers404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListReceiverTrackers404JSONResponse) VisitListReceiverTrackersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddTrackerRequestObject struct {
+	ReceiverId string `json:"receiverId"`
+	Body       *AddTrackerJSONRequestBody
+}
+
+type AddTrackerResponseObject interface {
+	VisitAddTrackerResponse(w http.ResponseWriter) error
+}
+
+type AddTracker201JSONResponse TrackerDetail
+
+func (response AddTracker201JSONResponse) VisitAddTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddTracker400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response AddTracker400JSONResponse) VisitAddTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddTracker401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AddTracker401JSONResponse) VisitAddTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddTracker403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AddTracker403JSONResponse) VisitAddTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddTracker404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response AddTracker404JSONResponse) VisitAddTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveScheduleRequestObject struct {
+	ScheduleId string `json:"scheduleId"`
+}
+
+type RemoveScheduleResponseObject interface {
+	VisitRemoveScheduleResponse(w http.ResponseWriter) error
+}
+
+type RemoveSchedule204Response struct {
+}
+
+func (response RemoveSchedule204Response) VisitRemoveScheduleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RemoveSchedule401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response RemoveSchedule401JSONResponse) VisitRemoveScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveSchedule403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response RemoveSchedule403JSONResponse) VisitRemoveScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveSchedule404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response RemoveSchedule404JSONResponse) VisitRemoveScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeScheduleRequestObject struct {
+	ScheduleId string `json:"scheduleId"`
+	Body       *ChangeScheduleJSONRequestBody
+}
+
+type ChangeScheduleResponseObject interface {
+	VisitChangeScheduleResponse(w http.ResponseWriter) error
+}
+
+type ChangeSchedule200JSONResponse TrackerSchedule
+
+func (response ChangeSchedule200JSONResponse) VisitChangeScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeSchedule400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ChangeSchedule400JSONResponse) VisitChangeScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeSchedule401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ChangeSchedule401JSONResponse) VisitChangeScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeSchedule403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ChangeSchedule403JSONResponse) VisitChangeScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ChangeSchedule404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ChangeSchedule404JSONResponse) VisitChangeScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CreateTeamRequestObject struct {
 	Body *CreateTeamJSONRequestBody
 }
@@ -4055,6 +5338,626 @@ func (response CreateTeam401JSONResponse) VisitCreateTeamResponse(w http.Respons
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTeamReceiversRequestObject struct {
+	TeamId string `json:"teamId"`
+}
+
+type ListTeamReceiversResponseObject interface {
+	VisitListTeamReceiversResponse(w http.ResponseWriter) error
+}
+
+type ListTeamReceivers200JSONResponse []CareReceiver
+
+func (response ListTeamReceivers200JSONResponse) VisitListTeamReceiversResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTeamReceivers401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTeamReceivers401JSONResponse) VisitListTeamReceiversResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTeamReceivers403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListTeamReceivers403JSONResponse) VisitListTeamReceiversResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTeamReceivers404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListTeamReceivers404JSONResponse) VisitListTeamReceiversResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTemplatesRequestObject struct {
+}
+
+type ListTemplatesResponseObject interface {
+	VisitListTemplatesResponse(w http.ResponseWriter) error
+}
+
+type ListTemplates200JSONResponse []CatalogTemplate
+
+func (response ListTemplates200JSONResponse) VisitListTemplatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTemplates401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTemplates401JSONResponse) VisitListTemplatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTrackerDetailRequestObject struct {
+	TrackerId string `json:"trackerId"`
+}
+
+type GetTrackerDetailResponseObject interface {
+	VisitGetTrackerDetailResponse(w http.ResponseWriter) error
+}
+
+type GetTrackerDetail200JSONResponse TrackerDetail
+
+func (response GetTrackerDetail200JSONResponse) VisitGetTrackerDetailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTrackerDetail401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetTrackerDetail401JSONResponse) VisitGetTrackerDetailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTrackerDetail403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetTrackerDetail403JSONResponse) VisitGetTrackerDetailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTrackerDetail404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetTrackerDetail404JSONResponse) VisitGetTrackerDetailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditTrackerRequestObject struct {
+	TrackerId string `json:"trackerId"`
+	Body      *EditTrackerJSONRequestBody
+}
+
+type EditTrackerResponseObject interface {
+	VisitEditTrackerResponse(w http.ResponseWriter) error
+}
+
+type EditTracker200JSONResponse TrackerDetail
+
+func (response EditTracker200JSONResponse) VisitEditTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditTracker400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response EditTracker400JSONResponse) VisitEditTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditTracker401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response EditTracker401JSONResponse) VisitEditTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditTracker403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response EditTracker403JSONResponse) VisitEditTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditTracker404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response EditTracker404JSONResponse) VisitEditTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EditTracker409JSONResponse struct{ SchedulesOrGapJSONResponse }
+
+func (response EditTracker409JSONResponse) VisitEditTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerEntriesRequestObject struct {
+	TrackerId string `json:"trackerId"`
+	Params    ListTrackerEntriesParams
+}
+
+type ListTrackerEntriesResponseObject interface {
+	VisitListTrackerEntriesResponse(w http.ResponseWriter) error
+}
+
+type ListTrackerEntries200JSONResponse EntryPage
+
+func (response ListTrackerEntries200JSONResponse) VisitListTrackerEntriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerEntries400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListTrackerEntries400JSONResponse) VisitListTrackerEntriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerEntries401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTrackerEntries401JSONResponse) VisitListTrackerEntriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerEntries403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListTrackerEntries403JSONResponse) VisitListTrackerEntriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerEntries404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListTrackerEntries404JSONResponse) VisitListTrackerEntriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PauseTrackerRequestObject struct {
+	TrackerId string `json:"trackerId"`
+}
+
+type PauseTrackerResponseObject interface {
+	VisitPauseTrackerResponse(w http.ResponseWriter) error
+}
+
+type PauseTracker200JSONResponse TrackerDetail
+
+func (response PauseTracker200JSONResponse) VisitPauseTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PauseTracker401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response PauseTracker401JSONResponse) VisitPauseTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PauseTracker403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response PauseTracker403JSONResponse) VisitPauseTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PauseTracker404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response PauseTracker404JSONResponse) VisitPauseTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResumeTrackerRequestObject struct {
+	TrackerId string `json:"trackerId"`
+}
+
+type ResumeTrackerResponseObject interface {
+	VisitResumeTrackerResponse(w http.ResponseWriter) error
+}
+
+type ResumeTracker200JSONResponse TrackerDetail
+
+func (response ResumeTracker200JSONResponse) VisitResumeTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResumeTracker401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ResumeTracker401JSONResponse) VisitResumeTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResumeTracker403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ResumeTracker403JSONResponse) VisitResumeTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResumeTracker404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ResumeTracker404JSONResponse) VisitResumeTrackerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerSchedulesRequestObject struct {
+	TrackerId string `json:"trackerId"`
+}
+
+type ListTrackerSchedulesResponseObject interface {
+	VisitListTrackerSchedulesResponse(w http.ResponseWriter) error
+}
+
+type ListTrackerSchedules200JSONResponse []TrackerSchedule
+
+func (response ListTrackerSchedules200JSONResponse) VisitListTrackerSchedulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerSchedules401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTrackerSchedules401JSONResponse) VisitListTrackerSchedulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerSchedules403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListTrackerSchedules403JSONResponse) VisitListTrackerSchedulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTrackerSchedules404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListTrackerSchedules404JSONResponse) VisitListTrackerSchedulesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddScheduleRequestObject struct {
+	TrackerId string `json:"trackerId"`
+	Body      *AddScheduleJSONRequestBody
+}
+
+type AddScheduleResponseObject interface {
+	VisitAddScheduleResponse(w http.ResponseWriter) error
+}
+
+type AddSchedule201JSONResponse TrackerSchedule
+
+func (response AddSchedule201JSONResponse) VisitAddScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddSchedule400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response AddSchedule400JSONResponse) VisitAddScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddSchedule401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response AddSchedule401JSONResponse) VisitAddScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddSchedule403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AddSchedule403JSONResponse) VisitAddScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddSchedule404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response AddSchedule404JSONResponse) VisitAddScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddSchedule409JSONResponse struct{ SchedulesOrGapJSONResponse }
+
+func (response AddSchedule409JSONResponse) VisitAddScheduleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -4163,9 +6066,48 @@ type StrictServerInterface interface {
 	// Pending invitations addressed to the caller's verified email
 	// (GET /v1/me/invitations)
 	ListInvitationsForMe(ctx context.Context, request ListInvitationsForMeRequestObject) (ListInvitationsForMeResponseObject, error)
+	// Every tracker of one care receiver, active and paused
+	// (GET /v1/receivers/{receiverId}/trackers)
+	ListReceiverTrackers(ctx context.Context, request ListReceiverTrackersRequestObject) (ListReceiverTrackersResponseObject, error)
+	// Create a tracker for an active care receiver (admin only)
+	// (POST /v1/receivers/{receiverId}/trackers)
+	AddTracker(ctx context.Context, request AddTrackerRequestObject) (AddTrackerResponseObject, error)
+	// Remove this schedule? — Remove (admin only)
+	// (DELETE /v1/schedules/{scheduleId})
+	RemoveSchedule(ctx context.Context, request RemoveScheduleRequestObject) (RemoveScheduleResponseObject, error)
+	// A schedule's Save, for an existing schedule (admin only)
+	// (PUT /v1/schedules/{scheduleId})
+	ChangeSchedule(ctx context.Context, request ChangeScheduleRequestObject) (ChangeScheduleResponseObject, error)
 	// Create a care team; the caller becomes its first admin
 	// (POST /v1/teams)
 	CreateTeam(ctx context.Context, request CreateTeamRequestObject) (CreateTeamResponseObject, error)
+	// The care team's care receivers, oldest first
+	// (GET /v1/teams/{teamId}/receivers)
+	ListTeamReceivers(ctx context.Context, request ListTeamReceiversRequestObject) (ListTeamReceiversResponseObject, error)
+	// The tracker template catalogue
+	// (GET /v1/tracker-templates)
+	ListTemplates(ctx context.Context, request ListTemplatesRequestObject) (ListTemplatesResponseObject, error)
+	// One tracker, with what is wrong with it right now
+	// (GET /v1/trackers/{trackerId})
+	GetTrackerDetail(ctx context.Context, request GetTrackerDetailRequestObject) (GetTrackerDetailResponseObject, error)
+	// Edit tracker's Save (admin only)
+	// (PUT /v1/trackers/{trackerId})
+	EditTracker(ctx context.Context, request EditTrackerRequestObject) (EditTrackerResponseObject, error)
+	// A tracker's entries, newest first
+	// (GET /v1/trackers/{trackerId}/entries)
+	ListTrackerEntries(ctx context.Context, request ListTrackerEntriesRequestObject) (ListTrackerEntriesResponseObject, error)
+	// Pause a tracker (admin only)
+	// (POST /v1/trackers/{trackerId}/pause)
+	PauseTracker(ctx context.Context, request PauseTrackerRequestObject) (PauseTrackerResponseObject, error)
+	// Resume a paused tracker (admin only)
+	// (POST /v1/trackers/{trackerId}/resume)
+	ResumeTracker(ctx context.Context, request ResumeTrackerRequestObject) (ResumeTrackerResponseObject, error)
+	// A tracker's schedules, readable by anyone on the team
+	// (GET /v1/trackers/{trackerId}/schedules)
+	ListTrackerSchedules(ctx context.Context, request ListTrackerSchedulesRequestObject) (ListTrackerSchedulesResponseObject, error)
+	// A schedule's Save, for a new schedule (admin only)
+	// (POST /v1/trackers/{trackerId}/schedules)
+	AddSchedule(ctx context.Context, request AddScheduleRequestObject) (AddScheduleResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -5147,6 +7089,124 @@ func (sh *strictHandler) ListInvitationsForMe(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// ListReceiverTrackers operation middleware
+func (sh *strictHandler) ListReceiverTrackers(w http.ResponseWriter, r *http.Request, receiverId string) {
+	var request ListReceiverTrackersRequestObject
+
+	request.ReceiverId = receiverId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListReceiverTrackers(ctx, request.(ListReceiverTrackersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListReceiverTrackers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListReceiverTrackersResponseObject); ok {
+		if err := validResponse.VisitListReceiverTrackersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AddTracker operation middleware
+func (sh *strictHandler) AddTracker(w http.ResponseWriter, r *http.Request, receiverId string) {
+	var request AddTrackerRequestObject
+
+	request.ReceiverId = receiverId
+
+	var body AddTrackerJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AddTracker(ctx, request.(AddTrackerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AddTracker")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AddTrackerResponseObject); ok {
+		if err := validResponse.VisitAddTrackerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RemoveSchedule operation middleware
+func (sh *strictHandler) RemoveSchedule(w http.ResponseWriter, r *http.Request, scheduleId string) {
+	var request RemoveScheduleRequestObject
+
+	request.ScheduleId = scheduleId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveSchedule(ctx, request.(RemoveScheduleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveSchedule")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveScheduleResponseObject); ok {
+		if err := validResponse.VisitRemoveScheduleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ChangeSchedule operation middleware
+func (sh *strictHandler) ChangeSchedule(w http.ResponseWriter, r *http.Request, scheduleId string) {
+	var request ChangeScheduleRequestObject
+
+	request.ScheduleId = scheduleId
+
+	var body ChangeScheduleJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ChangeSchedule(ctx, request.(ChangeScheduleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ChangeSchedule")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ChangeScheduleResponseObject); ok {
+		if err := validResponse.VisitChangeScheduleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CreateTeam operation middleware
 func (sh *strictHandler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 	var request CreateTeamRequestObject
@@ -5178,72 +7238,380 @@ func (sh *strictHandler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListTeamReceivers operation middleware
+func (sh *strictHandler) ListTeamReceivers(w http.ResponseWriter, r *http.Request, teamId string) {
+	var request ListTeamReceiversRequestObject
+
+	request.TeamId = teamId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTeamReceivers(ctx, request.(ListTeamReceiversRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTeamReceivers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTeamReceiversResponseObject); ok {
+		if err := validResponse.VisitListTeamReceiversResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTemplates operation middleware
+func (sh *strictHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
+	var request ListTemplatesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTemplates(ctx, request.(ListTemplatesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTemplates")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTemplatesResponseObject); ok {
+		if err := validResponse.VisitListTemplatesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTrackerDetail operation middleware
+func (sh *strictHandler) GetTrackerDetail(w http.ResponseWriter, r *http.Request, trackerId string) {
+	var request GetTrackerDetailRequestObject
+
+	request.TrackerId = trackerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTrackerDetail(ctx, request.(GetTrackerDetailRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTrackerDetail")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTrackerDetailResponseObject); ok {
+		if err := validResponse.VisitGetTrackerDetailResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// EditTracker operation middleware
+func (sh *strictHandler) EditTracker(w http.ResponseWriter, r *http.Request, trackerId string) {
+	var request EditTrackerRequestObject
+
+	request.TrackerId = trackerId
+
+	var body EditTrackerJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.EditTracker(ctx, request.(EditTrackerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "EditTracker")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(EditTrackerResponseObject); ok {
+		if err := validResponse.VisitEditTrackerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTrackerEntries operation middleware
+func (sh *strictHandler) ListTrackerEntries(w http.ResponseWriter, r *http.Request, trackerId string, params ListTrackerEntriesParams) {
+	var request ListTrackerEntriesRequestObject
+
+	request.TrackerId = trackerId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTrackerEntries(ctx, request.(ListTrackerEntriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTrackerEntries")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTrackerEntriesResponseObject); ok {
+		if err := validResponse.VisitListTrackerEntriesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PauseTracker operation middleware
+func (sh *strictHandler) PauseTracker(w http.ResponseWriter, r *http.Request, trackerId string) {
+	var request PauseTrackerRequestObject
+
+	request.TrackerId = trackerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PauseTracker(ctx, request.(PauseTrackerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PauseTracker")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PauseTrackerResponseObject); ok {
+		if err := validResponse.VisitPauseTrackerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResumeTracker operation middleware
+func (sh *strictHandler) ResumeTracker(w http.ResponseWriter, r *http.Request, trackerId string) {
+	var request ResumeTrackerRequestObject
+
+	request.TrackerId = trackerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResumeTracker(ctx, request.(ResumeTrackerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResumeTracker")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResumeTrackerResponseObject); ok {
+		if err := validResponse.VisitResumeTrackerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTrackerSchedules operation middleware
+func (sh *strictHandler) ListTrackerSchedules(w http.ResponseWriter, r *http.Request, trackerId string) {
+	var request ListTrackerSchedulesRequestObject
+
+	request.TrackerId = trackerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTrackerSchedules(ctx, request.(ListTrackerSchedulesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTrackerSchedules")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTrackerSchedulesResponseObject); ok {
+		if err := validResponse.VisitListTrackerSchedulesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AddSchedule operation middleware
+func (sh *strictHandler) AddSchedule(w http.ResponseWriter, r *http.Request, trackerId string) {
+	var request AddScheduleRequestObject
+
+	request.TrackerId = trackerId
+
+	var body AddScheduleJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AddSchedule(ctx, request.(AddScheduleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AddSchedule")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AddScheduleResponseObject); ok {
+		if err := validResponse.VisitAddScheduleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"7D1rc9s2tn/ljHZnmszQstN279y1P9xxUyfNbl7juO2HNNeGyCMRaxJgAdCKNtcz+yP2F+4vuYMD8CmS",
+	"khxLttN8SWSJxOPgvF/4NAplmkmBwujR4aeRQp1JoZH+OE4UsmjxCtMJKvtFKIVBYexHlmUJD5nhUuz/",
+	"Q0thv9NhjCmzn/6scDo6HP1pvxp93/2q90+Ukmp0fX0djCLUoeKZHWR0ODqLEUKWJKiAuZlhgokUMw1G",
+	"gom5hpApBIMsHV0Hox9YdIq/56jN9tf2A4tA+cmug9FTKaYJD3cwcTETPIpyNzg+tit4JtWERxGK7S/h",
+	"tTSQoUq5MRjZuZ9Lgduf9oW44oZGBPyYcYURyAozcu3WUj31WppfWMKjHSGqjBC4hlxcCjkXQbHGoLHC",
+	"wC5Z4ZW8xGgMbwQCE3qOCqa0lQSmMleBhS6YGOHt6Y/wn3/9G4QUCHJqv0shjJmYoYZ5zAw9ZYlgxq9Q",
+	"QSRRg8CPZvybsMB4Lc0zmYtoNzgxpamug9G7MMYoT1C/Uc9Ztv3Jj8EoFl6igphp0MXshB4wY1kAAi14",
+	"JtLEYzhFjSKCOTexA58UU65SLmYwTdgMpAiRfmBRygUNOUEUYGQSlUBfgOU8bCJzY5lRIjV6mP8sWG5i",
+	"qfg/cQdwf8W1tiuXCri4sugORl6iGNlH/dvEusMQM1MRx6nn6/a3TMkMleGOyVtsOp8pmWfnjnbMIsPR",
+	"4UgbxcXM7lDJBFct+NQ+Y9dgmaSlg9Hh+9bQfqAPQTGDnPwDQ2KnPyhkYby8tkmBzCjy1I6YcjEKRin7",
+	"WBumWuglLjo3kPCUm9ovIieBdh2MrliSY8cvrY3YgYuHA7+qYtiu/TxlCp/bfTvRqWOe3QTwgqW43ROh",
+	"GQYOxm7kFEO03GZ5B/3r86/0bcxK8N7feIrn//QSpiURjl8fg/0JLHkvYM6SZC9MZHgJ9q2CPK2iUKwA",
+	"6DOLgBCnNVkLOPVVV2ssgVQtrA9Ss24wYcp4Yj9MpUqZGR36b4INTjzXJTTb+sFMcCNB55OVGywGCcoF",
+	"0Hzd2zEskbMzTLOEmS62IROpOpc65ZhE9Aw3mOpVeHrmWPkz+9avihskJHCDMqXYwv49Y9l5LHOlazNy",
+	"YXDmyJiHjrmuD0/jN9aNhS241R8u0YHmDDwcyl13wjKWPMQ3/sTagEzYBJPONUp6o49OtGEm13XmyELD",
+	"r4ic0dDSP6xCiGqGwK+jHHfVRtxR9e8mZR9fopiZeHT45OAgsJy7/DtYsdeWtJ9oFMZpTCBwDu7ZLvKp",
+	"YBLhlOWJpbUSKjcHk9tUJ0QUMoMlu6+ZI92cciOotFbRT6u0iLqs71nFBozoxhKmGLFfpNBqC6HSu9bI",
+	"0pucnk+4MvEgbddg+u0tw/QMWXo3Z3oijFosz8nMMn38Gltl1dsFELMsQ4ER8CkkcjYjG8TEqOZcI8zt",
+	"s9zAnGmISJkpUcECfM/KuC50mCzOi+22J5d+GquS6kueZXZuQ4bPbyNmyTZFVdksv42OgDmKnsc8QciF",
+	"wlCqCKPfOmkaLSR6NSRpuvl7YRT0cs/i9+5tvVXol+jgFbIUYapkCqy0N/oY0Eq6obN9R09aSeTkX99C",
+	"Sel0Zx9F3C6PJW9rOGFUjm0j4e+4wAgmCyChdM6jI2AQEvO2+hCDhGtj7cuS6+rREg626bo4hsaKix0H",
+	"FjPLxfYi9Fs265AZdmj/cS2NwdFGh5ZgLeHzMFfaaSadYkQ6WkmYNpDZ5awi0WJ1vZt6V5x5c76fS7y2",
+	"MHcGqTZSYXRkMYrOoUClCAi8MI+lRqfLWjM0Y1pjNK7JrvKFUTCqCMdKb6JBex6OBDvtI2dVLsE/Ra39",
+	"wQyDoniwExRX3uhtWXBk2W1wuN4U7Djd1fZSSEw7Ondccj3OhnbdfQM6qJ5PFpsxHxmGuVIbLmSlzXQb",
+	"fGKYxhuEXQImWLbjG4aSn7m57TrsGgfTizsveZeQLXFmPc5ASLiaMwyjuZuqd6E9mu/tYsNtHOcANyZr",
+	"a3kPvQ6UFTZK84SWUbd1GtUiy4cnUibIyKFmYoU6lm59g5Zj+WA5x/ALtOsz+6C1qEXDJ9SDC87zU9hG",
+	"9GwvPP/Om84q70yyxuZHQ34jt8dg5GTxKCAcIBToYtc06Lt+My9j5ATvffXMg2T1euiJVatJ2GwlQuJH",
+	"lmbOcpja588jTKVbA5tYsXU4ZYnG6+sOGP6ELDEdTsBlQ1de2sXiTLGoZ/92F9qwNNuA4lBpb6CXuxgd",
+	"jJ+MD1aqCH6F1Rj1BXShS2WrfZaR5kIOejMxs7ZhF4ycZ3m1e4QeC5qmX2N1wzB4JtWrTg9T1M1Qb7Jt",
+	"bmcjcdSj8Z/FCPQQFzMXCfhGg310wJLpmmjQtWl/63FJtR21dvN1J2T17vJmVsK6C7xp6ZpeX75W7uxf",
+	"OM67WHuunQd0aJSfdYeLnV4MGqvq3kkRi17XFb0BvtecrOs6Ulc50FsQe5BBgFeL4zCUeZd6H9a93kML",
+	"qdzjng42cBAjS2txlCWk69idm6mYqGtPr3FeRC27DNJInzve3OAuXfTe6/BcejJLmBAYnd9ItbN7zBIW",
+	"4vnMRVhLBycJ1K6sAa5SDaYIGk+50qY0OMHkSmj6wSv932iYsQzkdFrtsqaUqXwNZENSdEWIhQgm0DJj",
+	"UNlF/e+j9wdPPrw/2Pvrh//79v3B3ncfHh++P9j7i/vqz13QrWzcc5agMl0aYzuK410zThC0gN4xYg92",
+	"+LDEQOCjtrE/2R0c7z1je9MPn/7runMrWw+LpFzw1CpIldexI0TScooIePcM3i3SiUygiHOt4Wi9maNz",
+	"k6DJWxQRF7MhTWkNh0D1RC8brYTpZ8uPDfWlNh9ur7bUpGpL7AJVf4CWqTDmV32G1nYcKsU7PfBc36+/",
+	"oYdkMJjbI/Jqa21sNqgg1wPwgtEtUxRYBhSAkAYYZAo1Gnh0/OMpHBw8+fbxGKyiybLsG+09shrmlryB",
+	"CyOBG8r/8eFtxMsAzFzSJx1AKoWJgYmIvqS/NOWlWDpXVyzRIKfwJIBvA/ienvtv9+oYXkmFMKUMNhFy",
+	"1BAyARMEFkUYQcIMKsqQkbmBlM8UIz04YoaNyS3f8uotziO2WJuX/Yp4GTmOlXLxwr3ypMXOyCL/PUf/",
+	"s5WClmsq/L1u+tntJItOm68Awipe2EIUmqH2dlDsrvvkI8R0jVBbYbxswiPpnc5ZPQ8qPQCRy4OpVJ0u",
+	"eBT6TY+/6n4qOX8oNaM4ocji/I3k2+3z51435ir/dBmaOJ86/Wi95VSvWVZyh87v5YW0Il1resGbcOiX",
+	"MSsR4jYc4k0M255jvDHPpg7yG2LO7R66nbprZy3rczuOh36n0VImUisprddoP6t70VueH/axMxnSCpXO",
+	"VMjlwfuMo89WOHuzyrbA6ja0yFzMpIOGerPPLn1AYA07j2IHN1d+V3DIoTjfWooy7aSE2I0VZ7/ZY2NQ",
+	"FDZdU31+IxBMbHXPuZL2X2413jLfW/FZbEDIeQBzqS4xAquwFlkaPtdzDBeV+L0ghZoJ8GE4EWJ3mN1N",
+	"JaSbfSmnJaAEtKlUZrGHtAoyvIFNDSXvM0MDBnYxJkZlX7U2ADdACoAGJhZSIDy6KFIpLgK4qFZ1zszF",
+	"4zFcyNxY+0gxMUO/eHC06NI5/Oqtyq5NsU67bbtsri1ANI8QuNFAg7RmLHJC7GdiofaDm81OP2OZmzWR",
+	"YuZ2Juhb52i4AM2LfHnKoaChyUde/VCc1pxp8MjhzsgCxsHcJ+gjCnBAobftUqqpHneZHoPpQMXeOn9c",
+	"kUN62YreNdIr6ocyoqE6Ve7GaW4Qk6FhVzCKX+xZndKTVmZyb31uICvXyHO3MBgg3KeuFGWZbE+sweoo",
+	"5yTipuZUfMeuEEKZptzoo1qthrVOM5ZTMYM1YTVmTDGD46UT/3yHW8daAT9yTTauI6rJggimTh3cZQpZ",
+	"FFBgJOhYzqkiJ4AsyYmeXTqqsDa8t52lQELaLfn4mjsReZLUPLmV/7Zu/tqH2MTqIg2FaJPs6Q1zeRWm",
+	"8grPy7Pe2F2dK2FPptyTADek9o6R5Qy8Pitt0O1Yh+0A0v+Ixkdk27mYvVLsJM3MwrG8QqBw7SRaQJjP",
+	"kjlbaMDqOR/M3wxzKkHalS91q7rUMDU5IuKGeDux9phFgd+UoxAuwiSPrCDlwhHVTchkQwo5nlRpnEIS",
+	"Ns2ZCWO7HjOG17TUzCd7Mqo1tbKzRN3xaCOCsRLx3Cc+bQLcXq3PAfBW88jKzNcypLe8wSrlYo1z8Rkq",
+	"q2Lft6OfLhlALdIuUzFKGm/tN6jR7Up7vIF5Swygrm000e6dsRy3KENUmBf6JRckZvwGB11tS7+keWK4",
+	"T65pTudTe6VIFqS6yarO1OpldhEs6Qzr1dK3eocsyETHiotLfeSzhp3n2ddQABfaWNV7XZpu1MR0pYht",
+	"rhINZ5Wth9L1lKtNksoK861IKmvLaVLfLTBX5hKVSNXKOqs9NVijs6xTbIC3S6U29OhGHuEVukEdiQfR",
+	"cWMs6lWgHjgqNcpb1qtUWkaZAUxpZy1S3i9l4jCdK0zdX1XieZfd44c6lfNNCgU3EKNDUt3pV6XiQTal",
+	"N4vZjFnGBNysXenSK4oFYqTPB5S+Y6fTkYLb0umWcegGgv2mQvmmgneFgG3DYwDFbjnTpl2BxAww4av3",
+	"7VtRrcLI4gJODUwSJi6Hzns5G5DmC1xTAfsURKj4FUauDsgaJ2U2TeGAIs+GFJ3L3ywytlSOtDflSYIR",
+	"uNfh8jZKfG4Sb1tZWGWYMmufaRG9a273pQxZAj/9dPjqVWGFF1rgN9r57f7ZA+UVgaIbBPrqGw46KaQZ",
+	"CqwAcNOwYJOEN8z89i/voHD7bv3hn1/A3fRpDxxEjxr1MAH52dWy6wDu5yy62xrf5RXpzly+mxSM3W43",
+	"hxt1bFhpuNbU2a56YYVVUIFrwI8ZhgYj8nIathjDCacYBnU6gZQtYIJOjsoMxRiOWxEJFznx4QZn9Lqg",
+	"R5cHP+azuDP+mDj1cY34Y5FQVOONr96MgtHZz6Ng9OuJ/fTTKBg9Ox0Fo3fH9p+fu6v8tZVt3CyshpL6",
+	"3CZkCtVx7jDS/fWsOOq//Xo2Cro7cOxxrXOM4G+/ngELQ9TadeYJgNr0UBBksiBhdvz2BTxnBuds4R4v",
+	"GgipsVe1U5JINHeFWLExmesJxMVUdrQCKftCXX1Lc4RSWHnlcsq0zFXoukqp3MTk2eKGqlyqF4/fvqiV",
+	"sRT1L2SZoWAZHx2OvhsfjL8jGWRiAth+yBTuUcyQ/s6ko3V75pQk9SKyczQ7JXjjBLX5QUaLW+ub1NOP",
+	"4bpJVz63rNHr7tuDJ7e3io72P12t3RwNW/B+f3DQN2i5yv1avzt65cnqVxrNqQjh8zRlalHObrVGphDo",
+	"+I6K9nsTDGWKGo4p0cy+Vz/k/U9hscEX0fU+L7PhVh5/LZvXIpBiKRpUenT4/tOIW5BYpCqY3OGoNs2o",
+	"fX5B7SzadP1hm8i1nPy3Y+yqAfE+IJV96bvVL1X9CumNv65+o+yx2MRb2r7FWysbXWNIrOGw5bEkK+GR",
+	"swilSBaPN8Dh/U/Etq8df03QqX5NbD6ljn47wuagc7QiiXxDqmjg5PfLMuS1hKceSXeJDt+vfqPsbdhE",
+	"B3cUwCBzBQNQHeVGGOALz+w6ZtjBwF5ybTw73z7vapzSwUacY4M6vo5SqiV28ubvO8ODxrFacBNl+3Ox",
+	"ektdVMEjJhb+x5VnWzgPVsqnspLiwUqnts21Y9lUAvBhSqYGCh5HEbCqkaCRbQRsM5dpUSHfyUCeo3El",
+	"9J9J4IOeBJqgh4xbbNPkSgBesSQn02SKzOQKYeqHCEb7cVmQ7zfUHNMNoUGjuuIhgnuc0hsmOU8iSNEw",
+	"qiAZBcuw8NX+WwSGn2EAGt74Gx2+/1CHjXsRwhjDSweJunqQcteasl9KLF7UNOJdsPPlWrltcvYGHr1d",
+	"krqawoem7OX9jYYrVHzKMXKK2TJIvca1z6hpbT+Tbje1XYtN34aidHtI2duX97Zl70YaVTD6/skaHJn6",
+	"freYJO0HmKjrXZOFc30c+exPDQzSuikcjPZTHOKUr3CbnOEVbo8gnlKsxDjrhEr1YuSua4RTTqDe4oBA",
+	"0VBPetnKaflUN9b/nqNa9Gknd6xvVmrBPdc4y6MAFiqpdZOPOeUSHrmYGkuSBaXa0NePW2e5/6n4+CIa",
+	"tCWPXcL8RqpnNfRXC7AAYF1Xa+pmQS+buRugH+xE3d4hHX3e+T1HUzs7lxxhXDf45oE1o0pbP7PbN9G6",
+	"w2JrmWi7xZn76ze8OZo54PdziX7uvV8mP+2V0m6lmG5UROptImvQrQC42wnqL6bso68K8CHUgRL5HqXC",
+	"FYreYDVTJdPGe+sEW/sGM3LzobbJhpfLdh8yPyZFiNUzbqo2tYT/pW7kMgx0AFpKgdr4JkOPMjbjghmM",
+	"hsmqeH+Qns6Kh+6xiN6kiuGeqcC3jSrlmVoxPuBpPSsz4B+aEG8kBe3YvVri0ION+90c18p4dVFd6rLU",
+	"B6R5S2zvf9J1Pr3CLPuRvm/2T1gHWVtzfLXPPCQb3c6570bRZ5fdNdi3pBp8AWaa5mKWYMdRZrnps9ju",
+	"4DRvn+13dDjZseG2Nip9idz/FMtke6kAI246GIpl+l467BUpv2tpl2flwzvUBMsU7Z0Fa8qgukaMMII2",
+	"rCB0t341IKn3P/lP6zkyN9HsyoG/ismaG7NQcNb1Yt4FxA92odM+MNloKgtv0IO5o/O6D6bPTtHki/Za",
+	"djOFPj69T1Wcw7LvxD2yPSz86pi8a8dkdbHOF+BlqnoKOeQOQOC8x+vY53x6KWcnvr75gfHe2tVDO3Y6",
+	"+UuV/oAup5dyBkw4dCtryWtyfgX33f9E/6/laNo2VnYnkfv1fdW+KyeV7xyAxU1ifUr3Qz6wg+3zhofp",
+	"1ipPfVB/f2BHf/eyaIf49iWKoRPn7Wpypl7Zs0mywg2SFL6aAl9zFO6hSdBKURhMSRiOTG8erbhXdsJN",
+	"4xRPdhen+OLtBlc51ERJVz9UfdcwIq6eNOohFN0yUq+DaLUXRHWFGibSxOBqJqiLbiMHf0qtG3IRoQI7",
+	"for1KXz7XdcBl0EoI3Q309hPdm1XmOii985ERouil6H922K/JTDgBiKJmvpcJ3ZELorWB4mcaT9ikT3t",
+	"qnK5e5yKa2odukxx/aKv3PyJRwivFnBiX3p8VEuaB+67SrRLcps3s2ypwUDfBTC79oa27sRbJrK/SS52",
+	"TWNrFHUfJwpZtKgKUNcqPKng/VqaX1jC2xRnd1uU5xlkKTDt/6S+FgH1d3aF43TLTkF1jSqU5RZgms/E",
+	"HhegUMsktz+M4Vj4tr0XdLvgBWgUkS6r0GdFsWB7SUfAhG+RjYnG6jViDT/JFMfgY0ARveAabBJtcW0w",
+	"apGTayRl6alosW6pnqSdfabqUlZWX7340ZXldJHPczTVNY/bLL0pJ9lalLM4OKsBi9qZ+GKc6kQI+guY",
+	"YCLFDIysYUW7qUUnhrxwHY11o/jNyGrsop0Gc0jvZ7LPHIHj8RYbpHBdWaitP11hMC37xcL3B38dwwnd",
+	"7hoFntnTJxGBotL3qDF9C2U6TtqqTrUCRXf57i7C3u0Lf++0RpFFkUK69qHsIDFQrHj1ZIMc1k5Zbaco",
+	"UlnpcMZwnCRgYoUIU54YqjlSCJFic1EQL9eEHcUuSej6ejJLQxrYzL5PmDKPmQFkYUyN6vUY3knlew5Z",
+	"PfUIWNGOuwglOYlOfRyh7OPYhzJFXvuXlo97KudfVEqu68deHLGcEgKFrlWzOwzLRgxlGvgrGNwyu1VN",
+	"q8pWVpbT3Mdwxi5J7avd5/Cff/3bszA711xxi1DudpQ5U6Qa1m+GcMJMW+JQwLTl10V3f9dTzC7O1dkB",
+	"7+Rjx1H0cJOIaxfM3k0Ksb/U4GsicZFILAqqaNBKR7j96knpYqulFC8FeZaVSZUnjuYcmtfuI+IGUmbt",
+	"LsvCuQZteJLAnLnL6GdyDP7OEmHUotQmnD8wKC4oAqmgai9Kffw04EcWmoSumFDorkhyuoObwtKGbray",
+	"5VZ9TJEkULedlcqr0kmyUTbn10BTCT8n2wvA/A9xT/9LO+vLJ9a2ejgW/NWAFCGO4YXxaLNXoM00p34e",
+	"FZoVDfvpGnHSC+heDsK80lgQOPcX2FKbXRIR7ebDR61bshooWGBnDRXp6pYuXHLXCe0Ml7bnbLvLjKgS",
+	"fH+wqMhxST7+lqmgYOTl1U4lU+vk4mSmreoIdYYs3WqvSjvBHTVrWu1Euk8dKp0PpWZVF00qudHe78Gq",
+	"dpXF+e5/sv8tNQHraWjEoj26RIWkpbO1gGUZXZYdxpJuDbRfdWgKR9ak5GIWUHK688dG4G5D9JdZpZWr",
+	"wdmD5KhSyGqOn1oDipbz57jsd0YNecnHw02fuebQarhjSCuKQXC6f3baU6bwnvYP+TwGdlb3RX2jm+ik",
+	"A5BJVAawKqQeKG9owUFFqDACpqFmxDnnAGHjGI6hlvmvFHc2HY9cCydHV5hE2vfxcbGCUmu2KgPdNOSt",
+	"NxqzFx13WWDx1JUx7L7A4qx2+WW7qCLH9iEuVVasSPD3NtuDTvPvtzsfDN3SFbVuN0HN9VZc8Oe+4qa6",
+	"q7ZXi3/NUgyAh1IEQLcJBJ7gSHbMWOYvzgQjZ3Sp7BjeVRdoevmQMWWc/5h8xyR9j5wjkJbkDAXpLh6T",
+	"cwE6RjReZyIvpJy74EHbQTiG06Yr+gD41F+RqS8gQXaFdN9sQ+ly7ptHxUYU+lGr29CsPRA9DiBSMtON",
+	"d4tbx5zf51HHRWPLo0gFobuWdHkZ32i6EAYeMfc/txztI+22dVUtvacfj+HMXz7Jiqsn5zFPms/GTNcc",
+	"Xx0ee8hFglrDRfsmzAv7NFGhHTaMe+61tDz7x5OXJ2cn0O9ugLnMk07P2EnEzUOvMSlumr0bm2o1l/pC",
+	"LKo1o7Yl13mjnrOsKz2tdeFvt8HVmSotjOIDaszLlouBUVZD6VuoOOOJG8h7toy0vNM5ox3HcHo0eVqe",
+	"Sgq85RlxSMu8EykvNbDY3R5uVZsLmunCyAsXlqE2hgOXEQXuglPNr/CovA3YRXdjdLcxqVxomLDwEkys",
+	"ZD6LHdmTKyUg7jtDYJTXxFPsVaUc7Px2d5+zN5wldzsJcuuPcvNsv+Xcw/KO4r8cBJskIm41wVoYtXjL",
+	"Zn9A906t3sfherPgZ5itkM7Rn0H1WpKnsxzY6kaVSNdGZjBDQaRXXNlM97bGCnUsrWJDzyjG3QXm7rIb",
+	"eFNztjad+J5zeKcscRQKFURHNSawpj+VXPtjeFvcnt6O6xbqkPfSdjES+y5+EXXDX4BBQYcxWOLZh+UK",
+	"dZ4OoPmLBlp7jEaXdOcMeCHnnehtMRs9Xrvnx/C6usrcSrEiKFDrlEqIaM0Gnac+JdH7yjbATXr7K3Le",
+	"n8YbeYrLTGZ9JC0RcMDxSsZcDVVbzs8hRajUTe8xqmySkFLFc74gX+dxR6q+DsCKNjZJECYLYGJBmXBO",
+	"UBpkaX9WSiv8GRCukPXdYYyM4YUBdysnGBmxxbAaXzDDeuCUvAPF7W30rPe20A0IY3gjaux7zozdIe2J",
+	"nAgUdh9yElBE9nzGsiX/gLthwc5K3ojp1M/VIkbu0waksvPmpmT1JaOFXBieNNwYtCZL3H3pNRsFZu+V",
+	"E+E1zpth0Z3n1wxFZb/EDJvbcCT0RXRJVe+L5Tbv8Whe3/j+g0Uwl2TmELd5EBFejYJRrhJ/uaI+3N9n",
+	"GR9HeDXGjyzNEhyH0vKh9puZklHnq43XPlz/fwAAAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

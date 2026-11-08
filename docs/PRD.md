@@ -1597,11 +1597,19 @@ because what it takes is not obvious from the outside: the rule and every occurr
 go, and nothing that was logged, skipped, or unrecorded moves at all. The confirmation is where a
 team reads which of those is which.
 
+A schedule is written the moment its own sheet is saved, and removed the moment its removal is
+confirmed; the rest of Edit tracker — its name, icon, color, fields, and gap — waits for Edit
+tracker's Save, and Cancel discards only that. A schedule is a thing in its own right, with
+occurrences that start existing as soon as it does, while the rest is one description of the
+tracker and is changed as one.
+
 A paused tracker opens the same screen, reading as paused. It keeps everything worth reading — what
 it collected, what the team expected of it, and every entry ever logged against it — and offers no
 way to add another, because having stopped collecting is what being paused means. In place of the
 logging stand two things. **Resume** says what will start again before an admin presses it: the
-schedule that will begin generating, the thresholds that will begin raising alerts. **Edit** stays
+schedule that will begin generating, the thresholds that will begin raising alerts. Its schedules
+start again from now, and nothing is filled in for the time it was paused, because care nobody
+expected was not care that went unrecorded. **Edit** stays
 where it was, because a tracker is often paused precisely because something about it was wrong, and
 an admin made to resume one before they can correct its threshold gets the alerts they paused it to
 stop. Resume does not ask twice. Pausing asks because a caregiver may read it as deleting
@@ -1863,7 +1871,11 @@ reading questions.
     - >
       its type, one of five — a number, free text, a yes/no, a choice from a fixed
       list, or a date and time — with the unit of a number, typed in, or the
-      options of a choice
+      options of a choice. Chosen once: on a tracker that exists, a field's type
+      is shown but cannot be changed, because a month of blood pressure turned
+      into free text would leave every past value meaning something else;
+      pausing the field and adding another is the route that keeps the record
+      whole
     - >
       on a choice only: whether it takes one answer or several, and its options,
       which can be added, renamed and retired but never deleted
@@ -1894,8 +1906,10 @@ reading questions.
   contains:
     - >
       when it recurs: the days of the week it falls on, how often it repeats —
-      every week, every two weeks, every month, or every two months — and the time
-      of day. These are a starting set and not the limit of what a schedule can
+      every week, every two weeks, every month, or every two months, where a
+      month is four weeks and two months is eight, because "Monday every month"
+      has to land on a Monday and four weeks is the reading that always does —
+      and the time of day. These are a starting set and not the limit of what a schedule can
       say; a team's regimen will eventually need more, and adding it must not mean
       starting over
     - >
@@ -1942,7 +1956,8 @@ reading questions.
   contains:
     - >
       what stops — no new entries, schedules stop generating, thresholds stop
-      raising alerts, and it leaves both Home and the logging picker
+      raising alerts, and it leaves both Home and the logging picker; the
+      occurrences already waiting ahead of it go
     - >
       what is kept — every entry ever logged against it, in the timelines it
       appeared in and the insights it fed
@@ -1977,15 +1992,6 @@ reading questions.
 - **Only Apple's own platforms may draw these icons.** The icons are the symbols the iPhone draws
   with, and Apple allows them nowhere else. The web app will need its own drawing of every icon the
   set offers, or a stand-in for any it lacks.
-- **A monthly schedule on chosen weekdays has no settled meaning.** Every week and every two weeks
-  read plainly against the days picked, but Monday every month could mean the first Monday, every
-  Monday of one week in four, or the same date as the first one. The likely answer is every four
-  weeks, which is what every two months would then double; it is left to be settled after launch.
-- **Nothing says whether a field's type can change once it holds readings.** A field sheet offers
-  all five types on a tracker that already exists, the same as on one being made. Changing a number
-  that holds a month of blood pressure into free text would leave every past value meaning
-  something else, and pausing the old field and adding a new one is the route that keeps the
-  record whole. Whether the type locks once a tracker exists is open.
 - **A tracker's insights are not reachable from it.** A caregiver reading a tracker's entries has no
   way to the chart drawn from those same entries. Insights is deferred, so this waits with it.
 

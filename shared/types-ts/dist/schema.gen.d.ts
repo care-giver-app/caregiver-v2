@@ -434,6 +434,199 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    '/v1/teams/{teamId}/receivers': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The care team's care receivers, oldest first
+         * @description Read-only here so the app can choose the active care receiver; adding, editing and archiving them belong to the Team area. Archived receivers are not listed. Any member may call it.
+         */
+        get: operations['listTeamReceivers'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/receivers/{receiverId}/trackers': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every tracker of one care receiver, active and paused
+         * @description Serves the Trackers list. All three filters are drawn from this one response, so their counts agree with what each shows. Sorted by name; a paused tracker never needs attention.
+         */
+        get: operations['listReceiverTrackers'];
+        put?: never;
+        /**
+         * Create a tracker for an active care receiver (admin only)
+         * @description Add tracker's Create. Takes no schedules — those are written afterward in Edit tracker. The server assigns every field and option id.
+         */
+        post: operations['addTracker'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/trackers/{trackerId}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One tracker, with what is wrong with it right now */
+        get: operations['getTrackerDetail'];
+        /**
+         * Edit tracker's Save (admin only)
+         * @description Name, icon, color, fields and gap commit together. Schedules are not part of this request; each is written on its own sheet's Save. Allowed on a paused tracker. Refused with 400 if `fields` leaves out an existing field (fields are paused, never removed), drops an existing choice option (options are retired, never removed), or changes an existing field's type (a type is fixed once the tracker exists). Turning a gap on while the tracker has schedules is refused with 409 unless `remove_schedules` is true, which removes every schedule as DELETE /v1/schedules/{scheduleId} would.
+         */
+        put: operations['editTracker'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/trackers/{trackerId}/pause': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pause a tracker (admin only)
+         * @description No new entries, its schedules stop generating, and its thresholds stop raising alerts. Occurrences still waiting in the future are deleted; everything logged, skipped or already unrecorded stays. Pausing a paused tracker changes nothing.
+         */
+        post: operations['pauseTracker'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/trackers/{trackerId}/resume': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume a paused tracker (admin only)
+         * @description Its schedules generate again from now, and its thresholds raise alerts again. Nothing is back-filled across the pause. Resuming an active tracker changes nothing.
+         */
+        post: operations['resumeTracker'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/trackers/{trackerId}/entries': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A tracker's entries, newest first
+         * @description Logged, skipped and unrecorded together. Entries still to come are never listed — Coming up is what looks ahead. `from` and `to` are dates in the receiver's time zone, inclusive; without them the list runs back through everything, a page at a time.
+         */
+        get: operations['listTrackerEntries'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/trackers/{trackerId}/schedules': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A tracker's schedules, readable by anyone on the team
+         * @description Removed schedules are not listed.
+         */
+        get: operations['listTrackerSchedules'];
+        put?: never;
+        /**
+         * A schedule's Save, for a new schedule (admin only)
+         * @description Written at once, not with Edit tracker's Save. It starts today in the receiver's time zone, and its occurrences exist by the time this returns. On a tracker watched by a gap it is refused with 409 unless `replace_gap` is true, which turns the gap off. On a paused tracker it is stored but generates nothing until the tracker is resumed.
+         */
+        post: operations['addSchedule'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/schedules/{scheduleId}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * A schedule's Save, for an existing schedule (admin only)
+         * @description Written at once. Its still-waiting future occurrences are replaced by ones made from the new rule, time and pre-filled values; nothing logged, skipped or already unrecorded moves.
+         */
+        put: operations['changeSchedule'];
+        post?: never;
+        /**
+         * Remove this schedule? — Remove (admin only)
+         * @description The rule and every occurrence it made that is still waiting go. Every entry already logged, skipped or unrecorded stays exactly where it is, and still names the schedule it came from.
+         */
+        delete: operations['removeSchedule'];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/tracker-templates': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The tracker template catalogue
+         * @description Ordered as Add tracker shows them. A template carries no ids for its fields; creating a tracker from one assigns them.
+         */
+        get: operations['listTemplates'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -669,6 +862,236 @@ export interface components {
         RedeemInvitationRequest: {
             code: string;
         };
+        CareReceiver: {
+            receiver_id: string;
+            team_id: string;
+            name: string;
+            /** @description IANA zone every wall-clock time about this receiver is read in */
+            time_zone: string;
+        };
+        /** @enum {string} */
+        TrackerStatus: 'active' | 'paused';
+        /** @enum {string} */
+        FieldKind: 'number' | 'text' | 'boolean' | 'choice' | 'datetime';
+        /** @enum {string} */
+        FieldStatus: 'active' | 'paused';
+        /** @description Where a number is expected to stay. Either bound may be left open. A number field with no range never alerts. */
+        ValueRange: {
+            low?: number;
+            high?: number;
+        };
+        ChoiceOption: {
+            option_id: string;
+            label: string;
+            /** @enum {string} */
+            status: 'active' | 'retired';
+        };
+        TrackerField: {
+            /** @description Stable, never reused within its tracker */
+            field_id: string;
+            label: string;
+            type: components['schemas']['FieldKind'];
+            /** @description number only */
+            unit?: string;
+            required: boolean;
+            status: components['schemas']['FieldStatus'];
+            range?: components['schemas']['ValueRange'];
+            /** @description choice only — one answer or several */
+            multiple?: boolean;
+            /** @description choice only. Never shrinks; options are retired instead. */
+            options?: components['schemas']['ChoiceOption'][];
+        };
+        ChoiceOptionWrite: {
+            /** @description Absent for a new option */
+            option_id?: string;
+            label: string;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: 'active' | 'retired';
+        };
+        TrackerFieldWrite: {
+            /** @description Absent for a new field */
+            field_id?: string;
+            label: string;
+            type: components['schemas']['FieldKind'];
+            unit?: string;
+            required: boolean;
+            status?: components['schemas']['FieldStatus'];
+            range?: components['schemas']['ValueRange'];
+            multiple?: boolean;
+            options?: components['schemas']['ChoiceOptionWrite'][];
+        };
+        TrackerRow: {
+            tracker_id: string;
+            name: string;
+            icon: string;
+            color: string;
+            status: components['schemas']['TrackerStatus'];
+            /**
+             * Format: date-time
+             * @description Absent when nothing has ever been logged against it
+             */
+            last_logged_at?: string;
+            /** Format: date-time */
+            paused_at?: string;
+            /** @description Always false when paused */
+            needs_attention: boolean;
+        };
+        /** @description One thing wrong with a tracker right now, worked out when it is read. `unrecorded` — an occurrence whose time has passed with nothing logged or skipped, for forty-eight hours after that time, whether or not it alerts anyone (`entry_id`, `occurrence_at`). `out_of_range` — a number field whose latest logged reading is outside its range (`entry_id`, `field_id`, `value`, `range`). `gap` — longer than `gap_hours` since the last entry, or since the tracker was created when there has never been one (`since`, `gap_hours`). */
+        TrackerAttention: {
+            /** @enum {string} */
+            kind: 'unrecorded' | 'out_of_range' | 'gap';
+            entry_id?: string;
+            /** Format: date-time */
+            occurrence_at?: string;
+            field_id?: string;
+            value?: number;
+            range?: components['schemas']['ValueRange'];
+            /** Format: date-time */
+            since?: string;
+            gap_hours?: number;
+        };
+        TrackerDetail: {
+            tracker_id: string;
+            receiver_id: string;
+            team_id: string;
+            name: string;
+            icon: string;
+            color: string;
+            status: components['schemas']['TrackerStatus'];
+            /** Format: date-time */
+            paused_at?: string;
+            /** @description Every field it has ever had, paused ones included, in order */
+            fields: components['schemas']['TrackerField'][];
+            /** @description Absent when no gap watches it. Never present alongside schedules. */
+            gap_hours?: number;
+            schedule_count: number;
+            /** Format: date-time */
+            last_logged_at?: string;
+            /** @description Empty when nothing is wrong, and always empty when paused */
+            attention: components['schemas']['TrackerAttention'][];
+            /** Format: date-time */
+            created_at: string;
+        };
+        NewTracker: {
+            name: string;
+            /** @description An SF Symbol name */
+            icon: string;
+            color: string;
+            fields: components['schemas']['TrackerFieldWrite'][];
+            gap_hours?: number;
+        };
+        /** @description Everything Edit tracker's Save commits; schedules and pausing are separate. */
+        TrackerChanges: {
+            name: string;
+            icon: string;
+            color: string;
+            /** @description Every existing field by its `field_id`, in the order to show them, plus any new ones without one */
+            fields: components['schemas']['TrackerFieldWrite'][];
+            /** @description null turns the gap off */
+            gap_hours: number | null;
+            /**
+             * @description Confirms that turning the gap on removes every schedule
+             * @default false
+             */
+            remove_schedules: boolean;
+        };
+        /** @enum {string} */
+        Weekday: 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA' | 'SU';
+        /** @description A rule, not a preset (ADR 0012). The app's choices write into it — every week, two weeks, month and two months are intervals of 1, 2, 4 and 8 weeks. More frequencies can be added later without migrating data. */
+        Recurrence: {
+            /** @enum {string} */
+            freq: 'weekly';
+            interval: number;
+            by_day: components['schemas']['Weekday'][];
+        };
+        TrackerSchedule: {
+            schedule_id: string;
+            tracker_id: string;
+            /** @description What an admin typed; absent when left blank */
+            label?: string;
+            /** @description The label, or a name derived from the schedule when it has none */
+            name: string;
+            rule: components['schemas']['Recurrence'];
+            /** @description Local HH:MM in the receiver's time zone */
+            time: string;
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on?: string;
+            /** @description Pre-filled values keyed by field_id; a choice is a list of option_ids */
+            planned_values: {
+                [key: string]: unknown;
+            };
+            unrecorded_alert: boolean;
+        };
+        ScheduleWrite: {
+            label?: string;
+            rule: components['schemas']['Recurrence'];
+            time: string;
+            /** Format: date */
+            ends_on?: string;
+            planned_values: {
+                [key: string]: unknown;
+            };
+            unrecorded_alert: boolean;
+        };
+        NewSchedule: {
+            label?: string;
+            rule: components['schemas']['Recurrence'];
+            time: string;
+            /** Format: date */
+            ends_on?: string;
+            planned_values: {
+                [key: string]: unknown;
+            };
+            unrecorded_alert: boolean;
+            /**
+             * @description Confirms that the first schedule turns the tracker's gap off
+             * @default false
+             */
+            replace_gap: boolean;
+        };
+        /**
+         * @description Unrecorded is never stored; it is a scheduled entry whose time has passed.
+         * @enum {string}
+         */
+        EntryState: 'scheduled' | 'unrecorded' | 'logged' | 'skipped';
+        Entry: {
+            entry_id: string;
+            tracker_id: string;
+            state: components['schemas']['EntryState'];
+            /**
+             * Format: date-time
+             * @description When the care happened if logged, otherwise when it was due
+             */
+            at: string;
+            /** @description Keyed by field_id; a choice is a list of option_ids */
+            values: {
+                [key: string]: unknown;
+            };
+            note?: string;
+            /** @description Who logged or skipped it, or "a former caregiver"; absent while unrecorded */
+            by_name?: string;
+            schedule_id?: string;
+            /** @description Present when it came from a schedule */
+            schedule_name?: string;
+        };
+        EntryPage: {
+            entries: components['schemas']['Entry'][];
+            /** @description Absent on the last page */
+            next_cursor?: string;
+        };
+        CatalogTemplate: {
+            template_id: string;
+            name: string;
+            icon: string;
+            color: string;
+            fields: components['schemas']['TrackerFieldWrite'][];
+            gap_hours?: number;
+        };
         Error: {
             message: string;
         };
@@ -739,6 +1162,15 @@ export interface components {
         };
         /** @description The code is unknown, expired, already used, or revoked. One answer for all four, per the PRD — none of them changes what the caregiver does next. */
         InvitationNotValid: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description A tracker has schedules or a gap, never both. Resend with the confirming flag once the admin has been told what they are about to lose. */
+        SchedulesOrGap: {
             headers: {
                 [name: string]: unknown;
             };
@@ -1653,6 +2085,353 @@ export interface operations {
             401: components['responses']['Unauthorized'];
             409: components['responses']['AlreadyMember'];
             410: components['responses']['InvitationNotValid'];
+        };
+    };
+    listTeamReceivers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CareReceiver'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    listReceiverTrackers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TrackerRow'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    addTracker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['NewTracker'];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TrackerDetail'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    getTrackerDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TrackerDetail'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    editTracker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['TrackerChanges'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TrackerDetail'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['SchedulesOrGap'];
+        };
+    };
+    pauseTracker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TrackerDetail'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    resumeTracker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TrackerDetail'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    listTrackerEntries: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                trackerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['EntryPage'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    listTrackerSchedules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TrackerSchedule'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    addSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trackerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['NewSchedule'];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TrackerSchedule'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['SchedulesOrGap'];
+        };
+    };
+    changeSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['ScheduleWrite'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TrackerSchedule'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    removeSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    listTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CatalogTemplate'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
         };
     };
 }
