@@ -25,6 +25,10 @@ type TableNames struct {
 	Teams       string
 	Memberships string
 	Invitations string
+	Receivers   string
+	Trackers    string
+	Schedules   string
+	Entries     string
 }
 
 // Stores aggregates the per-entity repositories and owns cross-table transactions.
@@ -36,11 +40,19 @@ type Stores struct {
 	Teams       *TeamStore
 	Memberships *MembershipStore
 	Invitations *InvitationStore
+	Receivers   *ReceiverStore
+	Trackers    *TrackerStore
+	Schedules   *ScheduleStore
+	Entries     *EntryStore
 }
 
 const (
-	teamIndex  = "team-index"
-	emailIndex = "email-index"
+	teamIndex     = "team-index"
+	emailIndex    = "email-index"
+	receiverIndex = "receiver-index"
+	trackerIndex  = "tracker-index"
+	trackerTime   = "tracker-time"
+	openIndex     = "open-index"
 )
 
 // New builds Stores from a DynamoDB client and table names.
@@ -52,6 +64,10 @@ func New(client *dynamodb.Client, names TableNames) *Stores {
 		Teams:       &TeamStore{client: client, table: names.Teams},
 		Memberships: &MembershipStore{client: client, table: names.Memberships},
 		Invitations: &InvitationStore{client: client, table: names.Invitations},
+		Receivers:   &ReceiverStore{client: client, table: names.Receivers},
+		Trackers:    &TrackerStore{client: client, table: names.Trackers},
+		Schedules:   &ScheduleStore{client: client, table: names.Schedules},
+		Entries:     &EntryStore{client: client, table: names.Entries},
 	}
 }
 
@@ -99,6 +115,35 @@ func queryItems[T any](ctx context.Context, client *dynamodb.Client, in *dynamod
 		return nil, err
 	}
 	return vs, nil
+}
+
+// queryAll runs a Query to the end, following LastEvaluatedKey, and unmarshals
+// every item into []T. For lists bounded by family scale (a team's receivers,
+// a receiver's trackers), never for an entry history.
+func queryAll[T any](ctx context.Context, client *dynamodb.Client, in *dynamodb.QueryInput) ([]T, error) {
+	var vs []T
+	for {
+		out, err := client.Query(ctx, in)
+		if err != nil {
+			return nil, err
+		}
+		var page []T
+		if err := attributevalue.UnmarshalListOfMaps(out.Items, &page); err != nil {
+			return nil, err
+		}
+		vs = append(vs, page...)
+		if len(out.LastEvaluatedKey) == 0 {
+			return vs, nil
+		}
+		in.ExclusiveStartKey = out.LastEvaluatedKey
+	}
+}
+
+// timeKey formats t the way the attributevalue marshaler stores a time.Time
+// (RFC3339Nano), so key conditions compare like with like. Times are
+// normalized to UTC before they are written for the same reason.
+func timeKey(t time.Time) types.AttributeValue {
+	return &types.AttributeValueMemberS{Value: t.UTC().Format(time.RFC3339Nano)}
 }
 
 // batchGetMax is DynamoDB's limit on keys per BatchGetItem request.

@@ -16,7 +16,7 @@ import (
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/store"
 )
 
-// Start launches DynamoDB Local, creates the four v1 tables (with GSIs), and
+// Start launches DynamoDB Local, creates the v1 tables (with GSIs), and
 // returns Stores wired to it. The container is terminated via t.Cleanup.
 func Start(t *testing.T) *store.Stores {
 	t.Helper()
@@ -24,7 +24,8 @@ func Start(t *testing.T) *store.Stores {
 }
 
 // Local is a running DynamoDB Local with the v1 tables, for tests that also
-// need to write rows no store method writes (closing an account or a team).
+// need to write rows no store method writes (closing an account or a team,
+// seeding receivers, schedules and entries).
 type Local struct {
 	Stores *store.Stores
 	Client *dynamodb.Client
@@ -73,6 +74,10 @@ func StartLocal(t *testing.T) Local {
 		Teams:       "test-v1-team",
 		Memberships: "test-v1-membership",
 		Invitations: "test-v1-invitation",
+		Receivers:   "test-v1-receiver",
+		Trackers:    "test-v1-tracker",
+		Schedules:   "test-v1-schedule",
+		Entries:     "test-v1-entry",
 	}
 	createTables(t, ctx, client, names)
 	return Local{Stores: store.New(client, names), Client: client, Names: names}
@@ -133,6 +138,52 @@ func createTables(t *testing.T, ctx context.Context, c *dynamodb.Client, n store
 		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
 			{IndexName: aws.String("team-index"), KeySchema: []types.KeySchemaElement{hash("team_id")}, Projection: all},
 			{IndexName: aws.String("email-index"), KeySchema: []types.KeySchemaElement{hash("email")}, Projection: all},
+		},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:            aws.String(n.Receivers),
+		BillingMode:          types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{s("receiver_id"), s("team_id"), s("created_at")},
+		KeySchema:            []types.KeySchemaElement{hash("receiver_id")},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+			{IndexName: aws.String("team-index"), KeySchema: []types.KeySchemaElement{hash("team_id"), rng("created_at")}, Projection: all},
+		},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:            aws.String(n.Trackers),
+		BillingMode:          types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{s("tracker_id"), s("receiver_id"), s("created_at")},
+		KeySchema:            []types.KeySchemaElement{hash("tracker_id")},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+			{IndexName: aws.String("receiver-index"), KeySchema: []types.KeySchemaElement{hash("receiver_id"), rng("created_at")}, Projection: all},
+		},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:            aws.String(n.Schedules),
+		BillingMode:          types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{s("schedule_id"), s("tracker_id"), s("created_at")},
+		KeySchema:            []types.KeySchemaElement{hash("schedule_id")},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+			{IndexName: aws.String("tracker-index"), KeySchema: []types.KeySchemaElement{hash("tracker_id"), rng("created_at")}, Projection: all},
+		},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:   aws.String(n.Entries),
+		BillingMode: types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{
+			s("entry_id"), s("tracker_id"), s("receiver_id"), s("schedule_id"),
+			s("timeline_at"), s("open_at"), s("occurrence_at"),
+		},
+		KeySchema: []types.KeySchemaElement{hash("entry_id")},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+			{IndexName: aws.String("tracker-time"), KeySchema: []types.KeySchemaElement{hash("tracker_id"), rng("timeline_at")}, Projection: all},
+			{IndexName: aws.String("receiver-time"), KeySchema: []types.KeySchemaElement{hash("receiver_id"), rng("timeline_at")}, Projection: all},
+			{IndexName: aws.String("open-index"), KeySchema: []types.KeySchemaElement{hash("receiver_id"), rng("open_at")}, Projection: all},
+			{IndexName: aws.String("schedule-index"), KeySchema: []types.KeySchemaElement{hash("schedule_id"), rng("occurrence_at")}, Projection: all},
 		},
 	})
 }
