@@ -114,7 +114,8 @@ func TestTracker_SetStatus(t *testing.T) {
 	}
 
 	resumed, err := s.Trackers.SetStatus(ctx, "tr1", domain.TrackerActive, "u1", now.Add(2*time.Hour))
-	if err != nil || resumed.Status != domain.TrackerActive || resumed.PausedBy != "" || resumed.PausedAt != nil {
+	if err != nil || resumed.Status != domain.TrackerActive || resumed.PausedBy != "" || resumed.PausedAt != nil ||
+		resumed.ResumedAt == nil || !resumed.ResumedAt.Equal(now.Add(2*time.Hour)) {
 		t.Fatalf("resume: %+v err=%v", resumed, err)
 	}
 	if stored, _ := s.Trackers.Get(ctx, "tr1"); stored.PausedAt != nil || stored.Status != domain.TrackerActive {

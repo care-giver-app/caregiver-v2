@@ -104,19 +104,18 @@ func (s *TrackerStore) put(ctx context.Context, t domain.Tracker, cond string) e
 }
 
 // SetStatus pauses or resumes a tracker and returns it as stored. Pausing sets
-// paused_by/paused_at; resuming removes them. A tracker already in the status
+// paused_by/paused_at; resuming removes them and sets resumed_at. A tracker already in the status
 // is returned unchanged, so a repeat keeps the original paused_at. It returns
 // ErrNotFound if the tracker does not exist.
 func (s *TrackerStore) SetStatus(ctx context.Context, trackerID string, status domain.TrackerStatus, by string, at time.Time) (domain.Tracker, error) {
 	if !status.Valid() {
 		return domain.Tracker{}, errors.New("invalid tracker status")
 	}
-	update := "SET #s = :s REMOVE paused_by, paused_at"
-	vals := map[string]types.AttributeValue{":s": &types.AttributeValueMemberS{Value: string(status)}}
+	update := "SET #s = :s, resumed_at = :at REMOVE paused_by, paused_at"
+	vals := map[string]types.AttributeValue{":s": &types.AttributeValueMemberS{Value: string(status)}, ":at": timeKey(at)}
 	if status == domain.TrackerPaused {
 		update = "SET #s = :s, paused_by = :by, paused_at = :at"
 		vals[":by"] = &types.AttributeValueMemberS{Value: by}
-		vals[":at"] = timeKey(at)
 	}
 	out, err := s.client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
 		TableName:                           aws.String(s.table),

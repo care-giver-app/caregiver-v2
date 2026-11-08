@@ -939,7 +939,7 @@ export interface components {
             /** @description Always false when paused */
             needs_attention: boolean;
         };
-        /** @description One thing wrong with a tracker right now, worked out when it is read. `unrecorded` — an occurrence whose time has passed with nothing logged or skipped, for forty-eight hours after that time, whether or not it alerts anyone (`entry_id`, `occurrence_at`). `out_of_range` — a number field whose latest logged reading is outside its range (`entry_id`, `field_id`, `value`, `range`). `gap` — longer than `gap_hours` since the last entry, or since the tracker was created when there has never been one (`since`, `gap_hours`). */
+        /** @description One thing wrong with a tracker right now, worked out when it is read. `unrecorded` — an occurrence whose time has passed with nothing logged or skipped, for forty-eight hours after that time, whether or not it alerts anyone (`entry_id`, `occurrence_at`). `out_of_range` — a number field whose latest logged reading is outside its range (`entry_id`, `field_id`, `value`, `range`). `gap` — longer than `gap_hours` since the last entry, the tracker's creation, or its last resume, whichever is latest (`since`, `gap_hours`). */
         TrackerAttention: {
             /** @enum {string} */
             kind: 'unrecorded' | 'out_of_range' | 'gap';

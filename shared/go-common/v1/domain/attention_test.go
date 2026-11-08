@@ -48,6 +48,7 @@ func TestEvaluateAttention(t *testing.T) {
 		return Entry{EntryID: id, State: EntryScheduled, OccurrenceAt: at}
 	}
 	withGap := func(t Tracker, h int) Tracker { t.GapHours = gap(h); return t }
+	resumed := func(t Tracker, at *time.Time) Tracker { t.ResumedAt = at; return t }
 	paused := bp
 	paused.Status = TrackerPaused
 	diaPaused := bp
@@ -102,6 +103,10 @@ func TestEvaluateAttention(t *testing.T) {
 		{"gap not yet past", withGap(bp, 72), []Entry{logged("e1", ago(71*time.Hour), nil)}, nil, nil},
 		{"gap exactly reached is not past", withGap(bp, 72), []Entry{logged("e1", ago(72*time.Hour), nil)}, nil, nil},
 		{"gap since created when never logged", withGap(bp, 72), nil, nil, []want{{AttentionGap, "", ""}}},
+		{"gap counts from a resume, not the last log before the pause", resumed(withGap(bp, 72), ago(24*time.Hour)),
+			[]Entry{logged("e1", ago(400*time.Hour), nil)}, nil, nil},
+		{"gap past since a resume", resumed(withGap(bp, 72), ago(73*time.Hour)),
+			[]Entry{logged("e1", ago(400*time.Hour), nil)}, nil, []want{{AttentionGap, "", ""}}},
 		{"order: unrecorded, out_of_range, gap", withGap(bp, 1),
 			[]Entry{logged("e1", ago(3*time.Hour), map[string]any{"sys": 150.0})},
 			[]Entry{open("o1", ago(2*time.Hour))},

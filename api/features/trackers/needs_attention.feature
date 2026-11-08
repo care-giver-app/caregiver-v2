@@ -96,6 +96,18 @@ Feature: What needs attention on a tracker
     Then the answer is 200
     And nothing about it needs attention
 
+  # PRD: Definitions → Threshold (a resumed tracker counts from the day it was resumed)
+  Scenario: A resumed tracker's gap counts from when it was resumed
+    Given "Grandma" has a tracker "Shower"
+    And "Shower" is watched by a gap of 72 hours
+    And "Shower" was created 20 days ago
+    And "Sam" logged "Shower" 14 days ago
+    And "Shower" was paused 13 days ago
+    When "Alex" resumes "Shower"
+    And "Sam" opens "Shower"
+    Then the answer is 200
+    And nothing about it needs attention
+
   # PRD: Definitions → Tracker (pausing: its thresholds stop raising alerts)
   Scenario: A paused tracker needs no attention
     Given "Grandma" has a tracker "Shower"

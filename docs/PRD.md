@@ -217,7 +217,8 @@ notices care that never happened. A gap is the only expectation available to a t
 fields, which records nothing but that the thing occurred, and it is how a team watches care that
 should happen regularly without pinning it to a clock. A tracker that has never been logged counts
 from the day it was created, so a gap starts watching immediately rather than waiting for a first
-entry.
+entry. A resumed tracker counts from the day it was resumed, for the same reason: the time it spent
+paused was not time anyone was expected to log it.
 
 A tracker has schedules or a gap, never both. Care a schedule already plans is watched by
 unrecorded-care alerts, and one lapse should never be reported by two mechanisms — so choosing one

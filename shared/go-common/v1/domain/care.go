@@ -117,8 +117,10 @@ type Tracker struct {
 	Status     TrackerStatus `dynamodbav:"status"`
 	PausedBy   string        `dynamodbav:"paused_by,omitempty"`
 	PausedAt   *time.Time    `dynamodbav:"paused_at,omitempty"`
-	CreatedBy  string        `dynamodbav:"created_by"`
-	CreatedAt  time.Time     `dynamodbav:"created_at"`
+	// ResumedAt is when it was last resumed; a gap counts from no earlier.
+	ResumedAt *time.Time `dynamodbav:"resumed_at,omitempty"`
+	CreatedBy string     `dynamodbav:"created_by"`
+	CreatedAt time.Time  `dynamodbav:"created_at"`
 }
 
 // Rule is a recurrence rule, never a preset: an RRULE subset that can widen

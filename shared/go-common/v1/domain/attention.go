@@ -76,8 +76,10 @@ func EvaluateAttention(t Tracker, now time.Time, logged, open []Entry) []Attenti
 
 	if t.GapHours != nil {
 		since := t.CreatedAt
-		if last := LastLoggedAt(logged); last != nil {
-			since = *last
+		for _, at := range []*time.Time{LastLoggedAt(logged), t.ResumedAt} {
+			if at != nil && at.After(since) {
+				since = *at
+			}
 		}
 		if now.Sub(since) > time.Duration(*t.GapHours)*time.Hour {
 			out = append(out, Attention{Kind: AttentionGap, Since: since, GapHours: *t.GapHours})

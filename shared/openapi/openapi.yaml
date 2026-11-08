@@ -1333,7 +1333,7 @@ components:
         anyone (`entry_id`, `occurrence_at`). `out_of_range` — a number field
         whose latest logged reading is outside its range (`entry_id`, `field_id`,
         `value`, `range`). `gap` — longer than `gap_hours` since the last entry,
-        or since the tracker was created when there has never been one (`since`,
+        the tracker's creation, or its last resume, whichever is latest (`since`,
         `gap_hours`).
       required: [kind]
       properties:
