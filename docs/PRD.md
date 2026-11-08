@@ -505,10 +505,13 @@ to spam is not left waiting on the second.
 that if an account exists, a code is on its way — because a screen that said otherwise would let
 anyone discover which addresses have accounts, which is exactly what Sign in refuses to do. An
 account created but never confirmed cannot have its password reset at all, so it is sent a
-confirmation code instead and the caregiver lands on Confirm code. Confirming and then resetting is
-two steps rather than one, but it is a path rather than a dead end. That this reveals an abandoned
-signup is a cost taken deliberately: it exposes signups nobody finished rather than accounts somebody
-holds, and Sign up already reveals the same thing about the same address.
+confirmation code instead and the caregiver lands on Confirm code. Confirming that code does not
+sign them in, since not knowing their password is why they came, but carries on with the reset: a
+reset code is sent and Reset password returns at the code and a new password, ending at Sign in like
+any other reset. Confirming and then resetting is two steps rather than one, but it is a path rather
+than a dead end. That this reveals an abandoned signup is a cost taken deliberately: it exposes
+signups nobody finished rather than accounts somebody holds, and Sign up already reveals the same
+thing about the same address.
 
 For the same reason, Reset password answers every code that is not the right one the same way. If a
 wrong code and an expired one read differently, a caregiver who was never sent a code could tell
@@ -533,11 +536,18 @@ destroyed every session and creating one in the same breath would undo the point
 time, so signing up ends in the same place signing in does — and a caregiver who turns out to already
 have an account leaves through the cross-link rather than by going back to Landing.
 
-An address that already has an account is answered by which kind of account it is. A confirmed one
-sends the caregiver to Sign in, because signing in is what they were trying to do. One created but
-never confirmed sends them to Confirm code with a fresh code, because finishing is what they were
-trying to do. Saying only that the address is taken would strand the second kind at the one screen
-that cannot help them, which is the trap an abandoned signup already falls into.
+An address that already has an account is answered by which kind of account it is, as far as the
+password typed can tell. One created but never confirmed, where the password is the one it was made
+with, sends the caregiver to Confirm code with a fresh code, because finishing is what they were
+trying to do; confirming signs them in, and the account takes the name they have just typed, because
+that is the signup they meant to finish. Every other address that has an account sends them to Sign
+in with the address filled in, saying it already has an account. That includes a confirmed one even
+when the password is right, because a caregiver who has just typed their name would think they had
+made a new account, and the name would quietly go nowhere. Without the right password a confirmed
+account and an abandoned one look alike, for the same reason Sign in will not say which addresses
+have accounts, but the abandoned one is not stranded: the right password on Sign in finds it, and so
+does Forgot password. Saying only that the address is taken would strand it at the one screen that
+cannot help, which is the trap an abandoned signup already falls into.
 
 **Signed in with no care team.** Join a care team is where a caregiver accepts an invitation waiting
 for their email or pastes an invite code, with creating a team offered as the alternative rather than
@@ -651,12 +661,18 @@ sign out, which is a caregiver saying they want out.
       to: Confirm code
       as: sheet
     - action: Create account
-      when: the address already has a confirmed account
-      to: Sign in
+      when: >
+        the address already has an account, confirmed, or not made with the
+        password just typed
+      to: Sign in, with the address filled in, saying it already has an account
       as: swap
     - action: Create account
-      when: the address has an account that was never confirmed
-      to: Confirm code, with a fresh code sent
+      when: >
+        the address has an account that was never confirmed, made with the
+        password just typed
+      to: >
+        Confirm code, with a fresh code sent; confirming gives the account the
+        name just typed
       as: sheet
     - action: Terms
       to: the terms, on the web
@@ -680,13 +696,19 @@ sign out, which is a caregiver saying they want out.
     - Resend, available again sixty seconds after the last code was sent
   exits:
     - action: Confirm
-      when: you belong to a care team
+      when: raised over Sign in or Sign up, and you belong to a care team
       to: Home
       as: root
     - action: Confirm
-      when: you belong to no care team
+      when: raised over Sign in or Sign up, and you belong to no care team
       to: Join a care team
       as: root
+    - action: Confirm
+      when: raised in place of Reset password
+      to: >
+        Reset password, asking for the code and a new password, with a reset code
+        sent
+      as: swap
     - action: Confirm
       when: the code is wrong
       to: Confirm code, saying the code is wrong
@@ -705,7 +727,8 @@ sign out, which is a caregiver saying they want out.
 - screen: Reset password
   kind: sheet
   scope: >
-    one email address; raised over Sign in, and where it ends. It changes in
+    one email address; raised over Sign in, and where it ends; also returned to
+    from Confirm code once a never-confirmed account is confirmed. It changes in
     place rather than navigating — first the address, then the code and a new password
   contains:
     - email address

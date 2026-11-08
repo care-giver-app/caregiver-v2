@@ -1,66 +1,69 @@
 import SwiftUI
 
+/// Sign up (PRD "Getting into the app"; Figma 353:3209). Pushed from Landing;
+/// swaps with Sign in.
 struct SignUpView: View {
     @Bindable var model: AuthModel
-    var onSignIn: () -> Void
 
     var body: some View {
         ScrollView {
-            VStack(spacing: Theme.Spacing.md - 2) {
+            VStack(alignment: .leading, spacing: 0) {
                 StrideBrand()
-                    .padding(.bottom, Theme.Spacing.xs)
-                VStack(spacing: 6) {
-                    Text("Create your account")
-                        .font(.system(size: 24, weight: .medium))
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                    Text("Start coordinating care in minutes.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                }
-                .multilineTextAlignment(.center)
-                .padding(.bottom, Theme.Spacing.xs)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 20)
+                AuthHeading(title: "Create your account", subtitle: "Start coordinating care in minutes")
+                    .padding(.bottom, 18)
                 HStack(spacing: 10) {
                     StrideField(placeholder: "First name", icon: "person", text: $model.firstName)
                         .textContentType(.givenName)
                     StrideField(placeholder: "Last name", icon: "person", text: $model.lastName)
                         .textContentType(.familyName)
                 }
+                .padding(.bottom, 12)
                 StrideField(placeholder: "Email", icon: "envelope", text: $model.email)
-                    .textContentType(.emailAddress).keyboardType(.emailAddress)
+                    .textContentType(.username).keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
-                StrideField(placeholder: "Password (8+ chars)", icon: "lock", isSecure: true, text: $model.password)
+                    .padding(.bottom, 12)
+                StrideField(placeholder: "Password", icon: "lock", isSecure: true, text: $model.password)
                     .textContentType(.newPassword)
-                StrideField(placeholder: "Confirm password", icon: "lock", isSecure: true, text: $model.confirmPassword)
+                    .padding(.bottom, 12)
+                StrideField(placeholder: "Confirm password", icon: "lock", isSecure: true,
+                            text: $model.confirmPassword)
                     .textContentType(.newPassword)
-                if let error = model.error {
-                    Text(error.message).font(Theme.Typography.subhead).foregroundStyle(Theme.Colors.alert)
-                }
+                    .authBanner(model.formBanner)
+                    .padding(.bottom, 20)
                 StrideButton(title: "Create account", isLoading: model.isBusy) {
                     Task { await model.signUp() }
                 }
-                .padding(.top, Theme.Spacing.xs + 2)
-                Text("By continuing, you agree to our [Terms](https://caregiver.app/terms) & [Privacy Policy](https://caregiver.app/privacy).")
+                .padding(.bottom, Theme.Spacing.md)
+                // Markdown links need literal URLs. They 404 until the pages are published.
+                Text("By continuing, you agree to our [Terms](https://caretosher.com/terms) & [Privacy Policy](https://caretosher.com/privacy).")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.Colors.textTertiary)
                     .tint(Theme.Colors.textTertiary)
                     .multilineTextAlignment(.center)
-                HStack(spacing: 5) {
-                    Text("Already have an account?")
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                    Button("Sign in", action: onSignIn)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Theme.Colors.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 10)
+                Button { model.show(.signIn) } label: {
+                    Text("Already have an account?  Sign in")
+                        .frame(maxWidth: .infinity)
                 }
-                .font(.system(size: 14))
+                .authLinkStyle()
             }
-            .padding(Theme.Spacing.lg)
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.bottom, Theme.Spacing.lg)
         }
         .scrollBounceBehavior(.basedOnSize)
         .strideAuthBackground()
-        .sheet(isPresented: $model.needsConfirmation) { ConfirmCodeView(model: model) }
+        .toolbar(.visible, for: .navigationBar)
+        .strideBackButton()
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .tint(Theme.Colors.accent)
     }
 }
 
-#Preview {
-    SignUpView(model: AuthModel(), onSignIn: {})
+#if DEBUG
+#Preview("Sign up") {
+    NavigationStack { SignUpView(model: .preview()) }
 }
+#endif

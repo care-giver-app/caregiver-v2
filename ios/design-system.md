@@ -7,11 +7,11 @@ for that.
 
 ## Buttons & actions
 
-| Component      | Used for                                                                                                      |
-| -------------- | ------------------------------------------------------------------------------------------------------------- |
-| `StrideButton` | The primary tappable action on a screen (continue, save, confirm, retry); `.compact` for an inline Try again. |
-| `StrideChip`   | A small selectable pill for filters or single-choice pickers (e.g. role, status).                             |
-| `StrideBadge`  | A short status label (Due, Missed, Logged, You…) tucked into a row or card.                                   |
+| Component      | Used for                                                                                                                                                                                |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `StrideButton` | The primary tappable action on a screen (continue, save, confirm, retry); `.secondary` (white fill, hairline border) for the alternative beside it; `.compact` for an inline Try again. |
+| `StrideChip`   | A small selectable pill for filters or single-choice pickers (e.g. role, status).                                                                                                       |
+| `StrideBadge`  | A short status label (Due, Missed, Logged, You…) tucked into a row or card.                                                                                                             |
 
 ## Inputs & forms
 
