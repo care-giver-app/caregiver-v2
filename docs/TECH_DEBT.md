@@ -143,3 +143,11 @@ Surfaced during manual use of the C1-UI build; not yet fixed. Both pre-date the 
   shape as the B1 `queryPending` item above: `status='pending'` is a post-read filter, so pending
   invitations past the first 1 MB page are missed. _Fix:_ paginate on `LastEvaluatedKey`. _Trigger:_
   an email accumulating many accepted/revoked invitations.
+- **Feature flags are all-or-nothing** — `infra/lib/appconfig-content.ts`. Every flag, including the
+  `v1_api` cutover flag, is on or off for everyone in a stage. Trevor wants per-user flags later.
+  _Design agreed (2026-11-05):_ a Cognito group per beta (e.g. `v1-beta`), so the ID token's
+  `cognito:groups` claim says who is in it and no user ids land in this public repo; flag content
+  becomes `{enabled, groups}`; a signed-in `GET /v1/me/flags` returns each flag evaluated for the
+  caller; the public `/flags` strips `groups` so it never reveals who is targeted. Group changes reach
+  a caregiver on their next token refresh (up to an hour) or sign-in. Pre-sign-in screens can't be
+  targeted per user. _Trigger:_ the first feature Trevor wants to try on one person before everyone.

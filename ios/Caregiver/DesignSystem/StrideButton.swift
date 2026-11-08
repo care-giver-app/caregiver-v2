@@ -1,6 +1,11 @@
 import SwiftUI
 
-enum StrideButtonStyle { case primary, secondary }
+enum StrideButtonStyle {
+    case primary, secondary
+    /// A small secondary that hugs its title — an inline retry beside a message
+    /// (Figma "Try again", 497:241).
+    case compact
+}
 
 private struct StridePressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -26,6 +31,7 @@ struct StrideButton: View {
         switch style {
         case .primary: primaryBody
         case .secondary: secondaryBody
+        case .compact: compactBody
         }
     }
 
@@ -67,6 +73,27 @@ struct StrideButton: View {
         }
         .buttonStyle(StridePressStyle())
     }
+
+    private var compactBody: some View {
+        Button(action: action) {
+            ZStack {
+                Text(title).opacity(isLoading ? 0 : 1)
+                if isLoading { ProgressView().tint(Theme.Colors.accent) }
+            }
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(Theme.Colors.textPrimary)
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.vertical, 9)
+            .background {
+                RoundedRectangle(cornerRadius: Metrics.radius).fill(Theme.Colors.surface)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: Metrics.radius).stroke(Theme.Colors.border, lineWidth: 1)
+            }
+        }
+        .buttonStyle(StridePressStyle())
+        .disabled(isLoading)
+    }
 }
 
 #Preview("Styles") {
@@ -74,6 +101,7 @@ struct StrideButton: View {
         StrideButton(title: "Continue", action: {})
         StrideButton(title: "Continue", isLoading: true, action: {})
         StrideButton(title: "I already have an account", style: .secondary, action: {})
+        StrideButton(title: "Try again", style: .compact, action: {})
     }
     .padding(Theme.Spacing.lg)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
