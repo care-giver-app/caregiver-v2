@@ -110,14 +110,6 @@ Surfaced during manual use of the C1-UI build; not yet fixed. Both pre-date the 
 
 ## Found during the screen-catalogue pass (2026-09-03)
 
-- **`main` is red on a flaky iOS test.** `CaregiverTests/TrackerSummariesTests.swift:109`
-  (`testRecencyTextBuckets`) builds its clock from `Date()` and asserts that `now - 2h` reads
-  "2h ago". Between 00:00 and 02:00 UTC that timestamp falls on the previous calendar day, so
-  `recencyText` correctly returns "Yesterday" and the test fails. **The implementation is right and
-  the test is wrong** — `recencyText` checks the previous-day case before the hours bucket on
-  purpose (`TrackerSummariesModel.swift:51-58`), and `testRecencyTextYesterday` right below asserts
-  exactly that. _Fix:_ pin `now` to a fixed mid-day time, the way the neighbouring test already
-  does. It only fires when CI runs in that two-hour window, so it will look intermittent.
 - **`CLAUDE.md` may be wrong about the iOS toolchain.** It says Xcode 26+ and an iPhone 17
   simulator; the CI job builds with **Xcode 16.4** against an **iPhone 16 Pro**. Local dev and CI may
   legitimately differ — `ios/README.md` says CI resolves the simulator name dynamically — but one of
@@ -151,3 +143,12 @@ Surfaced during manual use of the C1-UI build; not yet fixed. Both pre-date the 
   caller; the public `/flags` strips `groups` so it never reveals who is targeted. Group changes reach
   a caregiver on their next token refresh (up to an hour) or sign-in. Pre-sign-in screens can't be
   targeted per user. _Trigger:_ the first feature Trevor wants to try on one person before everyone.
+- **A password reset leaves every other session signed in** — the PRD's Getting into the app says
+  setting a new password ends every other session. Cognito does not do that by itself: checked on dev
+  (2026-11-07), a refresh token issued before a password change still mints new tokens after it, so
+  another device stays signed in until its refresh token expires. The 2b auth build clears only the
+  resetting device's stored Face ID credentials. _Fix:_ a Cognito `PostConfirmation` trigger that
+  calls `AdminUserGlobalSignOut` when `triggerSource` is `PostConfirmation_ConfirmForgotPassword`,
+  plus the same call after a password change from Settings (which also keeps the changing device
+  signed in, per the PRD). _Trigger:_ the Settings build, which owns Change password, or sooner if a
+  caregiver needs to lock out a lost device.
