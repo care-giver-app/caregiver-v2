@@ -620,6 +620,286 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '409': { $ref: '#/components/responses/AlreadyMember' }
         '410': { $ref: '#/components/responses/InvitationNotValid' }
+  /v1/teams/{teamId}/receivers:
+    get:
+      operationId: listTeamReceivers
+      summary: The care team's care receivers, oldest first
+      description: >
+        Read-only here so the app can choose the active care receiver; adding,
+        editing and archiving them belong to the Team area. Archived receivers are
+        not listed. Any member may call it.
+      parameters:
+        - { name: teamId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CareReceiver' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/receivers/{receiverId}/trackers:
+    get:
+      operationId: listReceiverTrackers
+      summary: Every tracker of one care receiver, active and paused
+      description: >
+        Serves the Trackers list. All three filters are drawn from this one
+        response, so their counts agree with what each shows. Sorted by name; a
+        paused tracker never needs attention.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TrackerRow' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: addTracker
+      summary: Create a tracker for an active care receiver (admin only)
+      description: >
+        Add tracker's Create. Takes no schedules — those are written afterward in
+        Edit tracker. The server assigns every field and option id.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewTracker' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrackerDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/trackers/{trackerId}:
+    get:
+      operationId: getTrackerDetail
+      summary: One tracker, with what is wrong with it right now
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrackerDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: editTracker
+      summary: Edit tracker's Save (admin only)
+      description: >
+        Name, icon, color, fields and gap commit together. Schedules are not part
+        of this request; each is written on its own sheet's Save. Allowed on a
+        paused tracker. Refused with 400 if `fields` leaves out an existing field
+        (fields are paused, never removed), drops an existing choice option
+        (options are retired, never removed), or changes an existing field's type
+        (a type is fixed once the tracker exists). Turning a gap on while the
+        tracker has schedules is refused with 409 unless `remove_schedules` is
+        true, which removes every schedule as DELETE /v1/schedules/{scheduleId}
+        would.
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TrackerChanges' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrackerDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/SchedulesOrGap' }
+  /v1/trackers/{trackerId}/pause:
+    post:
+      operationId: pauseTracker
+      summary: Pause a tracker (admin only)
+      description: >
+        No new entries, its schedules stop generating, and its thresholds stop
+        raising alerts. Occurrences still waiting in the future are deleted;
+        everything logged, skipped or already unrecorded stays. Pausing a paused
+        tracker changes nothing.
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrackerDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/trackers/{trackerId}/resume:
+    post:
+      operationId: resumeTracker
+      summary: Resume a paused tracker (admin only)
+      description: >
+        Its schedules generate again from now, and its thresholds raise alerts
+        again. Nothing is back-filled across the pause. Resuming an active tracker
+        changes nothing.
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrackerDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/trackers/{trackerId}/entries:
+    get:
+      operationId: listTrackerEntries
+      summary: A tracker's entries, newest first
+      description: >
+        Logged, skipped and unrecorded together. Entries still to come are never
+        listed — Coming up is what looks ahead. `from` and `to` are dates in the
+        receiver's time zone, inclusive; without them the list runs back through
+        everything, a page at a time.
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+        - { name: cursor, in: query, required: false, schema: { type: string } }
+        - {
+            name: limit,
+            in: query,
+            required: false,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 50 },
+          }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntryPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/trackers/{trackerId}/schedules:
+    get:
+      operationId: listTrackerSchedules
+      summary: A tracker's schedules, readable by anyone on the team
+      description: Removed schedules are not listed.
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TrackerSchedule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: addSchedule
+      summary: A schedule's Save, for a new schedule (admin only)
+      description: >
+        Written at once, not with Edit tracker's Save. It starts today in the
+        receiver's time zone, and its occurrences exist by the time this returns.
+        On a tracker watched by a gap it is refused with 409 unless `replace_gap`
+        is true, which turns the gap off. On a paused tracker it is stored but
+        generates nothing until the tracker is resumed.
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewSchedule' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrackerSchedule' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/SchedulesOrGap' }
+  /v1/schedules/{scheduleId}:
+    put:
+      operationId: changeSchedule
+      summary: A schedule's Save, for an existing schedule (admin only)
+      description: >
+        Written at once. Its still-waiting future occurrences are replaced by ones
+        made from the new rule, time and pre-filled values; nothing logged,
+        skipped or already unrecorded moves.
+      parameters:
+        - { name: scheduleId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScheduleWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TrackerSchedule' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: removeSchedule
+      summary: Remove this schedule? — Remove (admin only)
+      description: >
+        The rule and every occurrence it made that is still waiting go. Every
+        entry already logged, skipped or unrecorded stays exactly where it is, and
+        still names the schedule it came from.
+      parameters:
+        - { name: scheduleId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/tracker-templates:
+    get:
+      operationId: listTemplates
+      summary: The tracker template catalogue
+      description: >
+        Ordered as Add tracker shows them. A template carries no ids for its
+        fields; creating a tracker from one assigns them.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CatalogTemplate' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 components:
   securitySchemes:
     bearerAuth:
@@ -957,6 +1237,300 @@ components:
       required: [code]
       properties:
         code: { type: string, minLength: 1 }
+    CareReceiver:
+      type: object
+      required: [receiver_id, team_id, name, time_zone]
+      properties:
+        receiver_id: { type: string }
+        team_id: { type: string }
+        name: { type: string }
+        time_zone:
+          type: string
+          description: IANA zone every wall-clock time about this receiver is read in
+    TrackerStatus:
+      type: string
+      enum: [active, paused]
+    FieldKind:
+      type: string
+      enum: [number, text, boolean, choice, datetime]
+    FieldStatus:
+      type: string
+      enum: [active, paused]
+    ValueRange:
+      type: object
+      description: >
+        Where a number is expected to stay. Either bound may be left open. A
+        number field with no range never alerts.
+      properties:
+        low: { type: number }
+        high: { type: number }
+    ChoiceOption:
+      type: object
+      required: [option_id, label, status]
+      properties:
+        option_id: { type: string }
+        label: { type: string }
+        status: { type: string, enum: [active, retired] }
+    TrackerField:
+      type: object
+      required: [field_id, label, type, required, status]
+      properties:
+        field_id: { type: string, description: 'Stable, never reused within its tracker' }
+        label: { type: string }
+        type: { $ref: '#/components/schemas/FieldKind' }
+        unit: { type: string, description: number only }
+        required: { type: boolean }
+        status: { $ref: '#/components/schemas/FieldStatus' }
+        range: { $ref: '#/components/schemas/ValueRange' }
+        multiple: { type: boolean, description: choice only — one answer or several }
+        options:
+          type: array
+          description: choice only. Never shrinks; options are retired instead.
+          items: { $ref: '#/components/schemas/ChoiceOption' }
+    ChoiceOptionWrite:
+      type: object
+      required: [label]
+      properties:
+        option_id: { type: string, description: Absent for a new option }
+        label: { type: string, minLength: 1, maxLength: 100 }
+        status: { type: string, enum: [active, retired], default: active }
+    TrackerFieldWrite:
+      type: object
+      required: [label, type, required]
+      properties:
+        field_id: { type: string, description: Absent for a new field }
+        label: { type: string, minLength: 1, maxLength: 100 }
+        type: { $ref: '#/components/schemas/FieldKind' }
+        unit: { type: string, maxLength: 20 }
+        required: { type: boolean }
+        status: { $ref: '#/components/schemas/FieldStatus' }
+        range: { $ref: '#/components/schemas/ValueRange' }
+        multiple: { type: boolean }
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/ChoiceOptionWrite' }
+    TrackerRow:
+      type: object
+      required: [tracker_id, name, icon, color, status, needs_attention]
+      properties:
+        tracker_id: { type: string }
+        name: { type: string }
+        icon: { type: string }
+        color: { type: string }
+        status: { $ref: '#/components/schemas/TrackerStatus' }
+        last_logged_at:
+          type: string
+          format: date-time
+          description: Absent when nothing has ever been logged against it
+        paused_at: { type: string, format: date-time }
+        needs_attention: { type: boolean, description: Always false when paused }
+    TrackerAttention:
+      type: object
+      description: >
+        One thing wrong with a tracker right now, worked out when it is read.
+        `unrecorded` — an occurrence whose time has passed with nothing logged or
+        skipped, for forty-eight hours after that time, whether or not it alerts
+        anyone (`entry_id`, `occurrence_at`). `out_of_range` — a number field
+        whose latest logged reading is outside its range (`entry_id`, `field_id`,
+        `value`, `range`). `gap` — longer than `gap_hours` since the last entry,
+        or since the tracker was created when there has never been one (`since`,
+        `gap_hours`).
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [unrecorded, out_of_range, gap] }
+        entry_id: { type: string }
+        occurrence_at: { type: string, format: date-time }
+        field_id: { type: string }
+        value: { type: number }
+        range: { $ref: '#/components/schemas/ValueRange' }
+        since: { type: string, format: date-time }
+        gap_hours: { type: integer }
+    TrackerDetail:
+      type: object
+      required:
+        [
+          tracker_id,
+          receiver_id,
+          team_id,
+          name,
+          icon,
+          color,
+          status,
+          fields,
+          schedule_count,
+          attention,
+          created_at,
+        ]
+      properties:
+        tracker_id: { type: string }
+        receiver_id: { type: string }
+        team_id: { type: string }
+        name: { type: string }
+        icon: { type: string }
+        color: { type: string }
+        status: { $ref: '#/components/schemas/TrackerStatus' }
+        paused_at: { type: string, format: date-time }
+        fields:
+          type: array
+          description: Every field it has ever had, paused ones included, in order
+          items: { $ref: '#/components/schemas/TrackerField' }
+        gap_hours:
+          type: integer
+          description: Absent when no gap watches it. Never present alongside schedules.
+        schedule_count: { type: integer }
+        last_logged_at: { type: string, format: date-time }
+        attention:
+          type: array
+          description: Empty when nothing is wrong, and always empty when paused
+          items: { $ref: '#/components/schemas/TrackerAttention' }
+        created_at: { type: string, format: date-time }
+    NewTracker:
+      type: object
+      required: [name, icon, color, fields]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        icon: { type: string, description: An SF Symbol name }
+        color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+        fields:
+          type: array
+          items: { $ref: '#/components/schemas/TrackerFieldWrite' }
+        gap_hours: { type: integer, minimum: 1 }
+    TrackerChanges:
+      type: object
+      description: Everything Edit tracker's Save commits; schedules and pausing are separate.
+      required: [name, icon, color, fields, gap_hours]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        icon: { type: string }
+        color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+        fields:
+          type: array
+          description: >
+            Every existing field by its `field_id`, in the order to show them, plus
+            any new ones without one
+          items: { $ref: '#/components/schemas/TrackerFieldWrite' }
+        gap_hours:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: null turns the gap off
+        remove_schedules:
+          type: boolean
+          default: false
+          description: Confirms that turning the gap on removes every schedule
+    Weekday:
+      type: string
+      enum: [MO, TU, WE, TH, FR, SA, SU]
+    Recurrence:
+      type: object
+      description: >
+        A rule, not a preset (ADR 0012). The app's choices write into it — every
+        week, two weeks, month and two months are intervals of 1, 2, 4 and 8
+        weeks. More frequencies can be added later without migrating data.
+      required: [freq, interval, by_day]
+      properties:
+        freq: { type: string, enum: [weekly] }
+        interval: { type: integer, minimum: 1 }
+        by_day:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/Weekday' }
+    TrackerSchedule:
+      type: object
+      required:
+        [schedule_id, tracker_id, name, rule, time, starts_on, planned_values, unrecorded_alert]
+      properties:
+        schedule_id: { type: string }
+        tracker_id: { type: string }
+        label: { type: string, description: What an admin typed; absent when left blank }
+        name:
+          type: string
+          description: The label, or a name derived from the schedule when it has none
+        rule: { $ref: '#/components/schemas/Recurrence' }
+        time: { type: string, description: "Local HH:MM in the receiver's time zone" }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+        planned_values:
+          type: object
+          description: Pre-filled values keyed by field_id; a choice is a list of option_ids
+          additionalProperties: true
+        unrecorded_alert: { type: boolean }
+    ScheduleWrite:
+      type: object
+      required: [rule, time, planned_values, unrecorded_alert]
+      properties:
+        label: { type: string, maxLength: 100 }
+        rule: { $ref: '#/components/schemas/Recurrence' }
+        time: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        ends_on: { type: string, format: date }
+        planned_values:
+          type: object
+          additionalProperties: true
+        unrecorded_alert: { type: boolean }
+    NewSchedule:
+      type: object
+      required: [rule, time, planned_values, unrecorded_alert]
+      properties:
+        label: { type: string, maxLength: 100 }
+        rule: { $ref: '#/components/schemas/Recurrence' }
+        time: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        ends_on: { type: string, format: date }
+        planned_values:
+          type: object
+          additionalProperties: true
+        unrecorded_alert: { type: boolean }
+        replace_gap:
+          type: boolean
+          default: false
+          description: Confirms that the first schedule turns the tracker's gap off
+    EntryState:
+      type: string
+      description: Unrecorded is never stored; it is a scheduled entry whose time has passed.
+      enum: [scheduled, unrecorded, logged, skipped]
+    Entry:
+      type: object
+      required: [entry_id, tracker_id, state, at, values]
+      properties:
+        entry_id: { type: string }
+        tracker_id: { type: string }
+        state: { $ref: '#/components/schemas/EntryState' }
+        at:
+          type: string
+          format: date-time
+          description: When the care happened if logged, otherwise when it was due
+        values:
+          type: object
+          description: Keyed by field_id; a choice is a list of option_ids
+          additionalProperties: true
+        note: { type: string }
+        by_name:
+          type: string
+          description: >
+            Who logged or skipped it, or "a former caregiver"; absent while
+            unrecorded
+        schedule_id: { type: string }
+        schedule_name: { type: string, description: Present when it came from a schedule }
+    EntryPage:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items: { $ref: '#/components/schemas/Entry' }
+        next_cursor: { type: string, description: Absent on the last page }
+    CatalogTemplate:
+      type: object
+      required: [template_id, name, icon, color, fields]
+      properties:
+        template_id: { type: string }
+        name: { type: string }
+        icon: { type: string }
+        color: { type: string }
+        fields:
+          type: array
+          items: { $ref: '#/components/schemas/TrackerFieldWrite' }
+        gap_hours: { type: integer }
     Error:
       type: object
       required: [message]
@@ -1009,6 +1583,14 @@ components:
       description: >
         The code is unknown, expired, already used, or revoked. One answer for all
         four, per the PRD — none of them changes what the caregiver does next.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    SchedulesOrGap:
+      description: >
+        A tracker has schedules or a gap, never both. Resend with the confirming
+        flag once the admin has been told what they are about to lose.
       content:
         application/json:
           schema:
