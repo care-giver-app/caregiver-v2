@@ -536,16 +536,18 @@ destroyed every session and creating one in the same breath would undo the point
 time, so signing up ends in the same place signing in does — and a caregiver who turns out to already
 have an account leaves through the cross-link rather than by going back to Landing.
 
-An address that already has an account is answered by which kind of account it is. A confirmed one
-sends the caregiver to Sign in, because signing in is what they were trying to do. One created but
-never confirmed sends them to Confirm code with a fresh code, because finishing is what they were
-trying to do. The password typed a moment ago may not be the one that account was created with, so
-confirming tries it and, if it is not, lands on Sign in with the address filled in, saying the
-account is confirmed and to sign in, with Forgot password there for a caregiver who no longer knows
-the first one. Asking for the old password before confirming would make the common case, where it is
-the same password, pay for the rare one. Saying only that the address is taken would strand the
-second kind at the one screen that cannot help them, which is the trap an abandoned signup already
-falls into.
+An address that already has an account is answered by which kind of account it is, as far as the
+password typed can tell. One created but never confirmed, where the password is the one it was made
+with, sends the caregiver to Confirm code with a fresh code, because finishing is what they were
+trying to do; confirming signs them in, and the account takes the name they have just typed, because
+that is the signup they meant to finish. Every other address that has an account sends them to Sign
+in with the address filled in, saying it already has an account. That includes a confirmed one even
+when the password is right, because a caregiver who has just typed their name would think they had
+made a new account, and the name would quietly go nowhere. Without the right password a confirmed
+account and an abandoned one look alike, for the same reason Sign in will not say which addresses
+have accounts, but the abandoned one is not stranded: the right password on Sign in finds it, and so
+does Forgot password. Saying only that the address is taken would strand it at the one screen that
+cannot help, which is the trap an abandoned signup already falls into.
 
 **Signed in with no care team.** Join a care team is where a caregiver accepts an invitation waiting
 for their email or pastes an invite code, with creating a team offered as the alternative rather than
@@ -659,12 +661,18 @@ sign out, which is a caregiver saying they want out.
       to: Confirm code
       as: sheet
     - action: Create account
-      when: the address already has a confirmed account
-      to: Sign in
+      when: >
+        the address already has an account, confirmed, or not made with the
+        password just typed
+      to: Sign in, with the address filled in, saying it already has an account
       as: swap
     - action: Create account
-      when: the address has an account that was never confirmed
-      to: Confirm code, with a fresh code sent
+      when: >
+        the address has an account that was never confirmed, made with the
+        password just typed
+      to: >
+        Confirm code, with a fresh code sent; confirming gives the account the
+        name just typed
       as: sheet
     - action: Terms
       to: the terms, on the web
@@ -695,12 +703,6 @@ sign out, which is a caregiver saying they want out.
       when: raised over Sign in or Sign up, and you belong to no care team
       to: Join a care team
       as: root
-    - action: Confirm
-      when: raised over Sign up, and the password typed there is not the account's
-      to: >
-        Sign in, with the address filled in, saying the account is confirmed and
-        to sign in
-      as: swap
     - action: Confirm
       when: raised in place of Reset password
       to: >
