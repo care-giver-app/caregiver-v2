@@ -4,6 +4,9 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	// Embedded zone data: /v1 reads every receiver's wall clock in its IANA zone,
+	// and the Lambda runtime image is not guaranteed to ship /usr/share/zoneinfo.
+	_ "time/tzdata"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"

@@ -13,7 +13,7 @@ import (
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/store"
 )
 
-// formerCaregiver names an inviter whose account is gone, closed, or nameless.
+// formerCaregiver names a caregiver whose account is gone, closed, or nameless.
 const formerCaregiver = "a former caregiver"
 
 // msgInvitationNotValid is the one answer for every unredeemable code, so the
@@ -95,14 +95,14 @@ func (h *Invitations) Mine(w http.ResponseWriter, r *http.Request) {
 			Code:          inv.Code,
 			TeamID:        t.TeamID,
 			TeamName:      t.Name,
-			InvitedByName: inviterName(inviters, inv.InvitedBy),
+			InvitedByName: caregiverName(inviters, inv.InvitedBy),
 			ExpiresAt:     time.Unix(inv.ExpiresAt, 0).UTC().Format(time.RFC3339),
 		})
 	}
 	httpx.WriteJSON(w, http.StatusOK, out)
 }
 
-func inviterName(users map[string]domain.User, id string) string {
+func caregiverName(users map[string]domain.User, id string) string {
 	u, ok := users[id]
 	if !ok || u.Status == domain.UserClosed || u.Name == "" {
 		return formerCaregiver

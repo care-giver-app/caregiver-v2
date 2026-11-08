@@ -41,6 +41,10 @@ func setTableEnv(t *testing.T) {
 	t.Setenv("V1_TEAMS_TABLE", "v1t")
 	t.Setenv("V1_MEMBERSHIPS_TABLE", "v1m")
 	t.Setenv("V1_INVITATIONS_TABLE", "v1i")
+	t.Setenv("V1_RECEIVERS_TABLE", "v1r")
+	t.Setenv("V1_TRACKERS_TABLE", "v1tr")
+	t.Setenv("V1_SCHEDULES_TABLE", "v1s")
+	t.Setenv("V1_ENTRIES_TABLE", "v1e")
 	t.Setenv("AWS_REGION", "us-east-2")
 	t.Setenv("AWS_ACCESS_KEY_ID", "x")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "x")
@@ -50,7 +54,10 @@ func setTableEnv(t *testing.T) {
 func TestNewMux_requiresV1TableEnv(t *testing.T) {
 	setAppConfigEnv(t)
 	setTableEnv(t)
-	for _, k := range []string{"V1_USERS_TABLE", "V1_TEAMS_TABLE", "V1_MEMBERSHIPS_TABLE", "V1_INVITATIONS_TABLE"} {
+	for _, k := range []string{
+		"V1_USERS_TABLE", "V1_TEAMS_TABLE", "V1_MEMBERSHIPS_TABLE", "V1_INVITATIONS_TABLE",
+		"V1_RECEIVERS_TABLE", "V1_TRACKERS_TABLE", "V1_SCHEDULES_TABLE", "V1_ENTRIES_TABLE",
+	} {
 		t.Run(k, func(t *testing.T) {
 			t.Setenv(k, "")
 			if _, err := newMux(config.Config{Service: "api", Stage: "dev", Version: "0"}, testLogger()); err == nil {
@@ -74,6 +81,16 @@ func TestNewMux_v1RoutesAreRegisteredBehindAuth(t *testing.T) {
 		{http.MethodPost, "/v1/teams"},
 		{http.MethodGet, "/v1/me/invitations"},
 		{http.MethodPost, "/v1/invitations/redeem"},
+		{http.MethodGet, "/v1/teams/t1/receivers"},
+		{http.MethodGet, "/v1/receivers/r1/trackers"},
+		{http.MethodPost, "/v1/receivers/r1/trackers"},
+		{http.MethodGet, "/v1/trackers/tr1"},
+		{http.MethodPut, "/v1/trackers/tr1"},
+		{http.MethodPost, "/v1/trackers/tr1/pause"},
+		{http.MethodPost, "/v1/trackers/tr1/resume"},
+		{http.MethodGet, "/v1/trackers/tr1/entries"},
+		{http.MethodGet, "/v1/trackers/tr1/schedules"},
+		{http.MethodGet, "/v1/tracker-templates"},
 	} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(rt.method, rt.path, nil))
