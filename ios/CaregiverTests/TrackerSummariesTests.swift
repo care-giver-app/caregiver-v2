@@ -124,7 +124,8 @@ final class TrackerSummariesTests: XCTestCase {
     /// ios/specs/views/add-tracker.md decision 17) must not read as if it already
     /// happened — mirrors the past-date buckets instead of showing "-Xm ago".
     func testRecencyTextFutureBuckets() {
-        let now = Date()
+        // Noon, so "in 2h" never crosses midnight into "Tomorrow".
+        let now = Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date())!
         let t = tracker(kind: .event)
         XCTAssertEqual(summary(t, lastAt: now.addingTimeInterval(30 * 60)).recencyText(now: now), "in 30m")
         XCTAssertEqual(summary(t, lastAt: now.addingTimeInterval(2 * 3600)).recencyText(now: now), "in 2h")
