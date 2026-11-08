@@ -24,15 +24,16 @@ const receiverZone = "America/Chicago"
 // careWorld is a scenario's care receivers, trackers and what the API last
 // showed of them.
 type careWorld struct {
-	now       time.Time                  // the scenario's "now", to the second, that every "ago" counts back from
-	receivers map[string]domain.Receiver // receiver name as written → its row
-	trackers  map[string]*domain.Tracker // tracker name as written → its row as seeded or created
-	signedIn  map[string]bool            // people whose user row exists, so their name shows on what they logged
-	list      []trackerRowView           // the Trackers list last read
-	detail    *trackerDetailView         // the Tracker detail last answered
-	entries   []entryView                // every entry the last read of a tracker's entries returned
-	pages     int                        // how many pages that read took
-	templates []map[string]any           // the template catalogue last read
+	now          time.Time                  // the scenario's "now", to the second, that every "ago" counts back from
+	receivers    map[string]domain.Receiver // receiver name as written → its row
+	trackers     map[string]*domain.Tracker // tracker name as written → its row as seeded or created
+	signedIn     map[string]bool            // people whose user row exists, so their name shows on what they logged
+	list         []trackerRowView           // the Trackers list last read
+	receiverList []receiverView             // the care receivers last listed
+	detail       *trackerDetailView         // the Tracker detail last answered
+	entries      []entryView                // every entry the last read of a tracker's entries returned
+	pages        int                        // how many pages that read took
+	templates    []map[string]any           // the template catalogue last read
 }
 
 func newCareWorld() careWorld {
@@ -51,6 +52,10 @@ const quoted = `((?:"[^"]*"(?:, | and )?)+)`
 
 func (w *world) registerTrackers(sc *godog.ScenarioContext) {
 	sc.Step(`^"([^"]*)" looks after "([^"]*)"$`, w.looksAfter)
+	sc.Step(`^the care receiver "([^"]*)" has been archived$`, w.receiverArchived)
+	sc.Step(`^"([^"]*)" opens the care receivers of "([^"]*)"$`, w.opensReceivers)
+	sc.Step(`^the care receivers listed are `+quoted+`$`, w.receiversListedAre)
+	sc.Step(`^every care receiver listed keeps time in "([^"]*)"$`, w.receiversKeepTimeIn)
 	sc.Step(`^"([^"]*)" has a tracker "([^"]*)"$`, w.hasTracker)
 	sc.Step(`^"([^"]*)" has a number field "([^"]*)" expected between ([\d.]+) and ([\d.]+)$`, w.hasRangedNumberField)
 	sc.Step(`^"([^"]*)" has a number field "([^"]*)"$`, w.hasNumberField)
@@ -275,12 +280,29 @@ func (w *world) looksAfter(ctx context.Context, team, receiver string) error {
 	}
 	rc := domain.Receiver{
 		ReceiverID: w.nextID("rc"), TeamID: teamID, Name: receiver + " " + w.suffix, TimeZone: receiverZone,
-		Status: domain.ReceiverActive, CreatedBy: "features", CreatedAt: w.care.now.Add(-60 * 24 * time.Hour),
+		Status: domain.ReceiverActive, CreatedBy: "features",
+		// Each later receiver a minute newer, so oldest first is the order the scenario names them.
+		CreatedAt: w.care.now.Add(-60*24*time.Hour + time.Duration(len(w.care.receivers))*time.Minute),
 	}
 	db := w.d.db()
 	w.track(receiverKey(db.names, rc.ReceiverID))
 	if err := db.put(ctx, db.names.Receivers, rc); err != nil {
 		return fmt.Errorf("could not write the receiver: %w", err)
+	}
+	w.care.receivers[receiver] = rc
+	return nil
+}
+
+func (w *world) receiverArchived(ctx context.Context, receiver string) error {
+	rc, err := w.receiver(receiver)
+	if err != nil {
+		return err
+	}
+	at := w.care.now.Add(-24 * time.Hour)
+	rc.Status, rc.ArchivedBy, rc.ArchivedAt = domain.ReceiverArchived, "features", &at
+	db := w.d.db()
+	if err := db.put(ctx, db.names.Receivers, rc); err != nil {
+		return fmt.Errorf("could not archive the receiver: %w", err)
 	}
 	w.care.receivers[receiver] = rc
 	return nil
@@ -626,6 +648,55 @@ func (w *world) row(name string) (trackerRowView, error) {
 		}
 	}
 	return trackerRowView{}, w.unexpected(fmt.Sprintf("the Trackers list to hold %q", name))
+}
+
+type receiverView struct {
+	Name     string `json:"name"`
+	TimeZone string `json:"time_zone"`
+}
+
+func (w *world) opensReceivers(ctx context.Context, label, team string) error {
+	p, err := w.person(ctx, label)
+	if err != nil {
+		return err
+	}
+	teamID, err := w.teamID(team)
+	if err != nil {
+		return err
+	}
+	if err := w.call(ctx, p, http.MethodGet, "/v1/teams/"+teamID+"/receivers", nil); err != nil {
+		return err
+	}
+	w.care.receiverList = nil
+	if w.last.status == http.StatusOK {
+		rows, err := decodeLast[[]receiverView](w)
+		if err != nil {
+			return err
+		}
+		w.care.receiverList = rows
+	}
+	return nil
+}
+
+func (w *world) receiversListedAre(list string) error {
+	var got []string
+	for _, r := range w.care.receiverList {
+		got = append(got, strings.TrimSuffix(r.Name, " "+w.suffix))
+	}
+	want := names(list)
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		return w.unexpected(fmt.Sprintf("the care receivers listed to be %q", want))
+	}
+	return nil
+}
+
+func (w *world) receiversKeepTimeIn(zone string) error {
+	for _, r := range w.care.receiverList {
+		if r.TimeZone != zone {
+			return w.unexpected(fmt.Sprintf("every care receiver listed to keep time in %q", zone))
+		}
+	}
+	return nil
 }
 
 func (w *world) trackersListedAre(list string) error {
