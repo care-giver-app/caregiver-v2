@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
@@ -73,23 +72,44 @@ func invitationKey(n store.TableNames, code string) rowKey {
 	return rowKey{n.Invitations, map[string]types.AttributeValue{"code": s(code)}}
 }
 
-func (t tables) putInvitation(ctx context.Context, inv domain.Invitation) error {
-	item, err := attributevalue.MarshalMap(inv)
+// put writes v as a raw row, through the store's own marshaler so every time
+// is stored at the fixed width the stores read and sort by.
+func (t tables) put(ctx context.Context, table string, v any) error {
+	item, err := store.MarshalItem(v)
 	if err != nil {
 		return err
 	}
-	_, err = t.client.PutItem(ctx, &dynamodb.PutItemInput{TableName: aws.String(t.names.Invitations), Item: item})
+	_, err = t.client.PutItem(ctx, &dynamodb.PutItemInput{TableName: aws.String(table), Item: item})
 	return err
 }
 
-func (t tables) putMembership(ctx context.Context, m domain.Membership) error {
-	item, err := attributevalue.MarshalMap(m)
-	if err != nil {
-		return err
-	}
-	_, err = t.client.PutItem(ctx, &dynamodb.PutItemInput{TableName: aws.String(t.names.Memberships), Item: item})
-	return err
+func (t tables) putInvitation(ctx context.Context, inv domain.Invitation) error {
+	return t.put(ctx, t.names.Invitations, inv)
 }
+
+func (t tables) putMembership(ctx context.Context, m domain.Membership) error {
+	return t.put(ctx, t.names.Memberships, m)
+}
+
+func receiverKey(n store.TableNames, id string) rowKey {
+	return rowKey{n.Receivers, map[string]types.AttributeValue{"receiver_id": s(id)}}
+}
+
+func trackerKey(n store.TableNames, id string) rowKey {
+	return rowKey{n.Trackers, map[string]types.AttributeValue{"tracker_id": s(id)}}
+}
+
+func scheduleKey(n store.TableNames, id string) rowKey {
+	return rowKey{n.Schedules, map[string]types.AttributeValue{"schedule_id": s(id)}}
+}
+
+func entryKey(n store.TableNames, id string) rowKey {
+	return rowKey{n.Entries, map[string]types.AttributeValue{"entry_id": s(id)}}
+}
+
+// stores reads the tables through the real v1 stores, for what no endpoint
+// shows yet (the occurrences still to come, which Coming up will show).
+func (t tables) stores() *store.Stores { return store.New(t.client, t.names) }
 
 func (t tables) update(ctx context.Context, k rowKey, expr string, names map[string]string, values map[string]types.AttributeValue) error {
 	_, err := t.client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
@@ -109,7 +129,7 @@ func (t tables) closeAccount(ctx context.Context, userID string, now time.Time) 
 		"SET #s = :closed, #n = :empty, closed_at = :now REMOVE email",
 		map[string]string{"#s": "status", "#n": "name"},
 		map[string]types.AttributeValue{
-			":closed": s(string(domain.UserClosed)), ":empty": s(""), ":now": s(now.UTC().Format(time.RFC3339Nano)),
+			":closed": s(string(domain.UserClosed)), ":empty": s(""), ":now": s(now.UTC().Format(store.TimeFormat)),
 		})
 }
 
@@ -119,7 +139,7 @@ func (t tables) closeTeam(ctx context.Context, teamID, by string, now time.Time)
 		"SET #s = :archived, archived_by = :by, archived_at = :now",
 		map[string]string{"#s": "status"},
 		map[string]types.AttributeValue{
-			":archived": s(string(domain.TeamArchived)), ":by": s(by), ":now": s(now.UTC().Format(time.RFC3339Nano)),
+			":archived": s(string(domain.TeamArchived)), ":by": s(by), ":now": s(now.UTC().Format(store.TimeFormat)),
 		})
 }
 
