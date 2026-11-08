@@ -52,3 +52,10 @@ func (s *ScheduleStore) CountLiveByTracker(ctx context.Context, trackerID string
 		in.ExclusiveStartKey = out.LastEvaluatedKey
 	}
 }
+
+// BatchGet returns the schedules for the given ids, removed ones included, keyed
+// by schedule_id, so a past entry can still name the schedule it came from.
+// Missing ids are simply absent from the result.
+func (s *ScheduleStore) BatchGet(ctx context.Context, ids []string) (map[string]domain.Schedule, error) {
+	return batchGetItems(ctx, s.client, s.table, "schedule_id", ids, func(sc domain.Schedule) string { return sc.ScheduleID })
+}

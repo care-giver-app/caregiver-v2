@@ -35,10 +35,10 @@ func TestEvaluateAttention(t *testing.T) {
 	bp := Tracker{
 		TrackerID: "bp", Status: TrackerActive, CreatedAt: now.Add(-30 * 24 * time.Hour),
 		Fields: []Field{
-			{FieldID: "sys", Type: FieldNumber, Range: &Range{Low: fp(90), High: fp(140)}},
-			{FieldID: "dia", Type: FieldNumber, Range: &Range{High: fp(90)}},
-			{FieldID: "pulse", Type: FieldNumber},
-			{FieldID: "note", Type: FieldText},
+			{FieldID: "sys", Type: FieldNumber, Status: FieldActive, Range: &Range{Low: fp(90), High: fp(140)}},
+			{FieldID: "dia", Type: FieldNumber, Status: FieldActive, Range: &Range{High: fp(90)}},
+			{FieldID: "pulse", Type: FieldNumber, Status: FieldActive},
+			{FieldID: "note", Type: FieldText, Status: FieldActive},
 		},
 	}
 	logged := func(id string, at *time.Time, vals map[string]any) Entry {
@@ -50,6 +50,9 @@ func TestEvaluateAttention(t *testing.T) {
 	withGap := func(t Tracker, h int) Tracker { t.GapHours = gap(h); return t }
 	paused := bp
 	paused.Status = TrackerPaused
+	diaPaused := bp
+	diaPaused.Fields = append([]Field(nil), bp.Fields...)
+	diaPaused.Fields[1].Status = FieldPaused
 
 	type want struct {
 		kind  AttentionKind
@@ -80,6 +83,9 @@ func TestEvaluateAttention(t *testing.T) {
 		}, nil, []want{{AttentionOutOfRange, "e1", "dia"}}},
 		{"both fields out", bp, []Entry{logged("e1", ago(time.Hour), map[string]any{"sys": 150.0, "dia": 95.0})}, nil,
 			[]want{{AttentionOutOfRange, "e1", "sys"}, {AttentionOutOfRange, "e1", "dia"}}},
+		{"paused field's range raises nothing", diaPaused,
+			[]Entry{logged("e1", ago(time.Hour), map[string]any{"sys": 150.0, "dia": 95.0})}, nil,
+			[]want{{AttentionOutOfRange, "e1", "sys"}}},
 		{"skipped entries ignored for range", bp, []Entry{
 			{EntryID: "s1", State: EntrySkipped, Values: map[string]any{"sys": 200.0}},
 		}, nil, nil},
@@ -123,7 +129,7 @@ func TestEvaluateAttention_details(t *testing.T) {
 	now := time.Date(2026, 11, 8, 12, 0, 0, 0, time.UTC)
 	last := now.Add(-80 * time.Hour)
 	h := 72
-	tr := Tracker{Status: TrackerActive, GapHours: &h, Fields: []Field{{FieldID: "sys", Type: FieldNumber, Range: &Range{High: fp(140)}}}}
+	tr := Tracker{Status: TrackerActive, GapHours: &h, Fields: []Field{{FieldID: "sys", Type: FieldNumber, Status: FieldActive, Range: &Range{High: fp(140)}}}}
 	got := EvaluateAttention(tr, now, []Entry{{EntryID: "e1", State: EntryLogged, OccurredAt: &last, Values: map[string]any{"sys": 150.0}}}, nil)
 	if len(got) != 2 {
 		t.Fatalf("got %+v", got)

@@ -36,8 +36,9 @@ type Attention struct {
 // never needs attention. The result is ordered unrecorded, then out_of_range
 // (in field order), then gap; unrecorded occurrences are oldest first.
 //
-// Every number field with a range is checked, paused fields included: its
-// latest reading stands until a later one comes back in range.
+// Every active number field with a range is checked: its latest reading stands
+// until a later one comes back in range. A paused field's range raises nothing,
+// since a reading nobody is still taking can never come back in range.
 func EvaluateAttention(t Tracker, now time.Time, logged, open []Entry) []Attention {
 	if t.Status == TrackerPaused {
 		return nil
@@ -58,7 +59,7 @@ func EvaluateAttention(t Tracker, now time.Time, logged, open []Entry) []Attenti
 	out = append(out, unrecorded...)
 
 	for _, f := range t.Fields {
-		if f.Type != FieldNumber || f.Range == nil {
+		if f.Type != FieldNumber || f.Range == nil || f.Status != FieldActive {
 			continue
 		}
 		for _, e := range logged {

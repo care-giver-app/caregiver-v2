@@ -199,7 +199,7 @@ func TestEntry_readsMigratedRows(t *testing.T) {
 	}
 
 	tr := domain.Tracker{Status: domain.TrackerActive, Fields: []domain.Field{
-		{FieldID: "sys", Type: domain.FieldNumber, Range: &domain.Range{High: f64(140)}},
+		{FieldID: "sys", Type: domain.FieldNumber, Status: domain.FieldActive, Range: &domain.Range{High: f64(140)}},
 	}}
 	recent, _ := l.Stores.Entries.RecentLoggedByTracker(ctx, "tr1", store.RecentLoggedLimit)
 	open, _ := l.Stores.Entries.OpenByReceiver(ctx, "r1", "tr1", now.Add(-domain.UnrecordedWindow), now)

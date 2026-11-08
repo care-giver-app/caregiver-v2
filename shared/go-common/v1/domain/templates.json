@@ -1,0 +1,99 @@
+[
+  {
+    "template_id": "mood",
+    "name": "Mood",
+    "icon": "face.smiling",
+    "color": "#6F5FE0",
+    "fields": [
+      {
+        "label": "Mood",
+        "type": "choice",
+        "required": true,
+        "multiple": false,
+        "options": [{ "label": "great" }, { "label": "ok" }, { "label": "low" }, { "label": "bad" }]
+      }
+    ]
+  },
+  {
+    "template_id": "shower",
+    "name": "Shower",
+    "icon": "shower",
+    "color": "#38BDF8",
+    "fields": [],
+    "gap_hours": 72
+  },
+  {
+    "template_id": "urination",
+    "name": "Urination",
+    "icon": "drop.fill",
+    "color": "#EAB308",
+    "fields": [
+      {
+        "label": "Color",
+        "type": "choice",
+        "required": false,
+        "multiple": false,
+        "options": [{ "label": "clear" }, { "label": "light" }, { "label": "dark" }]
+      }
+    ]
+  },
+  {
+    "template_id": "bowel_movement",
+    "name": "Bowel Movement",
+    "icon": "toilet",
+    "color": "#92400E",
+    "fields": [
+      {
+        "label": "Amount",
+        "type": "choice",
+        "required": false,
+        "multiple": false,
+        "options": [{ "label": "small" }, { "label": "normal" }, { "label": "large" }]
+      }
+    ],
+    "gap_hours": 72
+  },
+  {
+    "template_id": "medication",
+    "name": "Medication",
+    "icon": "pills",
+    "color": "#30A46C",
+    "fields": []
+  },
+  {
+    "template_id": "walk",
+    "name": "Walk",
+    "icon": "figure.walk",
+    "color": "#0EA5E9",
+    "fields": [{ "label": "Duration", "type": "number", "unit": "min", "required": true }]
+  },
+  {
+    "template_id": "weight",
+    "name": "Weight",
+    "icon": "scalemass",
+    "color": "#4F8EF7",
+    "fields": [
+      {
+        "label": "Weight",
+        "type": "number",
+        "unit": "lb",
+        "required": true,
+        "range": { "low": 80, "high": 400 }
+      }
+    ]
+  },
+  {
+    "template_id": "doctor_appointment",
+    "name": "Doctor Appointment",
+    "icon": "stethoscope",
+    "color": "#0891B2",
+    "fields": [
+      { "label": "Doctor", "type": "text", "required": true },
+      { "label": "Specialty", "type": "text", "required": false },
+      { "label": "Location", "type": "text", "required": false },
+      { "label": "Reason", "type": "text", "required": false },
+      { "label": "Outcome", "type": "text", "required": false },
+      { "label": "Follow-up", "type": "datetime", "required": false }
+    ]
+  }
+]
