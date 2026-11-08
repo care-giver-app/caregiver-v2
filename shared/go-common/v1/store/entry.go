@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/smithy-go"
 
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/domain"
 )
@@ -31,7 +32,8 @@ var trackerTimeCursorKeys = []string{"entry_id", "tracker_id", "timeline_at"}
 // by timeline_at, with timeline_at <= to and, when from is set, >= from. Every
 // stored state is included. The cursor is the one the previous page returned
 // ("" for the first); the returned cursor is "" on the last page. A cursor not
-// issued by this method returns ErrInvalidCursor.
+// issued by this method for this tracker and these bounds returns
+// ErrInvalidCursor.
 func (s *EntryStore) ListByTrackerTimeline(ctx context.Context, trackerID string, to time.Time, from *time.Time, limit int32, cursor string) ([]domain.Entry, string, error) {
 	start, err := decodeCursor(cursor, trackerTimeCursorKeys...)
 	if err != nil {
@@ -58,6 +60,11 @@ func (s *EntryStore) ListByTrackerTimeline(ctx context.Context, trackerID string
 		in.Limit = aws.Int32(limit)
 	}
 	out, err := s.client.Query(ctx, in)
+	var apiErr smithy.APIError
+	if start != nil && errors.As(err, &apiErr) && apiErr.ErrorCode() == "ValidationException" {
+		// A well-formed cursor from another tracker or outside these bounds.
+		return nil, "", ErrInvalidCursor
+	}
 	if err != nil {
 		return nil, "", err
 	}

@@ -139,11 +139,25 @@ func queryAll[T any](ctx context.Context, client *dynamodb.Client, in *dynamodb.
 	}
 }
 
-// timeKey formats t the way the attributevalue marshaler stores a time.Time
-// (RFC3339Nano), so key conditions compare like with like. Times are
-// normalized to UTC before they are written for the same reason.
+// TimeFormat is how every v1 time is stored: UTC with a fixed nine-digit
+// fraction, so that times compare as strings the way they compare as times.
+// Several are sort or index keys (created_at, timeline_at, open_at,
+// occurrence_at), and RFC3339Nano — the marshaler's default — trims trailing
+// zeros, which sorts "…:00.5Z" before "…:00Z". Reads parse it as RFC3339, which
+// also accepts the variable-width values written before this format.
+const TimeFormat = "2006-01-02T15:04:05.000000000Z"
+
+// timeKey formats t as stored, for key conditions and update values.
 func timeKey(t time.Time) types.AttributeValue {
-	return &types.AttributeValueMemberS{Value: t.UTC().Format(time.RFC3339Nano)}
+	return &types.AttributeValueMemberS{Value: t.UTC().Format(TimeFormat)}
+}
+
+// MarshalItem marshals a v1 row with every time.Time in TimeFormat. Every v1
+// write goes through it; tests seeding raw rows use it too.
+func MarshalItem(v any) (map[string]types.AttributeValue, error) {
+	return attributevalue.MarshalMapWithOptions(v, func(o *attributevalue.EncoderOptions) {
+		o.EncodeTime = func(t time.Time) (types.AttributeValue, error) { return timeKey(t), nil }
+	})
 }
 
 // batchGetMax is DynamoDB's limit on keys per BatchGetItem request.

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
@@ -19,7 +18,7 @@ type InvitationStore struct {
 // Create writes a new invitation. The put is conditional so a code collision
 // fails with a ConditionalCheckFailedException instead of overwriting.
 func (s *InvitationStore) Create(ctx context.Context, inv domain.Invitation) error {
-	item, err := attributevalue.MarshalMap(inv)
+	item, err := MarshalItem(inv)
 	if err != nil {
 		return err
 	}

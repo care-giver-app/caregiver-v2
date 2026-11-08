@@ -57,8 +57,7 @@ func (s *TrackerStore) Put(ctx context.Context, t domain.Tracker) error {
 }
 
 func (s *TrackerStore) put(ctx context.Context, t domain.Tracker, cond string) error {
-	t.CreatedAt = t.CreatedAt.UTC() // receiver-index sorts on created_at
-	item, err := attributevalue.MarshalMap(t)
+	item, err := MarshalItem(t)
 	if err != nil {
 		return err
 	}
