@@ -51,12 +51,30 @@ class Conversions(unittest.TestCase):
         self.assertEqual(out["state"], "logged")
         self.assertEqual(out["values"]["mood"], [m.option_id("t1", "mood", "ok")])
         self.assertEqual(out["values"]["weight"], 150)
-        self.assertEqual(out["timeline_at"], e["occurred_at"])
+        self.assertEqual(out["timeline_at"], "2026-09-01T13:00:00.000000000Z")
+        self.assertEqual(out["occurred_at"], e["occurred_at"])
         self.assertEqual(out["logged_at"], e["created_at"])
         self.assertNotIn("open_at", out)
         # the option id on the entry is the one on the tracker
         ids = [o["option_id"] for o in m.convert_tracker(TRACKER)["fields"][0]["options"]]
         self.assertIn(out["values"]["mood"][0], ids)
+
+    def test_key_times_are_fixed_width_utc(self):
+        self.assertEqual(m.key_time("2026-11-08T12:00:00Z"), "2026-11-08T12:00:00.000000000Z")
+        self.assertEqual(m.key_time("2026-11-08T12:00:00.5Z"), "2026-11-08T12:00:00.500000000Z")
+        self.assertEqual(m.key_time("2026-11-08T12:00:00.123456789Z"), "2026-11-08T12:00:00.123456789Z")
+        self.assertEqual(m.key_time("2026-11-08T06:00:00.25-06:00"), "2026-11-08T12:00:00.250000000Z")
+        self.assertEqual(m.key_time(m.key_time("2026-11-08T12:00:00Z")), "2026-11-08T12:00:00.000000000Z")
+        # string order is time order, which RFC 3339's trimmed fractions break
+        self.assertLess(m.key_time("2026-11-08T12:00:00Z"), m.key_time("2026-11-08T12:00:00.5Z"))
+        with self.assertRaises(ValueError):
+            m.key_time("2026-11-08 12:00")
+
+    def test_tracker_color_gets_its_hash(self):
+        self.assertEqual(m.convert_tracker({**TRACKER, "color": "6f5fe0"})["color"], "#6f5fe0")
+        self.assertEqual(m.convert_tracker({**TRACKER, "color": "#6F5FE0"})["color"], "#6F5FE0")
+        self.assertNotIn("color", m.convert_tracker(TRACKER))
+        self.assertEqual(m.convert_tracker(TRACKER)["created_at"], "2026-08-16T00:00:00.000000000Z")
 
     def test_unmatched_choice_is_reported(self):
         self.assertEqual(m.unmatched_choices(TRACKER, {"mood": "meh"}), ["mood='meh'"])
@@ -69,7 +87,9 @@ class Conversions(unittest.TestCase):
         out = m.convert_scheduled_item(si, TRACKER, "America/Chicago")
         self.assertEqual(out["state"], "scheduled")
         self.assertEqual(out["occurrence_local"], "2026-11-02T09:00")  # CST, after DST ends
+        self.assertEqual(out["occurrence_at"], "2026-11-02T15:00:00.000000000Z")
         self.assertEqual(out["open_at"], out["occurrence_at"])
+        self.assertEqual(out["timeline_at"], out["occurrence_at"])
         self.assertFalse(out["unrecorded_alert"])
 
     def test_receiver_gets_zone_and_loses_date_of_birth(self):
@@ -77,6 +97,7 @@ class Conversions(unittest.TestCase):
                                 "date_of_birth": "1940-01-01", "created_by": "u1",
                                 "created_at": "2026-08-16T00:00:00Z"}, "America/Chicago")
         self.assertEqual(r["time_zone"], "America/Chicago")
+        self.assertEqual(r["created_at"], "2026-08-16T00:00:00.000000000Z")
         self.assertNotIn("date_of_birth", r)
 
     def test_only_pending_unexpired_invitations_survive_without_role(self):

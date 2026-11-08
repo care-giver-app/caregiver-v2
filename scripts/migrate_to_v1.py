@@ -16,6 +16,7 @@ the old key, so a re-run rewrites the same rows rather than duplicating them.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -34,6 +35,25 @@ def option_id(tracker_id: str, field_key: str, label: str) -> str:
 
 def parse_time(s: str) -> datetime:
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
+
+
+_TIME = re.compile(r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.(\d{1,9}))?(Z|[+-]\d\d:\d\d)$")
+
+
+def key_time(s: str) -> str:
+    """A time as the v1 store writes it (store.TimeFormat): UTC with a fixed nine-digit
+    fraction, so that string order is time order on every sort and index key."""
+    m = _TIME.match(s)
+    if not m:
+        raise ValueError(f"not an RFC 3339 time: {s!r}")
+    base, frac, zone = m.groups()
+    utc = datetime.fromisoformat(base + ("+00:00" if zone == "Z" else zone)).astimezone(timezone.utc)
+    return f"{utc:%Y-%m-%dT%H:%M:%S}.{(frac or '').ljust(9, '0')}Z"
+
+
+def hex_color(c: str) -> str:
+    """Old trackers may store a color without its leading '#'."""
+    return c if c.startswith("#") else f"#{c}"
 
 
 # --- conversions (pure; see test_migrate_to_v1.py) ---------------------------
@@ -96,7 +116,7 @@ def convert_receiver(r: dict, time_zone: str) -> dict:
         "time_zone": time_zone,
         "status": "archived" if r.get("archived") else "active",
         "created_by": r["created_by"],
-        "created_at": r["created_at"],
+        "created_at": key_time(r["created_at"]),
     }
     # date_of_birth is dropped: the PRD does not describe it (ADR 0012).
     return out
@@ -133,11 +153,12 @@ def convert_tracker(t: dict) -> dict:
         "fields": [convert_field(t["tracker_id"], f) for f in t.get("fields", [])],
         "status": "paused" if t.get("archived") else "active",
         "created_by": t["created_by"],
-        "created_at": t["created_at"],
+        "created_at": key_time(t["created_at"]),
     }
-    for k in ("icon", "color"):
-        if t.get(k):
-            out[k] = t[k]
+    if t.get("icon"):
+        out["icon"] = t["icon"]
+    if t.get("color"):
+        out["color"] = hex_color(t["color"])
     return out
 
 
@@ -171,7 +192,7 @@ def convert_event(e: dict, old_tracker: dict) -> dict:
         "logged_at": e["created_at"],
         "created_by": e["logged_by"],
         "created_at": e["created_at"],
-        "timeline_at": e["occurred_at"],
+        "timeline_at": key_time(e["occurred_at"]),
     }
     if e.get("note"):
         out["note"] = e["note"]
@@ -179,7 +200,7 @@ def convert_event(e: dict, old_tracker: dict) -> dict:
 
 
 def convert_scheduled_item(si: dict, old_tracker: dict, time_zone: str) -> dict:
-    at = si["scheduled_for"]
+    at = key_time(si["scheduled_for"])
     local = parse_time(at).astimezone(ZoneInfo(time_zone)).strftime("%Y-%m-%dT%H:%M")
     planned = convert_values(old_tracker, si.get("values", {}))
     out = {
