@@ -132,7 +132,7 @@ describe('ApiStack', () => {
     const t = Template.fromStack(apiStack);
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
-    t.resourceCountIs('AWS::ApiGatewayV2::Route', 35);
+    t.resourceCountIs('AWS::ApiGatewayV2::Route', 45);
 
     for (const routeKey of [
       'GET /me',
@@ -155,6 +155,16 @@ describe('ApiStack', () => {
       'POST /v1/teams',
       'GET /v1/me/invitations',
       'POST /v1/invitations/redeem',
+      'GET /v1/teams/{teamId}/receivers',
+      'GET /v1/receivers/{receiverId}/trackers',
+      'POST /v1/receivers/{receiverId}/trackers',
+      'GET /v1/trackers/{trackerId}',
+      'PUT /v1/trackers/{trackerId}',
+      'POST /v1/trackers/{trackerId}/pause',
+      'POST /v1/trackers/{trackerId}/resume',
+      'GET /v1/trackers/{trackerId}/entries',
+      'GET /v1/trackers/{trackerId}/schedules',
+      'GET /v1/tracker-templates',
     ]) {
       t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
         RouteKey: routeKey,
@@ -169,7 +179,7 @@ describe('ApiStack', () => {
     }
   });
 
-  test('gives the API the getting-in v1 tables and no others', () => {
+  test('gives the API the getting-in and trackers v1 tables and no others', () => {
     const app = new cdk.App();
     const env = { account: '123456789012', region: 'us-east-2' };
     const shared = new SharedStack(app, 'CaregiverDev-Shared', { env, stage: 'dev' });
@@ -192,13 +202,26 @@ describe('ApiStack', () => {
       'V1_TEAMS_TABLE',
       'V1_MEMBERSHIPS_TABLE',
       'V1_INVITATIONS_TABLE',
+      'V1_RECEIVERS_TABLE',
+      'V1_TRACKERS_TABLE',
+      'V1_SCHEDULES_TABLE',
+      'V1_ENTRIES_TABLE',
     ]) {
       expect(json).toContain(name);
     }
-    for (const id of ['V1UserTable', 'V1TeamTable', 'V1MembershipTable', 'V1InvitationTable']) {
+    for (const id of [
+      'V1UserTable',
+      'V1TeamTable',
+      'V1MembershipTable',
+      'V1InvitationTable',
+      'V1ReceiverTable',
+      'V1TrackerTable',
+      'V1ScheduleTable',
+      'V1EntryTable',
+    ]) {
       expect(json).toContain(id);
     }
-    for (const id of ['V1EntryTable', 'V1TrackerTable', 'V1ReceiverTable']) {
+    for (const id of ['V1DeviceTable', 'V1JournalNoteTable', 'V1AssignmentTable']) {
       expect(json).not.toContain(id);
     }
   });
