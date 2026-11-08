@@ -193,9 +193,11 @@ numbers plot as values over time, while choices and yes/no plot as frequency.
 A field can also be **paused**, which stops it being collected without removing what it collected. A
 paused field drops off the logging form, so caregivers are no longer asked for it, but its values
 stay on every entry already carrying them and still plot in insights, where the series ends on the
-day it was paused. This is the same thing one level down and for the same reason: a team that stopped
-taking a pulse alongside the blood pressure has not stopped having taken it. A paused field resumes
-where it left off. A field is never deleted, because deleting one would take real readings with it.
+day it was paused. Its range stops raising alerts as well, since a reading nobody is still taking
+can never come back in range. This is the same thing one level down and for the same reason: a team
+that stopped taking a pulse alongside the blood pressure has not stopped having taken it. A paused
+field resumes where it left off. A field is never deleted, because deleting one would take real
+readings with it.
 
 A choice field takes one answer or several, decided when the field is made — how much of a meal went
 down has one answer, the symptoms someone had this morning may have three. Its options can be added,
