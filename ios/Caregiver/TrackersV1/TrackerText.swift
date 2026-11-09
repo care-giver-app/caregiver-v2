@@ -189,13 +189,17 @@ enum TrackerText {
         return String(format: "%d:%02d %@", hour12, parts[1], parts[0] < 12 ? "AM" : "PM")
     }
 
-    /// "Mon, Wed, Fri · every week · 8:00 AM"; "Every day · 8:00 AM" (Figma 428:4179).
+    /// "Mon, Wed, Fri · every week · 8:00 AM"; "Every day · 8:00 AM" on all seven days
+    /// every week; "All week · every 2 weeks · 8:00 AM" on all seven days of every
+    /// other week (Figma 428:4179).
     static func scheduleLine(_ s: TrackerScheduleItem) -> String {
-        let days = days(s.days)
-        let everyDayWeekly = days == "Every day" && s.interval == 1
-        let parts = everyDayWeekly
-            ? [days, clock(s.time)]
-            : [days, frequency(intervalWeeks: s.interval), clock(s.time)]
+        let allWeek = Set(s.days).count == ScheduleWeekday.allCases.count
+        let parts: [String]
+        switch (allWeek, s.interval == 1) {
+        case (true, true): parts = ["Every day", clock(s.time)]
+        case (true, false): parts = ["All week", frequency(intervalWeeks: s.interval), clock(s.time)]
+        case (false, _): parts = [days(s.days), frequency(intervalWeeks: s.interval), clock(s.time)]
+        }
         return parts.joined(separator: " · ")
     }
 
@@ -240,18 +244,11 @@ enum TrackerText {
     }
 
     private static func format(_ date: Date, _ pattern: String, _ zone: TimeZone) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = zone
-        formatter.dateFormat = pattern
-        return formatter.string(from: date)
+        Formatters.shared.format(date, pattern, zone)
     }
 
     private static func parseISO(_ s: String) -> Date? {
-        let withFraction = ISO8601DateFormatter()
-        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return withFraction.date(from: s) ?? ISO8601DateFormatter().date(from: s)
+        Formatters.shared.parseISO(s)
     }
 
     /// `yyyy-MM-dd` for `date` in `zone` — the shape `from`/`to` take.
@@ -264,5 +261,48 @@ enum TrackerText {
         let a = shortDate(from, now: now, zone: zone)
         let b = shortDate(to, now: now, zone: zone)
         return a == b ? a : "\(a) – \(b)"
+    }
+}
+
+/// TrackerText's formatters, built once per (pattern, zone) and reused: a list of
+/// entries formats several dates a row, and a DateFormatter is costly to make.
+/// Every use is under `lock`, so any thread may call it.
+private final class Formatters: @unchecked Sendable {
+    static let shared = Formatters()
+
+    private struct Key: Hashable {
+        let pattern: String
+        let zone: String
+    }
+
+    private let lock = NSLock()
+    private var dateFormatters: [Key: DateFormatter] = [:]
+    private let isoWithFraction: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+    private let iso = ISO8601DateFormatter()
+
+    func format(_ date: Date, _ pattern: String, _ zone: TimeZone) -> String {
+        lock.withLock {
+            let key = Key(pattern: pattern, zone: zone.identifier)
+            let formatter: DateFormatter
+            if let cached = dateFormatters[key] {
+                formatter = cached
+            } else {
+                formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.calendar = Calendar(identifier: .gregorian)
+                formatter.timeZone = zone
+                formatter.dateFormat = pattern
+                dateFormatters[key] = formatter
+            }
+            return formatter.string(from: date)
+        }
+    }
+
+    func parseISO(_ s: String) -> Date? {
+        lock.withLock { isoWithFraction.date(from: s) ?? iso.date(from: s) }
     }
 }
