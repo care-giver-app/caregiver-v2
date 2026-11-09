@@ -15,30 +15,31 @@ for that.
 
 ## Inputs & forms
 
-| Component           | Used for                                                          |
-| ------------------- | ----------------------------------------------------------------- |
-| `StrideField`       | A single-line text or secure entry field (email, name, password). |
-| `StrideCodeInput`   | A 6-digit confirmation/verification code entry.                   |
-| `StrideDatePicker`  | Picking a date and/or time.                                       |
-| `StrideToggleStyle` | The on/off switch look for a system `Toggle`.                     |
+| Component           | Used for                                                                          |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `StrideField`       | A single-line text or secure entry field (email, name, password).                 |
+| `StrideCodeInput`   | A 6-digit confirmation/verification code entry.                                   |
+| `StrideDatePicker`  | Picking a date and/or time.                                                       |
+| `StrideCalendarDay` | One day in a month calendar: plain, today, disabled, or part of a picked stretch. |
+| `StrideToggleStyle` | The on/off switch look for a system `Toggle`.                                     |
 
 ## Cards & list rows
 
-| Component              | Used for                                                                               |
-| ---------------------- | -------------------------------------------------------------------------------------- |
-| `strideCard()`         | Generic card background/border treatment for wrapping arbitrary content.               |
-| `StrideTrackerRow`     | A tracker's full-width list row (Trackers screen).                                     |
-| `StrideTrackerTile`    | A compact tracker snapshot cell for a two-column grid (Home).                          |
-| `StrideMemberRow`      | A row in the Team roster — an active member or a pending invite.                       |
-| `StrideReceiverRow`    | A care-receiver row in the switch/add-receiver sheets.                                 |
-| `StrideSettingsRow`    | A row in a Settings list, with a chevron/check/value/toggle trailing accessory.        |
-| `StrideInsightCard`    | An Insights overview card for one tracker — count, latest value, and a mini sparkline. |
-| `StrideStatCard`       | A compact single-stat card (label, value, optional delta) for stat strips.             |
-| `StrideInviteCard`     | The pending-invite share card showing the invite code and a share action.              |
-| `StrideTemplateCard`   | A tracker-template picker card in the add-tracker wizard grid.                         |
-| `StrideSelectTile`     | A selectable tile in a picker grid (e.g. choosing a tracker to log).                   |
-| `StrideComingUpBanner` | A tappable banner surfacing the single soonest upcoming scheduled item.                |
-| `StrideInvitationRow`  | An invitation waiting for your email — care team, who invited you, and Accept.         |
+| Component              | Used for                                                                                        |
+| ---------------------- | ----------------------------------------------------------------------------------------------- |
+| `strideCard()`         | Generic card background/border treatment for wrapping arbitrary content.                        |
+| `StrideTrackerRow`     | A tracker's full-width list row (Trackers screen) — icon tile or color rail; muted when paused. |
+| `StrideTrackerTile`    | A compact tracker snapshot cell for a two-column grid (Home).                                   |
+| `StrideMemberRow`      | A row in the Team roster — an active member or a pending invite.                                |
+| `StrideReceiverRow`    | A care-receiver row in the switch/add-receiver sheets.                                          |
+| `StrideSettingsRow`    | A row in a Settings list, with a chevron/check/value/toggle trailing accessory.                 |
+| `StrideInsightCard`    | An Insights overview card for one tracker — count, latest value, and a mini sparkline.          |
+| `StrideStatCard`       | A compact single-stat card (label, value, optional delta) for stat strips.                      |
+| `StrideInviteCard`     | The pending-invite share card showing the invite code and a share action.                       |
+| `StrideTemplateCard`   | A tracker-template picker card in the add-tracker wizard grid.                                  |
+| `StrideSelectTile`     | A selectable tile in a picker grid (e.g. choosing a tracker to log).                            |
+| `StrideComingUpBanner` | A tappable banner surfacing the single soonest upcoming scheduled item.                         |
+| `StrideInvitationRow`  | An invitation waiting for your email — care team, who invited you, and Accept.                  |
 
 ## Navigation & structure
 

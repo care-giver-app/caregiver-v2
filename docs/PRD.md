@@ -1693,7 +1693,10 @@ reading questions.
       each entry as a tile that plainly opens it: when it happened, its state, the
       value of every field it carries, its note if it has one, and who logged or
       skipped it
-    - a way to narrow the entries to a stretch of time, showing all of them until asked
+    - >
+      chips that narrow the entries — all of them, the last 7 days, the last 30
+      days, or a custom stretch — showing all of them until asked; the stretch
+      is days in the receiver's time zone
     - >
       the most recent stretch first, loading more as a caregiver scrolls rather
       than claiming to show a year of entries at once
@@ -1707,6 +1710,9 @@ reading questions.
     - action: an entry
       to: Entry detail
       as: push
+    - action: Custom
+      to: Choose dates
+      as: sheet
     - action: its schedules
       when: it has schedules
       to: Schedules
@@ -1728,6 +1734,26 @@ reading questions.
     the tracker has never been logged — it says so and offers the first entry.
     Every tracker passes through this on the day it is created, and a gap counts
     from that day rather than from a first entry
+
+- screen: Choose dates
+  kind: sheet
+  scope: >
+    one tracker's entries, narrowed to a stretch of days in the receiver's time
+    zone
+  contains:
+    - >
+      a month calendar where a first day and a last day are tapped and the days
+      between are drawn as one stretch; days after today cannot be picked, since
+      entries still to come are not in this list
+    - a way back to earlier months, and forward again as far as this one
+    - the stretch chosen, written out, and a way to clear it
+  exits:
+    - action: Done
+      to: Tracker detail, narrowed to the stretch
+      as: back
+    - action: Cancel
+      to: Tracker detail, as it was
+      as: back
 
 - screen: Schedules
   kind: push

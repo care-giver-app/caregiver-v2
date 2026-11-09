@@ -7,6 +7,11 @@ struct StrideTrackerRow: View {
     let hue: Color
     var recency: StrideTrackerRecency = .normal
     var badge: StrideBadge? = nil
+    /// An SF Symbol name. When set, the row leads with the tracker's icon on a tile
+    /// of its color (Figma 401:3918) in place of the color rail.
+    var icon: String? = nil
+    /// A paused tracker: its name and subtitle read muted; its color stays its own.
+    var isMuted: Bool = false
 
     private enum Metrics {
         static let railSize = CGSize(width: 4, height: 40)
@@ -14,6 +19,8 @@ struct StrideTrackerRow: View {
         static let itemSpacing: CGFloat = 14
         static let padding: CGFloat = 14
         static let radius: CGFloat = 16
+        static let tileSize: CGFloat = 34
+        static let tileRadius: CGFloat = 10
     }
 
     private var railColor: Color {
@@ -22,17 +29,29 @@ struct StrideTrackerRow: View {
 
     var body: some View {
         HStack(spacing: Metrics.itemSpacing) {
-            RoundedRectangle(cornerRadius: Metrics.railRadius)
-                .fill(railColor)
-                .frame(width: Metrics.railSize.width, height: Metrics.railSize.height)
+            if let icon {
+                RoundedRectangle(cornerRadius: Metrics.tileRadius)
+                    .fill(hue)
+                    .frame(width: Metrics.tileSize, height: Metrics.tileSize)
+                    .overlay {
+                        Image(systemName: icon)
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(Color.white)
+                    }
+                    .accessibilityHidden(true)
+            } else {
+                RoundedRectangle(cornerRadius: Metrics.railRadius)
+                    .fill(railColor)
+                    .frame(width: Metrics.railSize.width, height: Metrics.railSize.height)
+            }
             VStack(alignment: .leading, spacing: 3) {
                 Text(name)
                     .font(Theme.Typography.headline)
-                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .foregroundStyle(isMuted ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
                 if let subtitle {
                     Text(subtitle)
                         .font(Theme.Typography.subhead)
-                        .foregroundStyle(Theme.Colors.textTertiary)
+                        .foregroundStyle(isMuted ? Theme.Colors.muted : Theme.Colors.textTertiary)
                 }
             }
             Spacer()
@@ -76,6 +95,20 @@ struct StrideTrackerRow: View {
             hue: Theme.Colors.trackerCyan, recency: .overdue,
             badge: StrideBadge(status: .warning, label: "Due")
         )
+    }
+    .padding(Theme.Spacing.md)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background { Theme.Colors.background.ignoresSafeArea() }
+}
+
+#Preview("Icon tile") {
+    VStack(spacing: 8) {
+        StrideTrackerRow(name: "Blood pressure", subtitle: "Logged 2h ago",
+                         hue: Theme.Colors.trackerCyan, icon: "heart")
+        StrideTrackerRow(name: "Medication", subtitle: "Logged 9h ago", hue: Theme.Colors.trackerViolet,
+                         badge: StrideBadge(status: .warning, label: "Needs attention"), icon: "pills")
+        StrideTrackerRow(name: "Walk", subtitle: "Paused Nov 3", hue: Theme.Colors.trackerTeal,
+                         icon: "figure.walk", isMuted: true)
     }
     .padding(Theme.Spacing.md)
     .frame(maxWidth: .infinity, maxHeight: .infinity)

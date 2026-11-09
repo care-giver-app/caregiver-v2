@@ -1,0 +1,28 @@
+import SwiftUI
+
+/// Every screen pushed on the signed-in `/v1` stack. The stack is driven by one
+/// path of these and one `navigationDestination(for:)` at its root, because
+/// SwiftUI mis-orders a stack that mixes value pushes with `isPresented` or
+/// `item` destinations: the value-pushed screen lands beneath the other one, so
+/// a tap only flashes and Back reveals the screen it should have shown.
+enum V1Route: Hashable {
+    case trackers(TeamReceiver)
+    case tracker(id: String, receiver: TeamReceiver)
+    case schedules(trackerID: String, trackerName: String)
+}
+
+extension View {
+    /// Registers every `V1Route` destination. Apply once, at the stack's root.
+    func v1Destinations(service: TrackersService) -> some View {
+        navigationDestination(for: V1Route.self) { route in
+            switch route {
+            case .trackers(let receiver):
+                TrackersV1View(receiver: receiver, service: service)
+            case .tracker(let id, let receiver):
+                TrackerDetailV1View(trackerID: id, receiver: receiver, service: service)
+            case .schedules(let trackerID, let trackerName):
+                SchedulesV1View(trackerID: trackerID, trackerName: trackerName, service: service)
+            }
+        }
+    }
+}

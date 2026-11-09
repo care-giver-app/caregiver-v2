@@ -11,6 +11,7 @@ struct RootView: View {
     @State private var selectedTab: StrideTab = .home
     @State private var showQuickLog = false
     @State private var logVersion = 0
+    @State private var v1Path: [V1Route] = []
 
     var body: some View {
         Group {
@@ -32,7 +33,13 @@ struct RootView: View {
                 }
                 .tint(Theme.Colors.accent)
             case .v1Ready(let account):
-                V1PlaceholderView(account: account, onSignOut: { await session.signOut() })
+                NavigationStack(path: $v1Path) {
+                    V1PlaceholderView(account: account,
+                                      onSignOut: { v1Path = []; await session.signOut() },
+                                      trackers: .live(session.api), path: $v1Path)
+                        .v1Destinations(service: .live(session.api))
+                }
+                .tint(Theme.Colors.accent)
             }
         }
         .task {
