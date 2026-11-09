@@ -37,6 +37,7 @@ new ObservabilityStack(app, `${prefix}-Observability`, {
   env,
   stage,
   apiFunction: api.apiFunction,
+  generatorFunction: api.generatorFunction,
   alarmTopic: shared.alarmTopic,
 });
 

@@ -132,7 +132,7 @@ describe('ApiStack', () => {
     const t = Template.fromStack(apiStack);
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
-    t.resourceCountIs('AWS::ApiGatewayV2::Route', 45);
+    t.resourceCountIs('AWS::ApiGatewayV2::Route', 48);
 
     for (const routeKey of [
       'GET /me',
@@ -164,6 +164,9 @@ describe('ApiStack', () => {
       'POST /v1/trackers/{trackerId}/resume',
       'GET /v1/trackers/{trackerId}/entries',
       'GET /v1/trackers/{trackerId}/schedules',
+      'POST /v1/trackers/{trackerId}/schedules',
+      'PUT /v1/schedules/{scheduleId}',
+      'DELETE /v1/schedules/{scheduleId}',
       'GET /v1/tracker-templates',
     ]) {
       t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
@@ -223,6 +226,65 @@ describe('ApiStack', () => {
     }
     for (const id of ['V1DeviceTable', 'V1JournalNoteTable', 'V1AssignmentTable']) {
       expect(json).not.toContain(id);
+    }
+  });
+
+  test('runs the occurrence generator daily at 09:00 UTC with only the tables it needs', () => {
+    const app = new cdk.App();
+    const env = { account: '123456789012', region: 'us-east-2' };
+    const shared = new SharedStack(app, 'CaregiverDev-Shared', { env, stage: 'dev' });
+    const apiStack = new ApiStack(app, 'CaregiverDev-Api', {
+      env,
+      stage: 'dev',
+      version: '0.0.0',
+      appConfigApplicationId: 'app',
+      appConfigEnvironmentId: 'envid',
+      appConfigProfileId: 'prof',
+      userPool: shared.userPool,
+      userPoolClient: shared.userPoolClient,
+      tables: shared.tables,
+      v1Tables: shared.v1Tables,
+    });
+    const t = Template.fromStack(apiStack);
+    t.hasResourceProperties('AWS::Lambda::Function', {
+      FunctionName: 'caregiver-dev-generator',
+      Runtime: 'provided.al2023',
+      Architectures: ['arm64'],
+      Handler: 'bootstrap',
+      Environment: {
+        Variables: Match.objectLike({
+          SERVICE: 'generator',
+          STAGE: 'dev',
+          V1_RECEIVERS_TABLE: Match.anyValue(),
+          V1_TRACKERS_TABLE: Match.anyValue(),
+          V1_SCHEDULES_TABLE: Match.anyValue(),
+          V1_ENTRIES_TABLE: Match.anyValue(),
+        }),
+      },
+    });
+    t.hasResourceProperties('AWS::Logs::LogGroup', {
+      LogGroupName: '/aws/lambda/caregiver-dev-generator',
+      RetentionInDays: 7,
+    });
+    t.hasResourceProperties('AWS::Events::Rule', {
+      ScheduleExpression: 'cron(0 9 * * ? *)',
+      State: 'ENABLED',
+    });
+    t.resourceCountIs('AWS::Events::Rule', 1);
+    t.hasOutput('GeneratorFunctionName', {});
+
+    // The generator's policy names only the receiver, tracker, schedule and entry tables.
+    const policies = t.findResources('AWS::IAM::Policy');
+    const generatorPolicy = Object.entries(policies).find(([id]) =>
+      id.startsWith('GeneratorFunctionServiceRoleDefaultPolicy'),
+    );
+    expect(generatorPolicy).toBeDefined();
+    const doc = JSON.stringify(generatorPolicy![1]);
+    for (const id of ['V1ReceiverTable', 'V1TrackerTable', 'V1ScheduleTable', 'V1EntryTable']) {
+      expect(doc).toContain(id);
+    }
+    for (const id of ['V1UserTable', 'V1TeamTable', 'V1MembershipTable', 'V1InvitationTable']) {
+      expect(doc).not.toContain(id);
     }
   });
 });

@@ -9,6 +9,7 @@ import type { Stage } from './shared-stack';
 export interface ObservabilityStackProps extends cdk.StackProps {
   stage: Stage;
   apiFunction: lambda.Function;
+  generatorFunction: lambda.Function;
   alarmTopic: sns.Topic;
 }
 
@@ -35,6 +36,17 @@ export class ObservabilityStack extends cdk.Stack {
       treatMissingData: cw.TreatMissingData.NOT_BREACHING,
     });
     errorAlarm.addAlarmAction(action);
+
+    // The generator runs once a day, so any failed invocation is worth a page.
+    const generatorErrorAlarm = new cw.Alarm(this, 'GeneratorErrorAlarm', {
+      alarmName: `caregiver-${props.stage}-generator-errors`,
+      metric: props.generatorFunction.metricErrors({ period: cdk.Duration.minutes(5) }),
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: cw.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: cw.TreatMissingData.NOT_BREACHING,
+    });
+    generatorErrorAlarm.addAlarmAction(action);
 
     const latencyAlarm = new cw.Alarm(this, 'ApiLatencyAlarm', {
       alarmName: `caregiver-${props.stage}-api-p95-latency`,
