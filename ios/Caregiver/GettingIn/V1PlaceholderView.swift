@@ -7,8 +7,11 @@ import SwiftUI
 struct V1PlaceholderView: View {
     let account: Account
     let onSignOut: () async -> Void
+    /// TEMPORARY, with the "All trackers" button below.
+    var trackers: TrackersService? = nil
 
     @State private var isSigningOut = false
+    @State private var allTrackers: AllTrackersEntryModel?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
@@ -23,6 +26,12 @@ struct V1PlaceholderView: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
             Spacer()
+            // TEMPORARY until Home is built: Home's receiver header is where "All
+            // trackers" lives (PRD "Trackers"). This reaches the Trackers list for the
+            // first team's first receiver so the area can be exercised behind v1_api.
+            if let allTrackers {
+                allTrackersEntry(allTrackers)
+            }
             StrideButton(title: "Sign out", style: .secondary) {
                 guard !isSigningOut else { return }
                 isSigningOut = true
@@ -32,11 +41,51 @@ struct V1PlaceholderView: View {
         .padding(Theme.Spacing.lg)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .strideBackground()
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(item: Binding(get: { allTrackers?.receiver },
+                                             set: { allTrackers?.receiver = $0 })) { receiver in
+            if let trackers {
+                TrackersV1View(receiver: receiver, service: trackers)
+            }
+        }
+        .onAppear {
+            if allTrackers == nil, let trackers {
+                allTrackers = AllTrackersEntryModel(team: account.teams.first, service: trackers)
+            }
+        }
+    }
+
+    private func allTrackersEntry(_ model: AllTrackersEntryModel) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            switch model.outcome {
+            case .idle:
+                EmptyView()
+            case .noReceivers(let teamName):
+                Text("\(teamName) has no care receivers yet.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.Colors.textTertiary)
+            case .failed(let error):
+                StrideAlertBanner(message: error.message)
+            }
+            StrideButton(title: "All trackers", style: .secondary, isLoading: model.isLoading) {
+                Task { await model.open() }
+            }
+        }
     }
 }
 
 #if DEBUG
 #Preview("Placeholder") {
-    V1PlaceholderView(account: GettingInFixtures.trevorOnRiverside, onSignOut: {})
+    NavigationStack {
+        V1PlaceholderView(account: GettingInFixtures.trevorOnRiverside, onSignOut: {},
+                          trackers: TrackersFixtures.service())
+    }
+}
+
+#Preview("Team with no receivers") {
+    NavigationStack {
+        V1PlaceholderView(account: GettingInFixtures.trevorOnRiverside, onSignOut: {},
+                          trackers: TrackersFixtures.service(receivers: []))
+    }
 }
 #endif

@@ -32,7 +32,11 @@ struct RootView: View {
                 }
                 .tint(Theme.Colors.accent)
             case .v1Ready(let account):
-                V1PlaceholderView(account: account, onSignOut: { await session.signOut() })
+                NavigationStack {
+                    V1PlaceholderView(account: account, onSignOut: { await session.signOut() },
+                                      trackers: .live(session.api))
+                }
+                .tint(Theme.Colors.accent)
             }
         }
         .task {
