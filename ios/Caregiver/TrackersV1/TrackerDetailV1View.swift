@@ -10,7 +10,6 @@ struct TrackerDetailV1View: View {
     let service: TrackersService
 
     @State private var model: TrackerDetailV1Model?
-    @State private var showSchedules = false
     @State private var choosingDates = false
     @State private var rangeFrom = Date()
     @State private var rangeTo = Date()
@@ -31,11 +30,6 @@ struct TrackerDetailV1View: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
         .tint(Theme.Colors.accent)
-        .navigationDestination(isPresented: $showSchedules) {
-            if let profile = model?.profile {
-                SchedulesV1View(trackerID: profile.id, trackerName: profile.name, service: service)
-            }
-        }
         .task {
             if model == nil {
                 let model = TrackerDetailV1Model(trackerID: trackerID, receiver: receiver, service: service)
@@ -129,7 +123,7 @@ struct TrackerDetailV1View: View {
     @ViewBuilder
     private func watchLine(_ profile: TrackerProfile) -> some View {
         if profile.scheduleCount > 0 {
-            Button { showSchedules = true } label: {
+            NavigationLink(value: V1Route.schedules(trackerID: profile.id, trackerName: profile.name)) {
                 HStack {
                     Text(TrackerText.scheduleCount(profile.scheduleCount))
                         .font(.system(size: 16, weight: .semibold))
@@ -337,6 +331,7 @@ private extension View {
     NavigationStack {
         TrackerDetailV1View(trackerID: "medication", receiver: TrackersFixtures.eleanor,
                             service: TrackersFixtures.service())
+            .v1Destinations(service: TrackersFixtures.service())
     }
 }
 

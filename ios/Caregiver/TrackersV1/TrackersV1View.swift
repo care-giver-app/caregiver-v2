@@ -28,9 +28,6 @@ struct TrackersV1View: View {
             }
         }
         .tint(Theme.Colors.accent)
-        .navigationDestination(for: TrackerItem.self) { tracker in
-            TrackerDetailV1View(trackerID: tracker.id, receiver: receiver, service: service)
-        }
         .task {
             if let model {
                 // Back from a tracker: refresh in place, with fresh relative times.
@@ -104,7 +101,7 @@ struct TrackersV1View: View {
                 } else {
                     VStack(spacing: Theme.Spacing.sm) {
                         ForEach(visible) { tracker in
-                            NavigationLink(value: tracker) {
+                            NavigationLink(value: V1Route.tracker(id: tracker.id, receiver: receiver)) {
                                 row(tracker, now: now)
                             }
                             .buttonStyle(.plain)
@@ -159,6 +156,7 @@ struct StrideNavTitle: View {
 #Preview("Active") {
     NavigationStack {
         TrackersV1View(receiver: TrackersFixtures.eleanor, service: TrackersFixtures.service())
+            .v1Destinations(service: TrackersFixtures.service())
     }
 }
 

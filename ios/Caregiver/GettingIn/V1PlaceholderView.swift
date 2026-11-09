@@ -9,6 +9,8 @@ struct V1PlaceholderView: View {
     let onSignOut: () async -> Void
     /// TEMPORARY, with the "All trackers" button below.
     var trackers: TrackersService? = nil
+    /// The stack's path; All trackers appends to it (see `V1Route`).
+    @Binding var path: [V1Route]
 
     @State private var isSigningOut = false
     @State private var allTrackers: AllTrackersEntryModel?
@@ -42,11 +44,10 @@ struct V1PlaceholderView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .strideBackground()
         .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(item: Binding(get: { allTrackers?.receiver },
-                                             set: { allTrackers?.receiver = $0 })) { receiver in
-            if let trackers {
-                TrackersV1View(receiver: receiver, service: trackers)
-            }
+        .onChange(of: allTrackers?.receiver) { _, receiver in
+            guard let receiver else { return }
+            path.append(.trackers(receiver))
+            allTrackers?.receiver = nil
         }
         .onAppear {
             // No team, no receivers to reach: the button is left out rather than doing nothing.
@@ -79,14 +80,14 @@ struct V1PlaceholderView: View {
 #Preview("Placeholder") {
     NavigationStack {
         V1PlaceholderView(account: GettingInFixtures.trevorOnRiverside, onSignOut: {},
-                          trackers: TrackersFixtures.service())
+                          trackers: TrackersFixtures.service(), path: .constant([]))
     }
 }
 
 #Preview("Team with no receivers") {
     NavigationStack {
         V1PlaceholderView(account: GettingInFixtures.trevorOnRiverside, onSignOut: {},
-                          trackers: TrackersFixtures.service(receivers: []))
+                          trackers: TrackersFixtures.service(receivers: []), path: .constant([]))
     }
 }
 #endif
