@@ -39,6 +39,9 @@ struct EditTrackerV1Sheet: View {
     @State private var confirmingPause = false
     /// A schedule, while open: its model is built once, when it opens.
     @State private var openedSchedule: OpenedSchedule?
+    /// A schedule asked for while something here is unsaved: it opens once that is saved.
+    @State private var scheduleAfterSave: ScheduleTarget?
+    @State private var askingToSaveFirst = false
     /// Set by Pause this tracker? once the tracker is paused; read as that sheet goes.
     @State private var paused = false
     @Environment(\.dismiss) private var dismiss
@@ -165,6 +168,23 @@ struct EditTrackerV1Sheet: View {
             .padding(.vertical, Theme.Spacing.sm)
         }
         .scrollDismissesKeyboard(.interactively)
+        .alert(model.canSave ? "Save your changes first?" : "Finish your changes first",
+               isPresented: $askingToSaveFirst) {
+            if model.canSave {
+                Button("Save and continue") {
+                    if let target = scheduleAfterSave { Task { await saveThenOpen(target, model) } }
+                }
+                Button("Cancel", role: .cancel) { scheduleAfterSave = nil }
+            } else {
+                Button("OK", role: .cancel) { scheduleAfterSave = nil }
+            }
+        } message: {
+            if model.canSave {
+                Text("A schedule can only pre-fill fields the tracker already has, so your changes are saved before it opens.")
+            } else {
+                Text(model.problems.joined(separator: "\n"))
+            }
+        }
         .background(Theme.Colors.surface)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -202,9 +222,16 @@ struct EditTrackerV1Sheet: View {
         }
         .alert(removalTitle(model), isPresented: removalShown(model)) {
             Button("Remove and save", role: .destructive) {
-                Task { await finish(await model.confirmRemoval()) }
+                if let target = scheduleAfterSave {
+                    Task { await saveThenOpen(target, model, removeSchedules: true) }
+                } else {
+                    Task { await finish(await model.confirmRemoval()) }
+                }
             }
-            Button("Cancel", role: .cancel) { model.cancelRemoval() }
+            Button("Cancel", role: .cancel) {
+                scheduleAfterSave = nil
+                model.cancelRemoval()
+            }
         } message: {
             Text(removalMessage(model))
         }
@@ -336,9 +363,31 @@ struct EditTrackerV1Sheet: View {
         }
     }
 
-    /// A schedule, over this sheet; it writes on its own Save or Remove.
+    /// A schedule, over this sheet; it writes on its own Save or Remove. With something
+    /// here unsaved it asks to save that first, because a schedule can only pre-fill
+    /// fields the tracker already has (PRD "Edit tracker").
     private func openSchedule(_ target: ScheduleTarget, _ model: EditTrackerV1Model) {
-        openedSchedule = OpenedSchedule(model: ScheduleSheetModel(editing: model, target: target))
+        if model.hasUnsavedChanges {
+            scheduleAfterSave = target
+            askingToSaveFirst = true
+        } else {
+            openedSchedule = OpenedSchedule(model: ScheduleSheetModel(editing: model, target: target))
+        }
+    }
+
+    private func saveThenOpen(_ target: ScheduleTarget, _ model: EditTrackerV1Model,
+                              removeSchedules: Bool = false) async {
+        guard let saved = await model.saveBeforeSchedule(removeSchedules: removeSchedules) else {
+            // Waiting on "Remove N schedules?" keeps the target; a refusal or failure drops it.
+            if model.pendingRemoval == nil { scheduleAfterSave = nil }
+            return
+        }
+        scheduleAfterSave = nil
+        // Saved now, so the raiser reloads however this sheet ends.
+        onFinished(.saved(saved))
+        // A schedule the save just removed (gap turned on) is gone; there is nothing to open.
+        if case .existing(let s) = target, !model.loadedSchedules.contains(where: { $0.id == s.id }) { return }
+        openSchedule(target, model)
     }
 
     private func scheduleRow(_ schedule: TrackerScheduleItem) -> some View {

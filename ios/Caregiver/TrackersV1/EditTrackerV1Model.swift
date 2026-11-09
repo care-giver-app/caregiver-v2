@@ -53,7 +53,10 @@ final class EditTrackerV1Model {
     /// once, so the raiser reloads even if Edit tracker is cancelled.
     private(set) var schedulesChanged = false
 
-    let profile: TrackerProfile
+    /// The tracker as last saved: as opened, or as a save made to open a schedule left it.
+    private(set) var profile: TrackerProfile
+    /// What `write` was right after the last save (or on open); anything else is unsaved.
+    private var baseline: TrackerWrite!
     let receiver: TeamReceiver
     let service: TrackersService
 
@@ -63,20 +66,15 @@ final class EditTrackerV1Model {
         self.service = service
         self.draft = TrackerDraft(profile)
         self.savedGapHours = profile.gapHours
-        if let hours = profile.gapHours {
-            gapOn = true
-            if hours % 24 == 0 {
-                gapUnit = .days
-                gapAmount = String(hours / 24)
-            } else {
-                gapUnit = .hours
-                gapAmount = String(hours)
-            }
-        } else {
-            gapOn = false
-            gapUnit = .days
-            gapAmount = ""
+        (gapOn, gapUnit, gapAmount) = Self.gapState(profile.gapHours)
+        baseline = write
+    }
+
+    private static func gapState(_ gapHours: Int?) -> (Bool, GapUnit, String) {
+        if let hours = gapHours {
+            return hours % 24 == 0 ? (true, .days, String(hours / 24)) : (true, .hours, String(hours))
         }
+        return (false, .days, "")
     }
 
     // MARK: Who may do what
@@ -198,6 +196,42 @@ final class EditTrackerV1Model {
 
     func cancelRemoval() {
         pendingRemoval = nil
+    }
+
+    // MARK: Saving before a schedule
+
+    /// Something here differs from the tracker as last saved.
+    var hasUnsavedChanges: Bool { write != baseline }
+
+    /// Saves what's here and keeps the sheet open, so a schedule opened next can pre-fill
+    /// a field added in this session (PRD "Edit tracker"). Returns the saved tracker; nil
+    /// when it can't be sent, failed, or the admin must first confirm losing schedules
+    /// (`pendingRemoval` set) — then `saveBeforeSchedule(removeSchedules: true)` finishes it.
+    func saveBeforeSchedule(removeSchedules: Bool = false) async -> TrackerProfile? {
+        guard canSave else { return nil }
+        if !removeSchedules {
+            let losing = schedulesLostToGap
+            if !losing.isEmpty {
+                pendingRemoval = losing
+                return nil
+            }
+        }
+        guard let saved = await send(removeSchedules: removeSchedules) else { return nil }
+        adopt(saved)
+        if removeSchedules { await loadSchedules() }
+        return saved
+    }
+
+    /// Starts again from the saved tracker: new fields now carry their ids, and Cancel
+    /// from here discards only what changes after this.
+    private func adopt(_ saved: TrackerProfile) {
+        profile = saved
+        let part = self.part
+        draft = TrackerDraft(saved)
+        self.part = part
+        savedGapHours = saved.gapHours
+        (gapOn, gapUnit, gapAmount) = Self.gapState(saved.gapHours)
+        baseline = write
     }
 
     private func send(removeSchedules: Bool) async -> TrackerProfile? {

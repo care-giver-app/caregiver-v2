@@ -228,6 +228,78 @@ final class EditTrackerV1Tests: XCTestCase {
         XCTAssertEqual(m.draft.name, "Meds")
     }
 
+    // MARK: Saving before a schedule (PRD "Edit tracker")
+
+    func testNothingIsUnsavedOnOpenOrAfterUndoingAChange() {
+        for profile in [medication, TrackersFixtures.weight] {
+            let m = model(profile)
+            XCTAssertFalse(m.hasUnsavedChanges, profile.name)
+            let name = m.draft.name
+            m.draft.name = "Something else"
+            XCTAssertTrue(m.hasUnsavedChanges)
+            m.draft.name = name
+            XCTAssertFalse(m.hasUnsavedChanges)
+        }
+    }
+
+    func testSavingBeforeAScheduleKeepsTheSheetOnTheSavedTracker() async {
+        let edits = Recorder<(TrackerWrite, Bool)>()
+        let m = model(schedules: [], edits: edits)
+        await m.loadSchedules()
+        var added = FieldDraft.blank()
+        added.label = "Note"
+        added.kind = .text
+        m.draft.upsert(added)
+        XCTAssertTrue(m.hasUnsavedChanges)
+
+        let saved = await m.saveBeforeSchedule()
+
+        XCTAssertNotNil(saved)
+        let sent = await edits.values
+        XCTAssertEqual(sent.count, 1)
+        XCTAssertEqual(sent.first?.1, false)
+        // The new field now has the id the server gave it, so a schedule can pre-fill it.
+        XCTAssertEqual(m.profile.fields.map(\.label).last, "Note")
+        XCTAssertNotNil(m.draft.fields.last?.fieldID)
+        XCTAssertFalse(m.hasUnsavedChanges)
+        // Cancel from here discards only what changes next.
+        m.draft.name = "Meds"
+        XCTAssertTrue(m.hasUnsavedChanges)
+    }
+
+    func testSavingBeforeAScheduleAsksFirstWhenTheGapWouldRemoveSchedules() async {
+        let edits = Recorder<(TrackerWrite, Bool)>()
+        let m = model(edits: edits)
+        await m.loadSchedules()
+        m.gapOn = true
+        m.gapAmount = "2"
+
+        let first = await m.saveBeforeSchedule()
+        XCTAssertNil(first)
+        XCTAssertEqual(m.pendingRemoval, TrackersFixtures.medicationSchedules)
+        let none = await edits.values
+        XCTAssertTrue(none.isEmpty)
+
+        let confirmed = await m.saveBeforeSchedule(removeSchedules: true)
+        XCTAssertNotNil(confirmed)
+        XCTAssertNil(m.pendingRemoval)
+        let sent = await edits.values
+        XCTAssertEqual(sent.map(\.1), [true])
+        XCTAssertEqual(m.savedGapHours, 48)
+        XCTAssertFalse(m.hasUnsavedChanges)
+    }
+
+    func testSavingBeforeAScheduleSendsNothingWhileThereAreProblems() async {
+        let edits = Recorder<(TrackerWrite, Bool)>()
+        let m = model(edits: edits)
+        m.draft.name = "  "
+        let saved = await m.saveBeforeSchedule()
+        XCTAssertNil(saved)
+        let sent = await edits.values
+        XCTAssertTrue(sent.isEmpty)
+        XCTAssertEqual(m.profile, medication)
+    }
+
     // MARK: Pause
 
     func testPauseCallsTheService() async {
