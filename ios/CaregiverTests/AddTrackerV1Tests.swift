@@ -98,18 +98,18 @@ final class AddTrackerV1Tests: XCTestCase {
         m.remove(specialty.id)
         XCTAssertFalse(m.draft.fields.map(\.label).contains("Specialty"))
 
-        var added = m.newField()
+        var added = FieldDraft.blank()
         added.label = "Copay"
         added.kind = .number
         added.unit = "$"
-        m.save(added)
+        m.draft.upsert(added)
         XCTAssertEqual(m.draft.fields.last?.label, "Copay")
         XCTAssertEqual(m.draft.fields.count, 6)
 
         var doctorField = m.draft.fields[0]
         doctorField.required = false
         doctorField.label = "Doctor's name"
-        m.save(doctorField)
+        m.draft.upsert(doctorField)
         XCTAssertEqual(m.draft.fields[0].label, "Doctor's name", "saved in place, by id")
         XCTAssertEqual(m.draft.fields.count, 6)
 
@@ -120,7 +120,7 @@ final class AddTrackerV1Tests: XCTestCase {
     func testRemovingAFieldNeverSavedChangesNothing() {
         let m = model()
         m.choose(weight)
-        m.remove(m.newField().id)
+        m.remove(FieldDraft.blank().id)
         XCTAssertEqual(m.draft.fields.count, 1)
     }
 

@@ -4,7 +4,9 @@ import SwiftUI
 /// a sheet over Tracker detail or Schedules, admins only. Name, icon, color, fields and
 /// gap commit on Save; Cancel discards them. The icon and color part swaps in place.
 /// `onFinished` hears how it ended, before the sheet goes: the raiser reloads on
-/// `.saved` and goes back to Trackers on `.paused`, in the sheet's `onDismiss`.
+/// `.saved` or `.schedulesChanged` and goes back to Trackers on `.paused`, in the sheet's
+/// `onDismiss`. `.schedulesChanged` is heard as each schedule writes; a later Save or
+/// Pause replaces it.
 struct EditTrackerV1Sheet: View {
     /// Which of A schedule's two entries was taken: Add a schedule, or a schedule's row.
     enum ScheduleTarget: Identifiable, Equatable {
@@ -19,6 +21,12 @@ struct EditTrackerV1Sheet: View {
         }
     }
 
+    /// A schedule's sheet item, holding the model it was opened with.
+    struct OpenedSchedule: Identifiable {
+        let id = UUID()
+        let model: ScheduleSheetModel
+    }
+
     private let trackerID: String
     private let receiver: TeamReceiver
     private let service: TrackersService
@@ -29,8 +37,8 @@ struct EditTrackerV1Sheet: View {
     /// The field A field is open on.
     @State private var editingField: FieldDraft?
     @State private var confirmingPause = false
-    /// The schedule A schedule is open on.
-    @State private var scheduleTarget: ScheduleTarget?
+    /// A schedule, while open: its model is built once, when it opens.
+    @State private var openedSchedule: OpenedSchedule?
     /// Set by Pause this tracker? once the tracker is paused; read as that sheet goes.
     @State private var paused = false
     @Environment(\.dismiss) private var dismiss
@@ -120,12 +128,12 @@ struct EditTrackerV1Sheet: View {
                     StrideField(placeholder: "Name", text: $model.draft.name)
                 }
 
-                sectionLabel("FIELDS").padding(.top, 20).padding(.bottom, Theme.Spacing.sm)
+                TrackerSectionLabel("FIELDS").padding(.top, 20).padding(.bottom, Theme.Spacing.sm)
                 VStack(spacing: Theme.Spacing.sm) {
                     ForEach(model.draft.fields) { field in
                         fieldRow(field, model: model)
                     }
-                    Button { editingField = model.newField() } label: {
+                    Button { editingField = FieldDraft.blank() } label: {
                         AddTrackerActionRow(title: "Add a field")
                     }
                     .buttonStyle(.plain)
@@ -133,7 +141,7 @@ struct EditTrackerV1Sheet: View {
 
                 gap(model)
 
-                sectionLabel("SCHEDULES").padding(.top, 20).padding(.bottom, Theme.Spacing.sm)
+                TrackerSectionLabel("SCHEDULES").padding(.top, 20).padding(.bottom, Theme.Spacing.sm)
                 schedules(model)
 
                 if !model.problems.isEmpty {
@@ -175,14 +183,14 @@ struct EditTrackerV1Sheet: View {
         }
         .sheet(item: $editingField) { field in
             // No Remove: a field on a tracker that exists is paused from its switch instead.
-            FieldSheet(field: field, onSave: { model.save($0) })
+            FieldSheet(field: field, onSave: { model.draft.upsert($0) })
         }
-        .sheet(item: $scheduleTarget) { target in
-            ScheduleSheet(model: ScheduleSheetModel(editing: model, target: target)) { outcome in
-                // Written already, so Edit tracker only catches up: the gap a first schedule
-                // replaced is off on the server, and the list is read again.
-                if case .saved(_, replacedGap: true) = outcome { model.gapOn = false }
-                Task { await model.loadSchedules() }
+        .sheet(item: $openedSchedule) { opened in
+            ScheduleSheet(model: opened.model) { outcome in
+                // Written already, so Edit tracker only catches up, and the raiser will
+                // reload however this sheet ends.
+                onFinished(.schedulesChanged)
+                Task { await model.scheduleWritten(outcome) }
             }
         }
         .sheet(isPresented: $confirmingPause, onDismiss: {
@@ -249,7 +257,7 @@ struct EditTrackerV1Sheet: View {
     @ViewBuilder
     private func gap(_ model: EditTrackerV1Model) -> some View {
         @Bindable var model = model
-        sectionLabel("GAP").padding(.top, 20).padding(.bottom, Theme.Spacing.sm)
+        TrackerSectionLabel("GAP").padding(.top, 20).padding(.bottom, Theme.Spacing.sm)
         Toggle("Alert after a gap", isOn: $model.gapOn)
             .toggleStyle(.stride)
             .font(Theme.Typography.body)
@@ -286,7 +294,7 @@ struct EditTrackerV1Sheet: View {
             .padding(.horizontal, Theme.Spacing.md)
             .frame(minHeight: 52)
             .modifier(AddTrackerCard())
-            if let hours = model.gapHours, hours >= 1 {
+            if let hours = model.gapHours, hours >= 1, hours <= EditTrackerV1Model.maxGapHours {
                 caption("If nothing is logged for \(TrackerText.duration(hours: hours)), the team is alerted.")
             }
             if !model.schedulesLostToGap.isEmpty {
@@ -314,23 +322,23 @@ struct EditTrackerV1Sheet: View {
                 }
             case .loaded(let schedules):
                 ForEach(schedules) { schedule in
-                    Button { openSchedule(.existing(schedule)) } label: { scheduleRow(schedule) }
+                    Button { openSchedule(.existing(schedule), model) } label: { scheduleRow(schedule) }
                         .buttonStyle(.plain)
                 }
-                Button { openSchedule(.new) } label: {
+                Button { openSchedule(.new, model) } label: {
                     AddTrackerActionRow(title: "Add a schedule")
                 }
                 .buttonStyle(.plain)
             }
         }
-        if model.gapOn && model.loadedSchedules.isEmpty {
+        if model.newScheduleReplacesGap {
             caption("Adding a schedule turns off the gap. A tracker has one or the other.")
         }
     }
 
     /// A schedule, over this sheet; it writes on its own Save or Remove.
-    private func openSchedule(_ target: ScheduleTarget) {
-        scheduleTarget = target
+    private func openSchedule(_ target: ScheduleTarget, _ model: EditTrackerV1Model) {
+        openedSchedule = OpenedSchedule(model: ScheduleSheetModel(editing: model, target: target))
     }
 
     private func scheduleRow(_ schedule: TrackerScheduleItem) -> some View {
@@ -375,13 +383,6 @@ struct EditTrackerV1Sheet: View {
     }
 
     // MARK: Pieces
-
-    private func sectionLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 12, weight: .semibold))
-            .kerning(0.6)
-            .foregroundStyle(Theme.Colors.textTertiary)
-    }
 
     private func caption(_ text: String) -> some View {
         Text(text)

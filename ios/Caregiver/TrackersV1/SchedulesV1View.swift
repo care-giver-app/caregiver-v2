@@ -48,6 +48,7 @@ struct SchedulesV1View: View {
             case .saved(let profile):
                 savedName = profile.name
                 Task { await model?.load() }
+            case .schedulesChanged: Task { await model?.load() }
             case .paused: popToTrackers()
             case nil: break
             }

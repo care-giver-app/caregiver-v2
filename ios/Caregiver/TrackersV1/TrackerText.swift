@@ -82,7 +82,6 @@ enum TrackerText {
         return "Its \(length) gap counts from the day it was made."
     }
 
-    /// "Paused Nov 3" headline and what it means (Figma 424:3832).
     /// What Resume starts again, said before it is pressed (PRD "Tracker detail"): logging,
     /// then its schedules from now, then whatever alerts it.
     static func resumeExplanation(_ profile: TrackerProfile) -> String {
@@ -100,6 +99,7 @@ enum TrackerText {
         return "Once resumed, " + ListFormatter.localizedString(byJoining: parts) + "."
     }
 
+    /// "Paused Nov 3" headline and what it means (Figma 424:3832).
     static let pausedExplanation = "Nothing new can be logged, and its alerts are off. Its history is kept."
 
     // MARK: Entries

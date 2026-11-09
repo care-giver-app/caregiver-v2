@@ -217,10 +217,7 @@ struct ScheduleSheet: View {
 
     @ViewBuilder private var prefilled: some View {
         if !model.fields.isEmpty {
-            Text("PRE-FILLED ON EACH ENTRY")
-                .font(.system(size: 12, weight: .semibold))
-                .kerning(0.6)
-                .foregroundStyle(Theme.Colors.textTertiary)
+            TrackerSectionLabel("PRE-FILLED ON EACH ENTRY")
                 .padding(.top, 20)
                 .padding(.bottom, Theme.Spacing.sm)
             ForEach(model.fields, id: \.id) { field in

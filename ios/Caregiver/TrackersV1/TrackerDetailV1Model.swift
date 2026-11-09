@@ -58,8 +58,8 @@ final class TrackerDetailV1Model {
     /// Edit, offered to admins on any tracker, paused ones included (PRD).
     var canEdit: Bool { receiver.canManage && profile != nil }
 
-    /// Resume, without asking twice: the tracker goes back the way it was and the
-    /// screen reloads as active.
+    /// Resume, without asking twice: the tracker goes back the way it was. Resume answers
+    /// with the tracker as it now is, so only its entries are read again.
     func resume() async {
         guard canResume, !isResuming else { return }
         isResuming = true
@@ -67,11 +67,12 @@ final class TrackerDetailV1Model {
         defer { isResuming = false }
         do {
             phase = .loaded(try await service.resumeTracker(trackerID))
+            refreshFailed = false
         } catch {
             resumeFailed = AppError.from(error)
             return
         }
-        await load()
+        await entries.refresh()
     }
 
     private func loadDetail() async {

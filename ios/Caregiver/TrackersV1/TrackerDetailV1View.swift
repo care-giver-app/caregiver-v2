@@ -45,7 +45,7 @@ struct TrackerDetailV1View: View {
             let outcome = editOutcome
             editOutcome = nil
             switch outcome {
-            case .saved: Task { await model?.load() }
+            case .saved, .schedulesChanged: Task { await model?.load() }
             case .paused: popToTrackers()
             case nil: break
             }

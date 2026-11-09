@@ -74,9 +74,9 @@ final class EditTrackerV1Tests: XCTestCase {
         await m.loadSchedules()
         m.draft.name = "  Meds  "
         m.setCollecting(m.draft.fields[1].id, false)
-        var added = m.newField()
+        var added = FieldDraft.blank()
         added.label = "Note"
-        m.save(added)
+        m.draft.upsert(added)
         let saved = await m.save()
         XCTAssertNotNil(saved)
         let sent = await edits.values
@@ -94,7 +94,7 @@ final class EditTrackerV1Tests: XCTestCase {
         let m = model()
         var dose = m.draft.fields[1]
         dose.required = true
-        m.save(dose)
+        m.draft.upsert(dose)
         XCTAssertEqual(m.draft.fields.count, 3)
         XCTAssertTrue(m.draft.fields[1].required)
         XCTAssertEqual(m.draft.fields[1].fieldID, "dose")
@@ -128,6 +128,16 @@ final class EditTrackerV1Tests: XCTestCase {
         XCTAssertEqual(m.problems, ["Say how long the longest gap is."])
         m.gapAmount = "0"
         XCTAssertEqual(m.problems, ["A gap must be at least 1 hour."])
+        m.gapAmount = "366"
+        m.gapUnit = .days
+        XCTAssertEqual(m.problems, ["A gap can be at most 365 days."])
+        m.gapAmount = "365"
+        XCTAssertEqual(m.gapHours, 8760)
+        XCTAssertTrue(m.problems.isEmpty)
+        // Too big to turn into hours: refused, not a crash.
+        m.gapAmount = String(Int.max)
+        XCTAssertEqual(m.problems, ["A gap can be at most 365 days."])
+        m.gapAmount = "0"
         let saved = await m.save()
         XCTAssertNil(saved)
         let sent = await edits.values
@@ -270,6 +280,11 @@ final class EditTrackerV1Tests: XCTestCase {
             await resumed.set(true)
             return walk.with(status: .active)
         }
+        let pages = Recorder<String>()
+        service.listEntries = { id, _ in
+            await pages.record(id)
+            return EntriesPage(entries: [], nextCursor: nil)
+        }
         let m = TrackerDetailV1Model(trackerID: "walk", receiver: admin, service: service)
         await m.load()
         XCTAssertTrue(m.canResume)
@@ -277,8 +292,10 @@ final class EditTrackerV1Tests: XCTestCase {
         await m.resume()
         XCTAssertEqual(m.profile?.status, .active)
         XCTAssertFalse(m.canResume)
-        let count = await reads.values.count
-        XCTAssertEqual(count, 2)
+        let detailReads = await reads.values.count
+        XCTAssertEqual(detailReads, 1, "Resume's answer is the tracker; it isn't read again")
+        let entryReads = await pages.values.count
+        XCTAssertEqual(entryReads, 2, "the entries are read again")
     }
 
     func testAFailedResumeStaysPaused() async {

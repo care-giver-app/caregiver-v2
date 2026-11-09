@@ -34,7 +34,7 @@ struct AddTrackerV1Sheet: View {
         .task { await model.loadTemplates() }
         .sheet(item: $editing) { field in
             // Remove is only for a field already on the draft; a new one is just cancelled.
-            FieldSheet(field: field, onSave: { model.save($0) },
+            FieldSheet(field: field, onSave: { model.draft.upsert($0) },
                        onRemove: model.draft.fields.contains { $0.id == field.id }
                            ? { model.remove(field.id) } : nil)
         }
@@ -51,7 +51,7 @@ struct AddTrackerV1Sheet: View {
             .buttonStyle(.plain)
             .padding(.horizontal, Theme.Spacing.lg)
             .padding(.top, Theme.Spacing.sm)
-            sectionLabel("TEMPLATES")
+            TrackerSectionLabel("TEMPLATES")
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.top, 20)
                 .padding(.bottom, Theme.Spacing.sm)
@@ -106,7 +106,7 @@ struct AddTrackerV1Sheet: View {
                         .accessibilityLabel("Icon and color")
                     StrideField(placeholder: "Name", text: $model.draft.name)
                 }
-                sectionLabel("FIELDS").padding(.top, 20)
+                TrackerSectionLabel("FIELDS").padding(.top, 20)
                 Text("Fields can't be deleted once the tracker is created, but they can be paused.")
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.textTertiary)
@@ -117,7 +117,7 @@ struct AddTrackerV1Sheet: View {
                     ForEach(model.draft.fields) { field in
                         fieldRow(field)
                     }
-                    Button { editing = model.newField() } label: {
+                    Button { editing = FieldDraft.blank() } label: {
                         AddTrackerActionRow(title: "Add a field")
                     }
                     .buttonStyle(.plain)
@@ -215,8 +215,16 @@ struct AddTrackerV1Sheet: View {
         .padding(.bottom, Theme.Spacing.sm)
         .background(Theme.Colors.surface)
     }
+}
 
-    private func sectionLabel(_ text: String) -> some View {
+/// A section's small-caps label ("FIELDS", "GAP", "SCHEDULES") on Add tracker, Edit
+/// tracker and A schedule.
+struct TrackerSectionLabel: View {
+    let text: String
+
+    init(_ text: String) { self.text = text }
+
+    var body: some View {
         Text(text)
             .font(.system(size: 12, weight: .semibold))
             .kerning(0.6)

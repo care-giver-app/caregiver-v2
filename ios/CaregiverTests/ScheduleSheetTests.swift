@@ -194,8 +194,13 @@ final class ScheduleSheetTests: XCTestCase {
         XCTAssertFalse(m.canSave)
         m.toggle(.mo)
         XCTAssertTrue(m.canSave)
-        m.setNumberText("ten", for: "mg")
-        XCTAssertEqual(m.problems, ["Amount: enter a number, or leave it blank."])
+        for typed in ["ten", "inf", "nan", "1e999", "-infinity"] {
+            m.setNumberText(typed, for: "mg")
+            XCTAssertEqual(m.problems, ["Amount: enter a number, or leave it blank."], typed)
+            XCTAssertNil(m.draft.plannedValues["mg"], typed)
+        }
+        m.setNumberText("1e3", for: "mg")
+        XCTAssertEqual(m.draft.plannedValues["mg"], .number(1000))
         m.setNumberText("", for: "mg")
         m.draft.endsOn = LocalDay(year: 2026, month: 11, day: 8)
         XCTAssertEqual(m.problems, ["The end date can't be before today."])
@@ -259,6 +264,57 @@ final class ScheduleSheetTests: XCTestCase {
                                                service: TrackersFixtures.service())
         await withSchedules.loadSchedules()
         XCTAssertFalse(ScheduleSheetModel(editing: withSchedules, target: .new).replacesGap)
+    }
+
+    func testOnlyTheSavedGapIsReplacedNotTheUnsavedSwitch() async {
+        var service = TrackersFixtures.service()
+        service.listSchedules = { _ in [] }
+        // A saved gap switched off but not saved: the server still has it.
+        let switchedOff = EditTrackerV1Model(profile: TrackersFixtures.weight, receiver: eleanor, service: service)
+        await switchedOff.loadSchedules()
+        switchedOff.gapOn = false
+        XCTAssertTrue(ScheduleSheetModel(editing: switchedOff, target: .new).replacesGap)
+        XCTAssertEqual(ScheduleSheetModel(editing: switchedOff, target: .new).gapHours, 168)
+
+        // No saved gap, switched on but not saved: there is nothing to replace.
+        let w = TrackersFixtures.weight
+        let noGap = TrackerProfile(id: w.id, name: w.name, icon: w.icon, color: w.color, status: w.status,
+                                   pausedAt: nil, fields: w.fields, gapHours: nil, scheduleCount: 0,
+                                   lastLoggedAt: nil, attention: [])
+        let switchedOn = EditTrackerV1Model(profile: noGap, receiver: eleanor, service: service)
+        await switchedOn.loadSchedules()
+        switchedOn.gapOn = true
+        switchedOn.gapAmount = "2"
+        let new = ScheduleSheetModel(editing: switchedOn, target: .new)
+        XCTAssertFalse(new.replacesGap)
+        XCTAssertNil(new.gapHours)
+    }
+
+    func testEditTrackerTurnsTheGapOffOnlyAfterASaveThatReplacedIt() async {
+        var service = TrackersFixtures.service()
+        service.listSchedules = { _ in [] }
+        let edit = EditTrackerV1Model(profile: TrackersFixtures.weight, receiver: eleanor, service: service)
+        await edit.loadSchedules()
+        XCTAssertFalse(edit.schedulesChanged)
+        let item = TrackersFixtures.medicationSchedules[0]
+
+        await edit.scheduleWritten(.saved(item, replacedGap: false))
+        XCTAssertTrue(edit.gapOn, "nothing was replaced")
+        XCTAssertEqual(edit.savedGapHours, 168)
+        XCTAssertTrue(edit.schedulesChanged)
+
+        await edit.scheduleWritten(.saved(item, replacedGap: true))
+        XCTAssertFalse(edit.gapOn)
+        XCTAssertNil(edit.savedGapHours)
+        XCTAssertFalse(edit.newScheduleReplacesGap, "the gap is gone on the server")
+    }
+
+    func testARemovedScheduleCountsAsAChange() async {
+        let edit = EditTrackerV1Model(profile: TrackersFixtures.medication, receiver: eleanor,
+                                      service: TrackersFixtures.service())
+        await edit.scheduleWritten(.removed)
+        XCTAssertTrue(edit.schedulesChanged)
+        XCTAssertFalse(edit.gapOn)
     }
 
     func testCopySaysWhatGoesAndWhatStays() {

@@ -73,16 +73,16 @@ final class ScheduleSheetModel {
         }
     }
 
-    /// From Edit tracker, as it stands: its fields as saved (pre-filled values are
-    /// checked against those) and whether a gap is on.
+    /// From Edit tracker: its fields as saved (pre-filled values are checked against
+    /// those) and whether a gap is saved on the server. An unsaved gap switch doesn't
+    /// count — this sheet writes at once, against the tracker as saved.
     convenience init(editing model: EditTrackerV1Model, target: EditTrackerV1Sheet.ScheduleTarget) {
         let existing: TrackerScheduleItem?
         if case .existing(let s) = target { existing = s } else { existing = nil }
-        let gapFirst = model.gapOn && model.loadedSchedules.isEmpty
         self.init(trackerID: model.profile.id, trackerName: model.draft.name.isEmpty ? model.profile.name : model.draft.name,
                   trackerIcon: model.draft.icon, trackerColor: model.draft.color,
                   fields: model.profile.fields, receiver: model.receiver, existing: existing,
-                  replacesGap: gapFirst, gapHours: model.gapHours ?? model.profile.gapHours,
+                  replacesGap: model.newScheduleReplacesGap, gapHours: model.savedGapHours,
                   service: model.service)
     }
 
@@ -116,11 +116,18 @@ final class ScheduleSheetModel {
     func setNumberText(_ text: String, for fieldID: String) {
         numberText[fieldID] = text
         let trimmed = text.trimmingCharacters(in: .whitespaces)
-        if let n = Double(trimmed) {
+        if let n = Self.number(trimmed) {
             draft.plannedValues[fieldID] = .number(n)
         } else {
             draft.plannedValues[fieldID] = nil
         }
+    }
+
+    /// A typed number, or nil when it isn't one: "inf", "nan" and "1e999" are refused,
+    /// as FieldEditor refuses them.
+    private static func number(_ text: String) -> Double? {
+        guard let n = Double(text), n.isFinite else { return nil }
+        return n
     }
 
     func text(for fieldID: String) -> String {
@@ -190,7 +197,7 @@ final class ScheduleSheetModel {
         var out = draft.problems(today: today)
         for field in fields where field.kind == .number {
             let typed = (numberText[field.id] ?? "").trimmingCharacters(in: .whitespaces)
-            if !typed.isEmpty, Double(typed) == nil {
+            if !typed.isEmpty, Self.number(typed) == nil {
                 out.append("\(field.label): enter a number, or leave it blank.")
             }
         }

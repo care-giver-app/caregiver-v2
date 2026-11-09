@@ -50,6 +50,11 @@ struct FieldDraft: Equatable, Identifiable, Sendable {
     var multiple: Bool = false
     var options: [OptionDraft] = []
 
+    /// What Add a field opens A field on: an unnamed text field.
+    static func blank() -> FieldDraft {
+        FieldDraft(label: "", kind: .text)
+    }
+
     init(fieldID: String? = nil, label: String, kind: FieldKind, unit: String = "",
          required: Bool = false, paused: Bool = false, alertsOutOfRange: Bool = false,
          low: Double? = nil, high: Double? = nil, multiple: Bool = false, options: [OptionDraft] = []) {
@@ -171,6 +176,15 @@ struct TrackerDraft: Equatable, Sendable {
     init(_ profile: TrackerProfile) {
         self.init(name: profile.name, icon: profile.icon, color: profile.color,
                   fields: profile.fields.map(FieldDraft.init), gapHours: profile.gapHours)
+    }
+
+    /// A field A field saved: replaces the one with its id, or adds it at the end.
+    mutating func upsert(_ field: FieldDraft) {
+        if let i = fields.firstIndex(where: { $0.id == field.id }) {
+            fields[i] = field
+        } else {
+            fields.append(field)
+        }
     }
 
     var problems: [String] {

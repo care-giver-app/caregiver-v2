@@ -46,6 +46,13 @@ final class EditTrackerV1Model {
     private(set) var isPausing = false
     private(set) var pauseFailed: AppError?
 
+    /// The gap as the server has it: the tracker's saved gap, until a first schedule
+    /// replaces it. Unsaved changes to `gapOn` don't move it.
+    private(set) var savedGapHours: Int?
+    /// A schedule was added, changed or removed while this sheet was open. Those write at
+    /// once, so the raiser reloads even if Edit tracker is cancelled.
+    private(set) var schedulesChanged = false
+
     let profile: TrackerProfile
     let receiver: TeamReceiver
     let service: TrackersService
@@ -55,6 +62,7 @@ final class EditTrackerV1Model {
         self.receiver = receiver
         self.service = service
         self.draft = TrackerDraft(profile)
+        self.savedGapHours = profile.gapHours
         if let hours = profile.gapHours {
             gapOn = true
             if hours % 24 == 0 {
@@ -90,6 +98,22 @@ final class EditTrackerV1Model {
         }
     }
 
+    /// A schedule saved or was removed (written already): catch up, and read the list
+    /// again. Only a save that replaced the tracker's saved gap turns the gap off here.
+    func scheduleWritten(_ outcome: ScheduleSheetModel.Outcome) async {
+        schedulesChanged = true
+        if case .saved(_, replacedGap: true) = outcome {
+            savedGapHours = nil
+            gapOn = false
+        }
+        await loadSchedules()
+    }
+
+    /// A new schedule would replace the saved gap: the tracker has one and no schedules.
+    var newScheduleReplacesGap: Bool {
+        savedGapHours != nil && loadedSchedules.isEmpty
+    }
+
     var loadedSchedules: [TrackerScheduleItem] {
         if case .loaded(let s) = schedules { return s }
         return []
@@ -102,32 +126,26 @@ final class EditTrackerV1Model {
 
     // MARK: Fields
 
-    /// A field A field saved: replaces the one with its id, or adds it at the end.
-    func save(_ field: FieldDraft) {
-        if let i = draft.fields.firstIndex(where: { $0.id == field.id }) {
-            draft.fields[i] = field
-        } else {
-            draft.fields.append(field)
-        }
-    }
-
     /// A field row's switch: on is collecting, off is paused. Never a delete.
     func setCollecting(_ id: FieldDraft.ID, _ collecting: Bool) {
         guard let i = draft.fields.firstIndex(where: { $0.id == id }) else { return }
         draft.fields[i].paused = !collecting
     }
 
-    /// What Add a field opens A field on.
-    func newField() -> FieldDraft {
-        FieldDraft(label: "", kind: .text)
-    }
 
     // MARK: Gap
 
-    /// Longest gap in hours, or nil when off or not a whole number.
+    /// The longest gap Save accepts: a year. Anything longer reads as a typo, and a
+    /// bigger number could overflow on the way to hours.
+    static let maxGapHours = 365 * 24
+
+    /// Longest gap in hours, or nil when off or not a whole number. Never overflows: a
+    /// number too big to convert comes back as `Int.max`, which `problems` refuses.
     var gapHours: Int? {
         guard gapOn, let n = Int(gapAmount.trimmingCharacters(in: .whitespaces)) else { return nil }
-        return n * gapUnit.hours
+        let (hours, overflow) = n.multipliedReportingOverflow(by: gapUnit.hours)
+        if overflow { return n < 0 ? Int.min : Int.max }
+        return hours
     }
 
     // MARK: Save
@@ -149,6 +167,8 @@ final class EditTrackerV1Model {
                 out.append("Say how long the longest gap is.")
             } else if let h = gapHours, h < 1 {
                 out.append("A gap must be at least 1 hour.")
+            } else if let h = gapHours, h > Self.maxGapHours {
+                out.append("A gap can be at most 365 days.")
             }
         }
         return out
@@ -223,4 +243,6 @@ enum EditTrackerOutcome: Equatable {
     case saved(TrackerProfile)
     /// Paused: the raiser goes back to Trackers.
     case paused
+    /// Not saved, but a schedule was written meanwhile: the raiser reloads.
+    case schedulesChanged
 }

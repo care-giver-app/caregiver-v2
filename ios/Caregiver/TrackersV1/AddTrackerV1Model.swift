@@ -75,24 +75,11 @@ final class AddTrackerV1Model {
 
     // MARK: Second part
 
-    /// A field A field saved: replaces the one with its id, or adds it at the end.
-    func save(_ field: FieldDraft) {
-        if let i = draft.fields.firstIndex(where: { $0.id == field.id }) {
-            draft.fields[i] = field
-        } else {
-            draft.fields.append(field)
-        }
-    }
-
     /// The red x, or A field's Remove. The tracker doesn't exist yet, so this is a delete.
     func remove(_ id: FieldDraft.ID) {
         draft.fields.removeAll { $0.id == id }
     }
 
-    /// What Add a field opens A field on.
-    func newField() -> FieldDraft {
-        FieldDraft(label: "", kind: .text)
-    }
 
     var problems: [String] { draft.problems }
     var canCreate: Bool { problems.isEmpty && !isCreating }
