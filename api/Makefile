@@ -13,8 +13,10 @@ features:
 # The same features against the deployed dev API, with throwaway Cognito users
 # that are deleted afterwards. Needs valid AWS credentials for the dev account
 # (CloudFormation read, Cognito admin, and DynamoDB on the caregiver-dev-v1-* tables).
+# Every scenario makes real round trips to dev, so the suite runs past go test's
+# default 10m timeout; a timeout kills it before cleanup runs.
 smoke-dev:
 	FEATURES_TARGET=dev \
 	DEV_USER_POOL_ID="$(call stack_output,UserPoolId)" \
 	DEV_USER_POOL_CLIENT_ID="$(call stack_output,UserPoolClientId)" \
-	go test ./features/... -run TestFeatures -count=1 -v
+	go test ./features/... -run TestFeatures -count=1 -v -timeout 30m
