@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
@@ -25,7 +24,7 @@ func (s *UserStore) Get(ctx context.Context, userID string) (domain.User, error)
 // CreateIfAbsent writes the user only if no row exists for the id. It returns
 // created=false (no error) if a row already exists — the idempotent JIT path.
 func (s *UserStore) CreateIfAbsent(ctx context.Context, u domain.User) (bool, error) {
-	item, err := attributevalue.MarshalMap(u)
+	item, err := MarshalItem(u)
 	if err != nil {
 		return false, err
 	}

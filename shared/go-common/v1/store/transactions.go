@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
@@ -27,11 +26,11 @@ var (
 // atomically. The team write is conditional so an id collision fails cleanly
 // and nothing is written.
 func (s *Stores) CreateTeamWithAdmin(ctx context.Context, t domain.Team, m domain.Membership) error {
-	ti, err := attributevalue.MarshalMap(t)
+	ti, err := MarshalItem(t)
 	if err != nil {
 		return err
 	}
-	mi, err := attributevalue.MarshalMap(m)
+	mi, err := MarshalItem(m)
 	if err != nil {
 		return err
 	}
@@ -58,7 +57,7 @@ func (s *Stores) CreateTeamWithAdmin(ctx context.Context, t domain.Team, m domai
 // ErrAlreadyMember. Any other cancellation (for example TransactionConflict
 // under contention) is returned as is.
 func (s *Stores) RedeemInvitation(ctx context.Context, code string, m domain.Membership, now time.Time) error {
-	mi, err := attributevalue.MarshalMap(m)
+	mi, err := MarshalItem(m)
 	if err != nil {
 		return err
 	}

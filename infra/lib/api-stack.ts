@@ -39,6 +39,10 @@ export interface ApiStackProps extends cdk.StackProps {
     team: dynamodb.ITable;
     membership: dynamodb.ITable;
     invitation: dynamodb.ITable;
+    receiver: dynamodb.ITable;
+    tracker: dynamodb.ITable;
+    schedule: dynamodb.ITable;
+    entry: dynamodb.ITable;
   };
 }
 
@@ -118,14 +122,19 @@ export class ApiStack extends cdk.Stack {
     this.apiFunction.addEnvironment('SCHEDULED_ITEMS_TABLE', props.tables.scheduledItems.tableName);
 
     // Granted one by one: callers may pass every v1 table, and the API gets only these.
-    const { user, team, membership, invitation } = props.v1Tables;
-    for (const table of [user, team, membership, invitation]) {
+    const { user, team, membership, invitation, receiver, tracker, schedule, entry } =
+      props.v1Tables;
+    for (const table of [user, team, membership, invitation, receiver, tracker, schedule, entry]) {
       table.grantReadWriteData(this.apiFunction);
     }
     this.apiFunction.addEnvironment('V1_USERS_TABLE', user.tableName);
     this.apiFunction.addEnvironment('V1_TEAMS_TABLE', team.tableName);
     this.apiFunction.addEnvironment('V1_MEMBERSHIPS_TABLE', membership.tableName);
     this.apiFunction.addEnvironment('V1_INVITATIONS_TABLE', invitation.tableName);
+    this.apiFunction.addEnvironment('V1_RECEIVERS_TABLE', receiver.tableName);
+    this.apiFunction.addEnvironment('V1_TRACKERS_TABLE', tracker.tableName);
+    this.apiFunction.addEnvironment('V1_SCHEDULES_TABLE', schedule.tableName);
+    this.apiFunction.addEnvironment('V1_ENTRIES_TABLE', entry.tableName);
 
     // AppConfig actions: `StartConfigurationSession` is a control-plane call that
     // doesn't accept a resource ARN, and `GetLatestConfiguration` operates on
@@ -231,6 +240,16 @@ export class ApiStack extends cdk.Stack {
       { path: '/v1/teams', methods: [apigw.HttpMethod.POST] },
       { path: '/v1/me/invitations', methods: [apigw.HttpMethod.GET] },
       { path: '/v1/invitations/redeem', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/teams/{teamId}/receivers', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/receivers/{receiverId}/trackers', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/receivers/{receiverId}/trackers', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/trackers/{trackerId}', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/trackers/{trackerId}', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/trackers/{trackerId}/pause', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/trackers/{trackerId}/resume', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/trackers/{trackerId}/entries', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/trackers/{trackerId}/schedules', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/tracker-templates', methods: [apigw.HttpMethod.GET] },
     ];
     for (const route of authedRoutes) {
       httpApi.addRoutes({

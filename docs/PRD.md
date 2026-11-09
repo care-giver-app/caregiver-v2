@@ -193,9 +193,11 @@ numbers plot as values over time, while choices and yes/no plot as frequency.
 A field can also be **paused**, which stops it being collected without removing what it collected. A
 paused field drops off the logging form, so caregivers are no longer asked for it, but its values
 stay on every entry already carrying them and still plot in insights, where the series ends on the
-day it was paused. This is the same thing one level down and for the same reason: a team that stopped
-taking a pulse alongside the blood pressure has not stopped having taken it. A paused field resumes
-where it left off. A field is never deleted, because deleting one would take real readings with it.
+day it was paused. Its range stops raising alerts as well, since a reading nobody is still taking
+can never come back in range. This is the same thing one level down and for the same reason: a team
+that stopped taking a pulse alongside the blood pressure has not stopped having taken it. A paused
+field resumes where it left off. A field is never deleted, because deleting one would take real
+readings with it.
 
 A choice field takes one answer or several, decided when the field is made — how much of a meal went
 down has one answer, the symptoms someone had this morning may have three. Its options can be added,
@@ -215,16 +217,17 @@ notices care that never happened. A gap is the only expectation available to a t
 fields, which records nothing but that the thing occurred, and it is how a team watches care that
 should happen regularly without pinning it to a clock. A tracker that has never been logged counts
 from the day it was created, so a gap starts watching immediately rather than waiting for a first
-entry.
+entry. A resumed tracker counts from the day it was resumed, for the same reason: the time it spent
+paused was not time anyone was expected to log it.
 
 A tracker has schedules or a gap, never both. Care a schedule already plans is watched by
 unrecorded-care alerts, and one lapse should never be reported by two mechanisms — so choosing one
 means giving up the other, and an admin changing either is told what they are about to lose.
 
 **Tracker template** — A pre-built tracker definition — name, icon, color, fields, and thresholds —
-that an admin starts a new tracker from instead of building one from scratch. Blood pressure arrives
-already knowing it takes a systolic and a diastolic in mmHg with an expected range around them; a
-shower arrives with no fields at all and a gap of a few days.
+that an admin starts a new tracker from instead of building one from scratch. Weight arrives already
+knowing it is a number in pounds with a range around it; a shower arrives with no fields at all and
+a gap of a few days.
 
 A template is where a tracker starts and not what it stays. Everything it brought can be changed
 before the tracker is created, and afterward the tracker keeps no tie to the catalogue it came from —
@@ -233,16 +236,18 @@ actually said has described their own care, and no catalogue is entitled to an o
 later. Templates carry no schedules, because when care happens is the one thing a catalogue cannot
 know: the same medication is taken twice a day by one person and on Mondays by another.
 
-The catalogue ships with the care families keep track of most. Blood pressure, weight, blood sugar,
-and temperature arrive as numbers with the range they are expected to stay inside — two of them in
-mmHg for blood pressure and one for the rest, and blood sugar asking as well whether the reading was
-taken before or after a meal, because the same number means different things either side of lunch.
-Meals ask what was eaten and how much of it went down, and Mood asks for a single choice from a list;
-both are things a family notices every day and neither has a right answer to fall outside of. A shower
-and a bowel movement arrive with no fields at all and a gap of a few days, since what matters about
-them is whether they happened and how long it has been. Medication arrives asking only whether the
-dose was given, and carrying no expectation at all — what watches a medication is its regimen, and a
-regimen is the one thing a template cannot bring.
+The catalogue ships with the care the first family on the app actually keeps track of, because a
+list drawn from real use is one somebody has already found worth logging. Weight and a walk arrive
+as numbers — pounds, with the range a weight is expected to stay inside, and minutes with none,
+since no walk is too long or too short to be worth an alarm. Mood, urination, and a bowel movement
+each ask for a single choice — how someone seemed, a color, an amount — and none has a right answer
+to fall outside of. A shower arrives with no fields at all and a gap of a few days, since what
+matters about it is whether it happened and how long it has been, and a bowel movement carries the
+same gap beside its choice. Medication arrives with no fields either, because logging it is the
+record that the dose was given, and carrying no expectation at all — what watches a medication is
+its regimen, and a regimen is the one thing a template cannot bring. A doctor's appointment asks
+who, where, why, and what came of it, and is the one template a team mostly plans ahead rather than
+logs after.
 
 The set is deliberately short, and between them its entries teach every shape a tracker comes in:
 fields watched by a range, fields watched by nothing, and no fields at all watched by a gap. An admin
@@ -1520,19 +1525,20 @@ than back on the list, because the next thing anyone wants after making a tracke
 receiver with no trackers at all is offered the first one instead of an empty screen, since deciding
 what to keep track of is what a team does immediately after adding someone to care for.
 
-**Making one.** A tracker starts from a template. The catalogue already knows that blood pressure
-takes two numbers in mmHg and that a shower is watched by a gap rather than a schedule, and an admin
-who has just added their mother to a care team should not have to work that out before the app is of
-any use to them. Picking one does not create the tracker, though: it fills in a second part where
-everything the template brought is there to be changed — its name, its color, the fields it captures,
-the thresholds around them. The two parts are one sheet rather than two screens, because choosing and
+**Making one.** A tracker starts from a template. The catalogue already knows that weight is a
+number in pounds and that a shower is watched by a gap rather than a schedule, and an admin who has
+just added their mother to a care team should not have to work that out before the app is of any use
+to them. Picking one does not create the tracker, though: it fills in a second part where everything
+the template brought is there to be changed — its name, its color, the fields it captures, the
+thresholds around them. The two parts are one sheet rather than two screens, because choosing and
 adjusting are one decision, and an admin who realises while adjusting that they picked the wrong
 template has not left the place they picked it from.
 
-A field the template brought can also be dropped there, which is the only place in the app where that
-is true. A field is never deleted once a tracker exists, because deleting one would take real readings
-with it — but a tracker that has not been created yet has no readings, so a template's pulse field
-that this team never takes goes away rather than sitting paused on a tracker from the day it was made.
+A field the template brought can also be dropped there, which is the only place in the app where
+that is true. A field is never deleted once a tracker exists, because deleting one would take real
+readings with it — but a tracker that has not been created yet has no readings, so a doctor's
+appointment's specialty field that this team never fills in goes away rather than sitting paused on
+a tracker from the day it was made.
 
 A tracker no template describes is built from scratch in the same second part with nothing filled in.
 Neither path asks about schedules. A schedule describes a regimen, and a regimen is rarely settled at

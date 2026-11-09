@@ -91,6 +91,19 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	mux.Handle("GET /v1/me/invitations", v1authn.Wrap(http.HandlerFunc(v1inv.Mine)))
 	mux.Handle("POST /v1/invitations/redeem", v1authn.Wrap(http.HandlerFunc(v1inv.Redeem)))
 
+	v1rcv := v1.NewReceivers(v1Stores)
+	v1trk := v1.NewTrackers(v1Stores)
+	mux.Handle("GET /v1/teams/{teamId}/receivers", v1authn.Wrap(http.HandlerFunc(v1rcv.ListByTeam)))
+	mux.Handle("GET /v1/receivers/{receiverId}/trackers", v1authn.Wrap(http.HandlerFunc(v1trk.ListByReceiver)))
+	mux.Handle("POST /v1/receivers/{receiverId}/trackers", v1authn.Wrap(http.HandlerFunc(v1trk.Create)))
+	mux.Handle("GET /v1/trackers/{trackerId}", v1authn.Wrap(http.HandlerFunc(v1trk.Get)))
+	mux.Handle("PUT /v1/trackers/{trackerId}", v1authn.Wrap(http.HandlerFunc(v1trk.Edit)))
+	mux.Handle("POST /v1/trackers/{trackerId}/pause", v1authn.Wrap(http.HandlerFunc(v1trk.Pause)))
+	mux.Handle("POST /v1/trackers/{trackerId}/resume", v1authn.Wrap(http.HandlerFunc(v1trk.Resume)))
+	mux.Handle("GET /v1/trackers/{trackerId}/entries", v1authn.Wrap(http.HandlerFunc(v1trk.Entries)))
+	mux.Handle("GET /v1/trackers/{trackerId}/schedules", v1authn.Wrap(http.HandlerFunc(v1trk.Schedules)))
+	mux.Handle("GET /v1/tracker-templates", v1authn.Wrap(http.HandlerFunc(v1.NewTemplates().List)))
+
 	return middleware.RequestLogger(log)(mux), nil
 }
 
@@ -123,9 +136,14 @@ func newV1Stores(ctx context.Context) (*v1store.Stores, error) {
 		Teams:       os.Getenv("V1_TEAMS_TABLE"),
 		Memberships: os.Getenv("V1_MEMBERSHIPS_TABLE"),
 		Invitations: os.Getenv("V1_INVITATIONS_TABLE"),
+		Receivers:   os.Getenv("V1_RECEIVERS_TABLE"),
+		Trackers:    os.Getenv("V1_TRACKERS_TABLE"),
+		Schedules:   os.Getenv("V1_SCHEDULES_TABLE"),
+		Entries:     os.Getenv("V1_ENTRIES_TABLE"),
 	}
-	if names.Users == "" || names.Teams == "" || names.Memberships == "" || names.Invitations == "" {
-		return nil, fmt.Errorf("V1_USERS_TABLE/V1_TEAMS_TABLE/V1_MEMBERSHIPS_TABLE/V1_INVITATIONS_TABLE must all be set")
+	if names.Users == "" || names.Teams == "" || names.Memberships == "" || names.Invitations == "" ||
+		names.Receivers == "" || names.Trackers == "" || names.Schedules == "" || names.Entries == "" {
+		return nil, fmt.Errorf("all V1_*_TABLE env vars (users, teams, memberships, invitations, receivers, trackers, schedules, entries) must be set")
 	}
 	client, err := v1store.NewClient(ctx, os.Getenv("DYNAMODB_ENDPOINT"))
 	if err != nil {

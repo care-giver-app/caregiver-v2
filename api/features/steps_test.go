@@ -26,10 +26,14 @@ type world struct {
 	last   answer
 	rows   []rowKey
 	n      int
+	care   careWorld
 }
 
 func newWorld(d driver, suffix string) *world {
-	return &world{d: d, suffix: suffix, people: map[string]*person{}, teams: map[string]string{}, codes: map[string]string{}}
+	return &world{
+		d: d, suffix: suffix, people: map[string]*person{}, teams: map[string]string{}, codes: map[string]string{},
+		care: newCareWorld(),
+	}
 }
 
 func (w *world) register(sc *godog.ScenarioContext) {
@@ -60,6 +64,8 @@ func (w *world) register(sc *godog.ScenarioContext) {
 	sc.Step(`^"([^"]*)" does not belong to "([^"]*)"$`, w.doesNotBelongTo)
 	sc.Step(`^"([^"]*)" has a pending invitation to "([^"]*)" from "([^"]*)"$`, w.hasPendingInvitationFrom)
 	sc.Step(`^"([^"]*)" has no pending invitations$`, w.hasNoPendingInvitations)
+
+	w.registerTrackers(sc)
 
 	// Clean up whatever happened: a failed scenario still deletes what it made.
 	// A step's own failure is already recorded; this only adds a cleanup failure.

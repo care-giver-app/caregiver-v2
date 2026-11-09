@@ -32,7 +32,7 @@ func TestFeatures(t *testing.T) {
 	scenario := 0
 
 	suite := godog.TestSuite{
-		Name: "getting-in",
+		Name: "features",
 		ScenarioInitializer: func(sc *godog.ScenarioContext) {
 			scenario++
 			newWorld(d, fmt.Sprintf("%s%02d", runID, scenario)).register(sc)
