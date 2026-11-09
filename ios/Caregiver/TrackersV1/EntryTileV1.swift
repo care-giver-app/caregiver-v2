@@ -65,8 +65,8 @@ struct EntryTileV1: View {
     private var badge: some View {
         let label = TrackerText.stateLabel(entry.state)
         let (fg, bg): (Color, Color) = switch entry.state {
-        case .logged: (Theme.Colors.success, Color(hex: "dcefe6"))
-        case .unrecorded: (Theme.Colors.alert, Color(hex: "f9e0e5"))
+        case .logged: (Theme.Colors.success, Theme.Colors.successTint)
+        case .unrecorded: (Theme.Colors.alert, Theme.Colors.alertTint)
         case .skipped, .scheduled: (Theme.Colors.textTertiary, Theme.Colors.surfaceHi)
         }
         return Text(label)

@@ -51,7 +51,7 @@ struct StrideTrackerRow: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(Theme.Typography.subhead)
-                        .foregroundStyle(Theme.Colors.textTertiary)
+                        .foregroundStyle(isMuted ? Theme.Colors.muted : Theme.Colors.textTertiary)
                 }
             }
             Spacer()
