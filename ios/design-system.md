@@ -15,12 +15,13 @@ for that.
 
 ## Inputs & forms
 
-| Component           | Used for                                                          |
-| ------------------- | ----------------------------------------------------------------- |
-| `StrideField`       | A single-line text or secure entry field (email, name, password). |
-| `StrideCodeInput`   | A 6-digit confirmation/verification code entry.                   |
-| `StrideDatePicker`  | Picking a date and/or time.                                       |
-| `StrideToggleStyle` | The on/off switch look for a system `Toggle`.                     |
+| Component           | Used for                                                                          |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `StrideField`       | A single-line text or secure entry field (email, name, password).                 |
+| `StrideCodeInput`   | A 6-digit confirmation/verification code entry.                                   |
+| `StrideDatePicker`  | Picking a date and/or time.                                                       |
+| `StrideCalendarDay` | One day in a month calendar: plain, today, disabled, or part of a picked stretch. |
+| `StrideToggleStyle` | The on/off switch look for a system `Toggle`.                                     |
 
 ## Cards & list rows
 

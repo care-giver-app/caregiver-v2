@@ -255,13 +255,6 @@ enum TrackerText {
     static func dayString(_ date: Date, zone: TimeZone) -> String {
         format(date, "yyyy-MM-dd", zone)
     }
-
-    /// "Nov 1 – Nov 7" for a picked stretch.
-    static func rangeLabel(from: Date, to: Date, now: Date, zone: TimeZone) -> String {
-        let a = shortDate(from, now: now, zone: zone)
-        let b = shortDate(to, now: now, zone: zone)
-        return a == b ? a : "\(a) – \(b)"
-    }
 }
 
 /// TrackerText's formatters, built once per (pattern, zone) and reused: a list of

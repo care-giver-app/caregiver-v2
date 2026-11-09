@@ -10,9 +10,9 @@ struct TrackerDetailV1View: View {
     let service: TrackersService
 
     @State private var model: TrackerDetailV1Model?
+    /// All on open, every time — the choice is not remembered (PRD "Tracker detail").
+    @State private var window: EntryWindow = .all
     @State private var choosingDates = false
-    @State private var rangeFrom = Date()
-    @State private var rangeTo = Date()
 
     private var zone: TimeZone { receiver.timeZone }
 
@@ -75,12 +75,7 @@ struct TrackerDetailV1View: View {
 
                 entriesHeader(entries, now: now)
                     .padding(.top, Theme.Spacing.sm)
-                    .padding(.bottom, Theme.Spacing.sm)
-
-                if choosingDates {
-                    rangeEditor(entries)
-                        .padding(.bottom, 10)
-                }
+                    .padding(.bottom, 12)
 
                 entryList(profile, entries: entries, now: now)
             }
@@ -191,67 +186,33 @@ struct TrackerDetailV1View: View {
 
     // MARK: Entries
 
-    /// Figma 432:3941: ENTRIES, and the stretch they are narrowed to.
+    /// Figma 514:934: ENTRIES, and the chips that narrow them (513:922).
     private func entriesHeader(_ entries: EntriesPager, now: Date) -> some View {
-        HStack {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             Text("ENTRIES")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Theme.Colors.textTertiary)
                 .accessibilityAddTraits(.isHeader)
-            Spacer()
-            Menu {
-                Button("All time") {
-                    choosingDates = false
-                    Task { await entries.setRange(nil) }
+            EntryWindowChips(window: window, today: LocalDay(now, zone: zone)) { chip in
+                switch chip {
+                case .all: apply(.all, entries)
+                case .last7: apply(.last7, entries)
+                case .last30: apply(.last30, entries)
+                case .custom: choosingDates = true
                 }
-                Button("Choose dates\u{2026}") {
-                    if !choosingDates {
-                        rangeTo = now
-                        rangeFrom = now.addingTimeInterval(-6 * 86_400)
-                        choosingDates = true
-                        applyRange(entries)
-                    }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(rangeLabel(entries, now: now))
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 11, weight: .semibold))
-                }
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Theme.Colors.accent)
+            }
+        }
+        .sheet(isPresented: $choosingDates) {
+            ChooseDatesSheet(today: LocalDay(Date(), zone: zone), seed: window.customStretch) { chosen in
+                apply(chosen, entries)
             }
         }
     }
 
-    private func rangeLabel(_ entries: EntriesPager, now: Date) -> String {
-        entries.range == nil
-            ? "All time"
-            : TrackerText.rangeLabel(from: rangeFrom, to: rangeTo, now: now, zone: zone)
-    }
-
-    /// The picked stretch's two ends, as days in the receiver's zone.
-    private func rangeEditor(_ entries: EntriesPager) -> some View {
-        VStack(spacing: 6) {
-            DatePicker("From", selection: $rangeFrom, displayedComponents: .date)
-            DatePicker("To", selection: $rangeTo, in: rangeFrom..., displayedComponents: .date)
-        }
-        .font(.system(size: 14))
-        .foregroundStyle(Theme.Colors.textSecondary)
-        .environment(\.timeZone, zone)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .card()
-        .onChange(of: rangeFrom) {
-            if rangeTo < rangeFrom { rangeTo = rangeFrom }
-            applyRange(entries)
-        }
-        .onChange(of: rangeTo) { applyRange(entries) }
-    }
-
-    private func applyRange(_ entries: EntriesPager) {
-        let range = EntryDateRange(from: TrackerText.dayString(rangeFrom, zone: zone),
-                                   to: TrackerText.dayString(rangeTo, zone: zone))
+    /// Narrows to `window`; 7 and 30 days count back from today in the receiver's zone.
+    private func apply(_ window: EntryWindow, _ entries: EntriesPager) {
+        self.window = window
+        let range = window.range(today: LocalDay(Date(), zone: zone))
         Task { await entries.setRange(range) }
     }
 
@@ -317,6 +278,27 @@ struct TrackerDetailV1View: View {
     }
 }
 
+/// Tracker detail's chips under ENTRIES — All, 7 days, 30 days, Custom — the same
+/// look as the Trackers list's filters, without counts. Custom reads the stretch
+/// while one is chosen, and opens Choose dates whether selected or not.
+struct EntryWindowChips: View {
+    let window: EntryWindow
+    let today: LocalDay
+    let onTap: (EntryWindowChip) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Theme.Spacing.sm) {
+                ForEach(EntryWindowChip.allCases, id: \.self) { chip in
+                    StrideChip(label: chip.label(for: window, today: today),
+                               isSelected: chip.isSelected(by: window)) { onTap(chip) }
+                }
+            }
+        }
+        .scrollClipDisabled()
+    }
+}
+
 private extension View {
     /// The white, hairline-bordered card rows on Tracker detail sit in.
     func card() -> some View {
@@ -332,6 +314,36 @@ private extension View {
         TrackerDetailV1View(trackerID: "medication", receiver: TrackersFixtures.eleanor,
                             service: TrackersFixtures.service())
             .v1Destinations(service: TrackersFixtures.service())
+    }
+}
+
+#Preview("Entry chips") {
+    @Previewable @State var window: EntryWindow = .all
+    let today = LocalDay(Date(), zone: TrackersFixtures.eleanor.timeZone)
+    VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+        EntryWindowChips(window: .all, today: today) { _ in }
+        EntryWindowChips(window: .last7, today: today) { _ in }
+        EntryWindowChips(window: .custom(first: today.adding(days: -6), last: today.adding(days: -1)),
+                         today: today) { _ in }
+        EntryWindowChips(window: window, today: today) { chip in
+            switch chip {
+            case .all: window = .all
+            case .last7: window = .last7
+            case .last30: window = .last30
+            case .custom: window = .custom(first: today.adding(days: -6), last: today.adding(days: -1))
+            }
+        }
+    }
+    .padding(Theme.Spacing.lg)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .strideBackground()
+}
+
+#Preview("Choose dates") {
+    let today = LocalDay(Date(), zone: TrackersFixtures.eleanor.timeZone)
+    Color.clear.sheet(isPresented: .constant(true)) {
+        ChooseDatesSheet(today: today, seed: (today.adding(days: -6), today.adding(days: -1)),
+                         onDone: { _ in })
     }
 }
 

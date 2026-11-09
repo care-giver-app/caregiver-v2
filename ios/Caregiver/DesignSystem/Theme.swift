@@ -26,6 +26,7 @@ enum Theme {
     static let alertTint     = dynamic(light: "f9e0e5")
     static let successTint   = dynamic(light: "dcefe6")
     static let warningTint   = dynamic(light: "f8efe2")  // warning at 12% on surface
+    static let accentTint    = dynamic(light: "d9eaf8")  // Figma color/tint/cyan (calendar stretch band)
 
     // Tracker hues (per-entity recognition; amber/red is the status layer, never a base hue).
     // info-blue trackers reuse `informational`. Hue map per receiver: ios/specs/sample-data.md.
