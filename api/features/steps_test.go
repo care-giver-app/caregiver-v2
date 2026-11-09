@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -72,7 +73,8 @@ func (w *world) register(sc *godog.ScenarioContext) {
 	sc.After(func(ctx context.Context, _ *godog.Scenario, _ error) (context.Context, error) {
 		cctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
-		if err := w.d.cleanup(cctx, w.rows, w.order); err != nil {
+		genErr := w.trackGenerated(cctx)
+		if err := errors.Join(genErr, w.d.cleanup(cctx, w.rows, w.order)); err != nil {
 			return ctx, fmt.Errorf("cleanup failed: %w", err)
 		}
 		return ctx, nil

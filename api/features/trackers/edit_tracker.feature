@@ -63,6 +63,22 @@ Feature: Editing a tracker
     Then it is not watched by a gap
     And it has 1 schedule
 
+  # PRD: Definitions → Threshold (choosing one means giving up the other, and an admin changing
+  #      either is told what they are about to lose)
+  # PRD: Trackers → Edit tracker (the rule that a tracker has schedules or a gap but never both,
+  #      enforced here, telling an admin what they are about to lose)
+  # Contract: PUT /v1/trackers/{trackerId} with remove_schedules removes every schedule as DELETE would
+  Scenario: Turning on a gap over a tracker's schedules, once confirmed, removes them
+    Given "Grandma" has a tracker "Medication"
+    And "Medication" has a schedule labelled "Morning dose" every day at 08:00
+    And "Medication" has an unlabelled schedule on Mon, Wed and Fri at 20:00
+    When "Alex" turns on a gap of 72 hours for "Medication", confirming its schedules are removed
+    Then the answer is 200
+    And it is watched by a gap of 72 hours
+    And it has 0 schedules
+    When "Sam" reads the schedules of "Medication"
+    Then no schedules are listed
+
   # PRD: Trackers → Tracker detail (only admins see Edit, since admins manage the team's trackers)
   Scenario: A caregiver cannot edit a tracker
     When "Sam" pauses the "Pulse" field of "Blood pressure"
