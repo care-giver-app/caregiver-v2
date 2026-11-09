@@ -82,7 +82,10 @@ struct TrackersV1View: View {
             Text("Nothing is being tracked yet")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.Colors.textPrimary)
-            Text("Create your first tracker for \(receiver.name)")
+            // A caregiver can't make one, so they're told who does (PRD "Trackers", empty).
+            Text(receiver.canManage
+                 ? "Create your first tracker for \(receiver.name)"
+                 : "An admin on the team can add the first one.")
                 .font(.system(size: 14))
                 .foregroundStyle(Theme.Colors.textSecondary)
             if receiver.canManage {
