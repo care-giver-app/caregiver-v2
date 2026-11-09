@@ -30,3 +30,23 @@ extension View {
         }
     }
 }
+
+/// Appends a route to the one `/v1` stack, for a screen that must push without a
+/// `NavigationLink` — Trackers, landing on a tracker Add tracker just made. RootView,
+/// which owns the stack's path, supplies it; elsewhere it does nothing.
+struct V1Push: Sendable {
+    let push: @MainActor @Sendable (V1Route) -> Void
+
+    @MainActor func callAsFunction(_ route: V1Route) { push(route) }
+}
+
+private struct V1PushKey: EnvironmentKey {
+    static let defaultValue = V1Push { _ in }
+}
+
+extension EnvironmentValues {
+    var v1Push: V1Push {
+        get { self[V1PushKey.self] }
+        set { self[V1PushKey.self] = newValue }
+    }
+}
