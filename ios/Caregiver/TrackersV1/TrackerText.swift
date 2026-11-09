@@ -220,6 +220,35 @@ enum TrackerText {
         return parts.joined(separator: " · ")
     }
 
+    /// The name the server gives a schedule left unlabelled
+    /// (`shared/go-common/v1/domain/schedule_name.go`): "Mon, Wed, Fri at 8:00 AM",
+    /// "Every day at 9:00 PM", "Every 2 weeks: Mon at 8:00 AM". Nil with no days chosen.
+    static func derivedScheduleName(days: [ScheduleWeekday], interval: Int, time: String) -> String? {
+        let set = Set(days)
+        guard !set.isEmpty else { return nil }
+        let names: [ScheduleWeekday: String] = [.mo: "Mon", .tu: "Tue", .we: "Wed", .th: "Thu",
+                                                .fr: "Fri", .sa: "Sat", .su: "Sun"]
+        let all = set.count == ScheduleWeekday.allCases.count
+        let when = all ? "Every day" : set.sorted().compactMap { names[$0] }.joined(separator: ", ")
+        var name = "\(when) at \(clock(time))"
+        if interval > 1 {
+            if all { name = "every day at \(clock(time))" }
+            name = "Every \(interval) weeks: \(name)"
+        }
+        return name
+    }
+
+    /// A schedule's Repeats choice (PRD "A schedule": a month is four weeks).
+    static func repeats(intervalWeeks n: Int) -> String {
+        switch n {
+        case 1: "Every week"
+        case 2: "Every two weeks"
+        case 4: "Every month"
+        case 8: "Every two months"
+        default: "Every \(n) weeks"
+        }
+    }
+
     static let alertsIfUnrecorded = "Alerts the team if it goes unrecorded"
 
     // MARK: Helpers

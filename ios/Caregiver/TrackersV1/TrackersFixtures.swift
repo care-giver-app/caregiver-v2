@@ -116,10 +116,12 @@ enum TrackersFixtures {
     ]
 
     static let medicationSchedules = [
-        TrackerScheduleItem(id: "s1", name: "Morning", days: ScheduleWeekday.allCases, interval: 1,
-                            time: "08:00", unrecordedAlert: false),
-        TrackerScheduleItem(id: "s2", name: "Evening", days: ScheduleWeekday.allCases, interval: 1,
-                            time: "20:00", unrecordedAlert: true),
+        TrackerScheduleItem(id: "s1", name: "Morning", label: "Morning", days: ScheduleWeekday.allCases,
+                            interval: 1, time: "08:00", plannedValues: ["dose": .list(["lis10"])],
+                            unrecordedAlert: false),
+        TrackerScheduleItem(id: "s2", name: "Evening", label: "Evening", days: ScheduleWeekday.allCases,
+                            interval: 1, time: "20:00", plannedValues: ["dose": .list(["lis10"])],
+                            unrecordedAlert: true),
         TrackerScheduleItem(id: "s3", name: "Lisinopril refill — Mon, every month", days: [.mo], interval: 4,
                             time: "09:30", unrecordedAlert: false),
     ]
@@ -182,7 +184,9 @@ enum TrackersFixtures {
     }
 
     static func schedule(id: String, from w: ScheduleWrite) -> TrackerScheduleItem {
-        TrackerScheduleItem(id: id, name: w.label ?? "Every week", label: w.label, days: w.days,
+        TrackerScheduleItem(id: id, name: w.label ?? TrackerText.derivedScheduleName(days: w.days, interval: w.interval,
+                                                                                    time: w.time) ?? "",
+                            label: w.label, days: w.days,
                             interval: w.interval, time: w.time, endsOn: w.endsOn,
                             plannedValues: w.plannedValues, unrecordedAlert: w.unrecordedAlert)
     }

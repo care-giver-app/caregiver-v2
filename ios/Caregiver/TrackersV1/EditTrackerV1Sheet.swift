@@ -6,7 +6,7 @@ import SwiftUI
 /// `onFinished` hears how it ended, before the sheet goes: the raiser reloads on
 /// `.saved` and goes back to Trackers on `.paused`, in the sheet's `onDismiss`.
 struct EditTrackerV1Sheet: View {
-    /// Which of A schedule's two entries was taken. Task E presents A schedule for it.
+    /// Which of A schedule's two entries was taken: Add a schedule, or a schedule's row.
     enum ScheduleTarget: Identifiable, Equatable {
         case new
         case existing(TrackerScheduleItem)
@@ -29,6 +29,8 @@ struct EditTrackerV1Sheet: View {
     /// The field A field is open on.
     @State private var editingField: FieldDraft?
     @State private var confirmingPause = false
+    /// The schedule A schedule is open on.
+    @State private var scheduleTarget: ScheduleTarget?
     /// Set by Pause this tracker? once the tracker is paused; read as that sheet goes.
     @State private var paused = false
     @Environment(\.dismiss) private var dismiss
@@ -175,6 +177,14 @@ struct EditTrackerV1Sheet: View {
             // No Remove: a field on a tracker that exists is paused from its switch instead.
             FieldSheet(field: field, onSave: { model.save($0) })
         }
+        .sheet(item: $scheduleTarget) { target in
+            ScheduleSheet(model: ScheduleSheetModel(editing: model, target: target)) { outcome in
+                // Written already, so Edit tracker only catches up: the gap a first schedule
+                // replaced is off on the server, and the list is read again.
+                if case .saved(_, replacedGap: true) = outcome { model.gapOn = false }
+                Task { await model.loadSchedules() }
+            }
+        }
         .sheet(isPresented: $confirmingPause, onDismiss: {
             guard paused else { return }
             onFinished(.paused)
@@ -318,9 +328,10 @@ struct EditTrackerV1Sheet: View {
         }
     }
 
-    /// TASK E: present A schedule for `target`, over this sheet, and call
-    /// `model.loadSchedules()` once it saves or removes. Until then this does nothing.
-    private func openSchedule(_ target: ScheduleTarget) {}
+    /// A schedule, over this sheet; it writes on its own Save or Remove.
+    private func openSchedule(_ target: ScheduleTarget) {
+        scheduleTarget = target
+    }
 
     private func scheduleRow(_ schedule: TrackerScheduleItem) -> some View {
         HStack(spacing: 12) {
@@ -389,6 +400,11 @@ struct PauseTrackerV1Sheet: View {
     let onPaused: () -> Void
     @Environment(\.dismiss) private var dismiss
 
+    /// What stops, then what is kept (PRD "Pause this tracker?").
+    static let explanation = "Nothing new can be logged, its schedules stop, and its thresholds stop alerting. "
+        + "It leaves Home and the logging picker, and the occurrences already waiting go. "
+        + "Every entry ever logged stays, in the timelines it appeared in and the insights it fed."
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
@@ -399,7 +415,7 @@ struct PauseTrackerV1Sheet: View {
                     .foregroundStyle(Theme.Colors.textPrimary)
                     .accessibilityAddTraits(.isHeader)
             }
-            Text("No new entries, schedules, or alerts while it’s paused. Everything already logged stays, and you can resume it any time.")
+            Text(Self.explanation)
                 .font(.system(size: 14))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

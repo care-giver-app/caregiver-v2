@@ -48,7 +48,7 @@ final class EditTrackerV1Model {
 
     let profile: TrackerProfile
     let receiver: TeamReceiver
-    private let service: TrackersService
+    let service: TrackersService
 
     init(profile: TrackerProfile, receiver: TeamReceiver, service: TrackersService) {
         self.profile = profile
