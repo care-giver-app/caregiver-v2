@@ -51,6 +51,9 @@ struct SchedulesV1View: View {
         case .loaded(let schedules):
             ScrollView {
                 VStack(spacing: Theme.Spacing.sm) {
+                    if model.refreshFailed {
+                        StrideAlertBanner(message: "Couldn't refresh the schedules.")
+                    }
                     ForEach(schedules) { schedule in
                         row(schedule)
                     }

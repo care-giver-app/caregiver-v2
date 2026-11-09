@@ -32,7 +32,10 @@ struct TrackersV1View: View {
             TrackerDetailV1View(trackerID: tracker.id, receiver: receiver, service: service)
         }
         .task {
-            if model == nil {
+            if let model {
+                // Back from a tracker: refresh in place, with fresh relative times.
+                await model.load()
+            } else {
                 let model = TrackersListModel(receiver: receiver, service: service)
                 self.model = model
                 await model.load()
@@ -73,9 +76,13 @@ struct TrackersV1View: View {
 
     private func list(_ model: TrackersListModel) -> some View {
         @Bindable var model = model
-        let now = Date()
+        let now = model.now
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                if model.refreshFailed {
+                    StrideAlertBanner(message: "Couldn't refresh trackers.")
+                        .padding(.bottom, Theme.Spacing.md)
+                }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Theme.Spacing.sm) {
                         ForEach(TrackerListFilter.allCases, id: \.self) { filter in

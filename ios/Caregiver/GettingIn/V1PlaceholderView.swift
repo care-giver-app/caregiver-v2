@@ -49,8 +49,9 @@ struct V1PlaceholderView: View {
             }
         }
         .onAppear {
-            if allTrackers == nil, let trackers {
-                allTrackers = AllTrackersEntryModel(team: account.teams.first, service: trackers)
+            // No team, no receivers to reach: the button is left out rather than doing nothing.
+            if allTrackers == nil, let trackers, let team = account.teams.first {
+                allTrackers = AllTrackersEntryModel(team: team, service: trackers)
             }
         }
     }

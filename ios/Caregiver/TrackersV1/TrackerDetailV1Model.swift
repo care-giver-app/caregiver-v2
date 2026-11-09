@@ -11,6 +11,8 @@ final class TrackerDetailV1Model {
     }
 
     private(set) var phase: Phase = .loading
+    /// A refresh of the loaded tracker failed; what was showing stays.
+    private(set) var refreshFailed = false
     let entries: EntriesPager
     let trackerID: String
     let receiver: TeamReceiver
@@ -29,12 +31,17 @@ final class TrackerDetailV1Model {
         return nil
     }
 
-    /// The tracker and its first page of entries, side by side.
+    /// The tracker and its first page of entries, side by side. Once loaded, this is
+    /// a refresh: what is showing stays until the answers replace it, and a failure
+    /// keeps it and says so (`refreshFailed`, `entries.refreshFailed`).
     func load() async {
         async let detail: Void = loadDetail()
-        async let firstPage: Void = entries.reload()
+        async let firstPage: Void = entries.refresh()
         _ = await (detail, firstPage)
     }
+
+    /// Either refresh failed, so the screen shows what it had and says so.
+    var showsRefreshFailure: Bool { refreshFailed || entries.refreshFailed }
 
     func retry() async {
         phase = .loading
@@ -44,8 +51,13 @@ final class TrackerDetailV1Model {
     private func loadDetail() async {
         do {
             phase = .loaded(try await service.trackerDetail(trackerID))
+            refreshFailed = false
         } catch {
-            phase = .failed(AppError.from(error))
+            if profile == nil {
+                phase = .failed(AppError.from(error))
+            } else {
+                refreshFailed = true
+            }
         }
     }
 }
@@ -61,6 +73,8 @@ final class SchedulesV1Model {
     }
 
     private(set) var phase: Phase = .loading
+    /// A refresh of the loaded schedules failed; what was showing stays.
+    private(set) var refreshFailed = false
     private let trackerID: String
     private let service: TrackersService
 
@@ -69,11 +83,17 @@ final class SchedulesV1Model {
         self.service = service
     }
 
+    /// The first load, or — once loaded — a refresh that keeps what is showing on failure.
     func load() async {
         do {
             phase = .loaded(try await service.listSchedules(trackerID))
+            refreshFailed = false
         } catch {
-            phase = .failed(AppError.from(error))
+            if case .loaded = phase {
+                refreshFailed = true
+            } else {
+                phase = .failed(AppError.from(error))
+            }
         }
     }
 
@@ -100,16 +120,16 @@ final class AllTrackersEntryModel {
     /// Set when there is a receiver to push the Trackers list for.
     var receiver: TeamReceiver?
 
-    private let team: Account.Team?
+    private let team: Account.Team
     private let service: TrackersService
 
-    init(team: Account.Team?, service: TrackersService) {
+    init(team: Account.Team, service: TrackersService) {
         self.team = team
         self.service = service
     }
 
     func open() async {
-        guard let team, !isLoading else { return }
+        guard !isLoading else { return }
         isLoading = true
         outcome = .idle
         defer { isLoading = false }

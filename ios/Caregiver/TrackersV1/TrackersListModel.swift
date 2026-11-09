@@ -43,15 +43,22 @@ final class TrackersListModel {
     }
 
     private(set) var phase: Phase = .loading
+    /// A refresh of the loaded list failed; what was showing stays.
+    private(set) var refreshFailed = false
+    /// The instant row recency is said against, taken afresh on every load.
+    private(set) var now: Date
     /// Opens on active every time: a new model per visit, never remembered (PRD).
     var filter: TrackerListFilter = .active
 
     let receiver: TeamReceiver
     private let service: TrackersService
+    private let clock: @MainActor () -> Date
 
-    init(receiver: TeamReceiver, service: TrackersService) {
+    init(receiver: TeamReceiver, service: TrackersService, clock: @escaping @MainActor () -> Date = Date.init) {
         self.receiver = receiver
         self.service = service
+        self.clock = clock
+        self.now = clock()
     }
 
     private var trackers: [TrackerItem] {
@@ -79,11 +86,20 @@ final class TrackersListModel {
         trackers.filter(filter.includes)
     }
 
+    /// The first load, or — once loaded — a refresh that keeps what is showing on
+    /// failure. The view calls it again each time the list reappears (back from a
+    /// tracker, say), so what changed there, and how long ago things were, shows here.
     func load() async {
+        now = clock()
         do {
             phase = .loaded(try await service.listTrackers(receiver.id))
+            refreshFailed = false
         } catch {
-            phase = .failed(AppError.from(error))
+            if case .loaded = phase {
+                refreshFailed = true
+            } else {
+                phase = .failed(AppError.from(error))
+            }
         }
     }
 

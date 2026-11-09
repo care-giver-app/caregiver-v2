@@ -71,6 +71,33 @@ final class TrackerListFilterTests: XCTestCase {
         XCTAssertTrue(paused.visible.isEmpty)
     }
 
+    func testARefreshThatFailsKeepsTheListAndSaysSo() async {
+        let calls = Calls(failing: [2])
+        let model = TrackersListModel(receiver: TeamReceiver(id: "r", name: "Eleanor", timeZone: Fixed.chicago),
+                                      service: trackersService { _ in
+                                          try await calls.next([Fixed.tracker("Meals")])
+                                      })
+        await model.load()
+        await model.load()
+        XCTAssertEqual(model.phase, .loaded([Fixed.tracker("Meals")]), "the list stays")
+        XCTAssertTrue(model.refreshFailed)
+
+        await model.load()
+        XCTAssertFalse(model.refreshFailed, "a refresh that works clears the notice")
+    }
+
+    func testEveryLoadSaysRecencyAgainstAFreshNow() async {
+        var clock = Fixed.now
+        let model = TrackersListModel(receiver: TeamReceiver(id: "r", name: "Eleanor", timeZone: Fixed.chicago),
+                                      service: trackersService { _ in [Fixed.tracker("Meals")] },
+                                      clock: { clock })
+        await model.load()
+        XCTAssertEqual(model.now, Fixed.now)
+        clock = Fixed.now.addingTimeInterval(3600)
+        await model.load()  // what the view calls when the list reappears
+        XCTAssertEqual(model.now, Fixed.now.addingTimeInterval(3600))
+    }
+
     func testFailureIsShown() async {
         let model = TrackersListModel(receiver: TeamReceiver(id: "r", name: "Eleanor", timeZone: Fixed.chicago),
                                       service: trackersService { _ in throw URLError(.notConnectedToInternet) })
@@ -280,6 +307,79 @@ final class ScheduleTextTests: XCTestCase {
                                           time: "09:30", unrecordedAlert: true)
         XCTAssertEqual(TrackerText.scheduleLine(monthly), "Mon · every month · 9:30 AM")
     }
+
+    func testEveryDayIsDecidedFromTheDaysNotTheirText() {
+        func line(_ days: [ScheduleWeekday], every interval: Int) -> String {
+            TrackerText.scheduleLine(TrackerScheduleItem(id: "s", name: "S", days: days, interval: interval,
+                                                         time: "08:00", unrecordedAlert: false))
+        }
+        let shuffledWithRepeats: [ScheduleWeekday] = [.su, .mo, .tu, .we, .th, .fr, .sa, .mo]
+        XCTAssertEqual(line(shuffledWithRepeats, every: 1), "Every day · 8:00 AM")
+        XCTAssertEqual(line(ScheduleWeekday.allCases, every: 2), "All week · every 2 weeks · 8:00 AM")
+        XCTAssertEqual(line(ScheduleWeekday.allCases, every: 4), "All week · every month · 8:00 AM")
+        XCTAssertEqual(line(ScheduleWeekday.allCases, every: 8), "All week · every two months · 8:00 AM")
+        XCTAssertEqual(line([.mo, .tu, .we, .th, .fr, .sa], every: 1), "Mon, Tue, Wed, Thu, Fri, Sat · every week · 8:00 AM")
+    }
+}
+
+@MainActor
+final class SchedulesV1ModelTests: XCTestCase {
+    private let morning = TrackerScheduleItem(id: "1", name: "Morning", days: [.mo], interval: 1,
+                                              time: "08:00", unrecordedAlert: false)
+
+    func testARefreshThatFailsKeepsTheSchedules() async {
+        let calls = Calls(failing: [2])
+        let morning = morning
+        var svc = service()
+        svc.listSchedules = { _ in try await calls.next([morning]) }
+        let model = SchedulesV1Model(trackerID: "t", service: svc)
+        await model.load()
+        await model.load()
+        XCTAssertEqual(model.phase, .loaded([morning]))
+        XCTAssertTrue(model.refreshFailed)
+    }
+
+    func testAFirstLoadThatFailsIsTheFailedScreen() async {
+        var svc = service()
+        svc.listSchedules = { _ in throw URLError(.timedOut) }
+        let model = SchedulesV1Model(trackerID: "t", service: svc)
+        await model.load()
+        guard case .failed = model.phase else { return XCTFail("expected failed, got \(model.phase)") }
+        XCTAssertFalse(model.refreshFailed)
+    }
+}
+
+@MainActor
+final class TrackerDetailV1ModelTests: XCTestCase {
+    private let profile = TrackerProfile(id: "t", name: "Meals", icon: "fork.knife", color: "#1c8fe0",
+                                         status: .active, pausedAt: nil, fields: [], gapHours: 72,
+                                         scheduleCount: 0, lastLoggedAt: nil, attention: [])
+
+    func testARefreshThatFailsKeepsTheTrackerAndItsEntries() async {
+        let detailCalls = Calls(failing: [2])
+        let entryCalls = Calls(failing: [2])
+        let profile = profile
+        let first = TrackerEntry(id: "a", state: .logged, at: Fixed.now, values: [:], note: nil, byName: "Dana")
+        var svc = service()
+        svc.trackerDetail = { _ in try await detailCalls.next(profile) }
+        svc.listEntries = { _, _ in try await entryCalls.next(EntriesPage(entries: [first], nextCursor: nil)) }
+        let model = TrackerDetailV1Model(trackerID: "t", receiver: TeamReceiver(id: "r", name: "Eleanor",
+                                                                                 timeZone: Fixed.chicago),
+                                         service: svc)
+        await model.load()
+        XCTAssertFalse(model.showsRefreshFailure)
+
+        await model.load()
+        XCTAssertEqual(model.phase, .loaded(profile))
+        XCTAssertEqual(model.entries.phase, .loaded)
+        XCTAssertEqual(model.entries.entries.map(\.id), ["a"])
+        XCTAssertTrue(model.refreshFailed)
+        XCTAssertTrue(model.entries.refreshFailed)
+        XCTAssertTrue(model.showsRefreshFailure)
+
+        await model.load()
+        XCTAssertFalse(model.showsRefreshFailure)
+    }
 }
 
 // MARK: - Paging
@@ -386,6 +486,49 @@ final class EntriesPagerTests: XCTestCase {
         XCTAssertEqual(pager.entries.map(\.id), ["a", "b"])
     }
 
+    func testARefreshReplacesTheListOnlyWhenTheFirstPageArrives() async {
+        let script = PageScript([
+            EntriesPage(entries: [entry("a"), entry("b")], nextCursor: "c1"),
+            EntriesPage(entries: [entry("c")], nextCursor: nil),
+            EntriesPage(entries: [entry("new"), entry("a")], nextCursor: "c2"),
+        ])
+        let gate = Gate()
+        let pager = EntriesPager(trackerID: "t") { _, query in
+            let page = await script.next(query)
+            if page.entries.first?.id == "new" { await gate.wait() }
+            return page
+        }
+        await pager.reload()
+        await pager.loadMore()
+        XCTAssertEqual(pager.entries.map(\.id), ["a", "b", "c"])
+
+        let refreshing = Task { await pager.refresh() }
+        await gate.untilWaiting()
+        XCTAssertEqual(pager.phase, .loaded, "no spinner while it refreshes")
+        XCTAssertEqual(pager.entries.map(\.id), ["a", "b", "c"], "the list stays until page 1 arrives")
+        await gate.open()
+        await refreshing.value
+
+        XCTAssertEqual(pager.entries.map(\.id), ["new", "a"], "page 1 replaces the list")
+        XCTAssertFalse(pager.isExhausted, "and brings its own cursor")
+        XCTAssertFalse(pager.refreshFailed)
+        let queries = await script.queries
+        XCTAssertEqual(queries.map(\.cursor), [nil, "c1", nil])
+    }
+
+    func testARefreshThatFailsKeepsTheList() async {
+        let calls = Calls(failing: [2])
+        let a = entry("a")
+        let pager = EntriesPager(trackerID: "t") { _, _ in
+            try await calls.next(EntriesPage(entries: [a], nextCursor: nil))
+        }
+        await pager.reload()
+        await pager.refresh()
+        XCTAssertEqual(pager.phase, .loaded)
+        XCTAssertEqual(pager.entries.map(\.id), ["a"])
+        XCTAssertTrue(pager.refreshFailed)
+    }
+
     func testDayStringIsTheReceiversDate() {
         // 03:00 UTC on Nov 4 is Nov 3 in Chicago.
         XCTAssertEqual(TrackerText.dayString(Fixed.at("2026-11-04T03:00:00Z"), zone: Fixed.chicago), "2026-11-03")
@@ -416,6 +559,39 @@ final class AllTrackersEntryModelTests: XCTestCase {
 }
 
 // MARK: - Helpers
+
+/// Answers every call with the value given, except the numbered calls (1-based), which fail.
+private actor Calls {
+    private let failing: Set<Int>
+    private var count = 0
+    init(failing: Set<Int>) { self.failing = failing }
+    func next<T: Sendable>(_ value: T) throws -> T {
+        count += 1
+        if failing.contains(count) { throw URLError(.timedOut) }
+        return value
+    }
+}
+
+/// Holds a fetch until the test lets it go, so the test can look at the screen mid-flight.
+private actor Gate {
+    private var waiter: CheckedContinuation<Void, Never>?
+    private var isOpen = false
+
+    func wait() async {
+        if isOpen { return }
+        await withCheckedContinuation { waiter = $0 }
+    }
+
+    func untilWaiting() async {
+        while waiter == nil && !isOpen { await Task.yield() }
+    }
+
+    func open() {
+        isOpen = true
+        waiter?.resume()
+        waiter = nil
+    }
+}
 
 private func service(
     receivers: @escaping @Sendable (String) async throws -> [TeamReceiver] = { _ in [] },

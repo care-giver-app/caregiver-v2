@@ -64,6 +64,11 @@ struct TrackerDetailV1View: View {
         let now = Date()
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
+                if model.showsRefreshFailure {
+                    StrideAlertBanner(message: "Couldn't refresh this tracker.")
+                        .padding(.bottom, Theme.Spacing.md)
+                }
+
                 identity(profile)
                     .padding(.bottom, Theme.Spacing.md)
 
@@ -167,7 +172,7 @@ struct TrackerDetailV1View: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background { RoundedRectangle(cornerRadius: 14).fill(Theme.Colors.warning.opacity(0.12)) }
+        .background { RoundedRectangle(cornerRadius: 14).fill(Theme.Colors.warningTint) }
         .accessibilityElement(children: .combine)
     }
 

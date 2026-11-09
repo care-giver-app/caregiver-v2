@@ -24,6 +24,10 @@ final class EntriesPager {
     /// A page after the first failed; the list stays and offers to try again.
     private(set) var moreFailed = false
     private(set) var range: EntryDateRange?
+    /// A refresh of a loaded list failed; the list stays as it was.
+    private(set) var refreshFailed = false
+
+    private var isRefreshing = false
 
     private var nextCursor: String?
     private var seen = Set<String>()
@@ -51,7 +55,9 @@ final class EntriesPager {
         seen = []
         nextCursor = nil
         moreFailed = false
+        refreshFailed = false
         isLoadingMore = false
+        isRefreshing = false
         do {
             let page = try await fetch(trackerID, EntriesQuery(from: range?.from, to: range?.to, cursor: nil))
             guard mine == generation else { return }
@@ -60,6 +66,30 @@ final class EntriesPager {
         } catch {
             guard mine == generation else { return }
             phase = .failed(AppError.from(error))
+        }
+    }
+
+    /// Pull to refresh: once a list is showing, it stays until a fresh first page
+    /// arrives and replaces it; a failure leaves it and sets `refreshFailed`. Before
+    /// then, the same as `reload()`.
+    func refresh() async {
+        guard phase == .loaded else { return await reload() }
+        generation += 1
+        let mine = generation
+        isRefreshing = true
+        isLoadingMore = false
+        defer { if mine == generation { isRefreshing = false } }
+        do {
+            let page = try await fetch(trackerID, EntriesQuery(from: range?.from, to: range?.to, cursor: nil))
+            guard mine == generation else { return }
+            entries = []
+            seen = []
+            moreFailed = false
+            refreshFailed = false
+            append(page)
+        } catch {
+            guard mine == generation else { return }
+            refreshFailed = true
         }
     }
 
@@ -72,7 +102,7 @@ final class EntriesPager {
 
     /// The next page, if there is one and none is already on its way.
     func loadMore() async {
-        guard phase == .loaded, let cursor = nextCursor, !isLoadingMore else { return }
+        guard phase == .loaded, let cursor = nextCursor, !isLoadingMore, !isRefreshing else { return }
         let mine = generation
         isLoadingMore = true
         moreFailed = false
