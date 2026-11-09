@@ -2,6 +2,7 @@ package generate_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -36,6 +37,9 @@ func TestGenerate_writesThroughTheStores(t *testing.T) {
 		Rule: domain.Rule{Freq: "weekly", Interval: 1, ByDay: []string{"MO", "WE", "FR"}}, Time: "08:00", StartsOn: "2026-11-08",
 		PlannedValues: map[string]any{"dose": 5.0}, UnrecordedAlert: true, CreatedBy: "admin", CreatedAt: now,
 	}
+	tr.Fields = []domain.Field{{FieldID: "dose", Type: domain.FieldNumber, Status: domain.FieldActive}}
+	put(t, l, l.Names.Receivers, rc)
+	put(t, l, l.Names.Trackers, tr)
 	put(t, l, l.Names.Schedules, sc)
 
 	res, err := generate.Generate(ctx, l.Stores, sc, tr, rc, now, now)
@@ -85,10 +89,12 @@ func TestGenerate_skips(t *testing.T) {
 	ctx := context.Background()
 	now := utc("2026-11-08T18:00:00Z")
 	removed := now
-	rc := domain.Receiver{ReceiverID: "r1", TimeZone: "America/Chicago", Status: domain.ReceiverActive}
-	tr := domain.Tracker{TrackerID: "tr1", Status: domain.TrackerActive}
-	sc := domain.Schedule{ScheduleID: "s1", TrackerID: "tr1", ReceiverID: "r1",
+	rc := domain.Receiver{ReceiverID: "r1", TeamID: "t1", TimeZone: "America/Chicago", Status: domain.ReceiverActive}
+	tr := domain.Tracker{TrackerID: "tr1", ReceiverID: "r1", TeamID: "t1", Status: domain.TrackerActive}
+	sc := domain.Schedule{ScheduleID: "s1", TrackerID: "tr1", ReceiverID: "r1", TeamID: "t1",
 		Rule: domain.Rule{Freq: "weekly", Interval: 1, ByDay: everyDay}, Time: "08:00", StartsOn: "2026-11-08", CreatedAt: now}
+	put(t, l, l.Names.Receivers, rc)
+	put(t, l, l.Names.Trackers, tr)
 	put(t, l, l.Names.Schedules, sc)
 
 	paused, archived, gone := tr, rc, sc
@@ -112,5 +118,120 @@ func TestGenerate_skips(t *testing.T) {
 	}
 	if open, _ := l.Stores.Entries.OpenByReceiver(ctx, "r1", "", now, now.Add(30*24*time.Hour)); len(open) != 0 {
 		t.Fatalf("a removed schedule left %d occurrences", len(open))
+	}
+}
+
+// raceFixture is a live daily schedule on an active tracker, stored, and a
+// window on its open occurrences.
+func raceFixture(t *testing.T) (dynamotest.Local, domain.Schedule, domain.Tracker, domain.Receiver, time.Time, func() []domain.Entry) {
+	l := dynamotest.StartLocal(t)
+	now := utc("2026-11-08T18:00:00Z")
+	rc := domain.Receiver{ReceiverID: "r1", TeamID: "t1", TimeZone: "America/Chicago", Status: domain.ReceiverActive}
+	tr := domain.Tracker{TrackerID: "tr1", ReceiverID: "r1", TeamID: "t1", Status: domain.TrackerActive}
+	sc := domain.Schedule{ScheduleID: "s1", TrackerID: "tr1", ReceiverID: "r1", TeamID: "t1",
+		Rule: domain.Rule{Freq: "weekly", Interval: 1, ByDay: everyDay}, Time: "08:00", StartsOn: "2026-11-08",
+		PlannedValues: map[string]any{}, CreatedAt: now, UpdatedAt: now}
+	put(t, l, l.Names.Receivers, rc)
+	put(t, l, l.Names.Trackers, tr)
+	put(t, l, l.Names.Schedules, sc)
+	open := func() []domain.Entry {
+		t.Helper()
+		es, err := l.Stores.Entries.OpenByReceiver(context.Background(), "r1", "", now, now.Add(30*24*time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return es
+	}
+	return l, sc, tr, rc, now, open
+}
+
+func TestGenerate_changedWhileRunning(t *testing.T) {
+	l, sc, tr, rc, now, open := raceFixture(t)
+	ctx := context.Background()
+
+	// The change lands after this run read the schedule and wrote its
+	// occurrences, and its own delete went first, so found nothing to replace.
+	changed := sc
+	changed.Time, changed.Rule.ByDay, changed.UpdatedAt = "09:00", []string{"MO"}, now.Add(time.Second)
+	landed := false
+	restore := generate.SetAfterWrite(func() {
+		if landed {
+			return // once; the retry runs undisturbed
+		}
+		landed = true
+		if _, err := l.Stores.Schedules.Update(ctx, changed); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := l.Stores.Entries.DeleteFutureOpenForSchedule(ctx, "s1", now); err != nil {
+			t.Fatal(err)
+		}
+	})
+	_, err := generate.Generate(ctx, l.Stores, sc, tr, rc, now, now)
+	restore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, e := range open() {
+		got = append(got, e.OccurrenceLocal)
+	}
+	// Nothing from the old daily 08:00 rule is left; the new one is in place.
+	if fmt.Sprint(got) != "[2026-11-09T09:00 2026-11-16T09:00]" {
+		t.Fatalf("occurrences after a change mid-run: %v", got)
+	}
+	if stored, _ := l.Stores.Schedules.Get(ctx, "s1"); stored.GeneratedThrough != "2026-11-16" {
+		t.Fatalf("generated_through: %q", stored.GeneratedThrough)
+	}
+
+	// Every attempt raced: it gives up with an error, leaving nothing of its own.
+	l2, sc2, tr2, rc2, now2, open2 := raceFixture(t)
+	n := 0
+	restore = generate.SetAfterWrite(func() {
+		n++
+		next := sc2
+		next.UpdatedAt = now2.Add(time.Duration(n) * time.Second)
+		if _, err := l2.Stores.Schedules.Update(ctx, next); err != nil {
+			t.Fatal(err)
+		}
+	})
+	_, err = generate.Generate(ctx, l2.Stores, sc2, tr2, rc2, now2, now2)
+	restore()
+	if err == nil || len(open2()) != 0 {
+		t.Fatalf("always changing: err=%v open=%d", err, len(open2()))
+	}
+}
+
+func TestGenerate_pausedOrArchivedWhileRunning(t *testing.T) {
+	ctx := context.Background()
+	for name, land := range map[string]func(l dynamotest.Local, tr domain.Tracker, rc domain.Receiver, now time.Time){
+		"paused": func(l dynamotest.Local, tr domain.Tracker, _ domain.Receiver, now time.Time) {
+			// Pause's own delete went first, so found nothing.
+			if _, err := l.Stores.Trackers.SetStatus(ctx, tr.TrackerID, domain.TrackerPaused, "admin", now); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"archived": func(l dynamotest.Local, _ domain.Tracker, rc domain.Receiver, _ time.Time) {
+			rc.Status = domain.ReceiverArchived
+			put(t, l, l.Names.Receivers, rc)
+		},
+		"removed": func(l dynamotest.Local, _ domain.Tracker, _ domain.Receiver, now time.Time) {
+			if err := l.Stores.Schedules.MarkRemoved(ctx, "s1", now); err != nil {
+				t.Fatal(err)
+			}
+		},
+	} {
+		l, sc, tr, rc, now, open := raceFixture(t)
+		restore := generate.SetAfterWrite(func() { land(l, tr, rc, now) })
+		res, err := generate.Generate(ctx, l.Stores, sc, tr, rc, now, now)
+		restore()
+		if err != nil || !res.Skipped {
+			t.Fatalf("%s: %+v err=%v", name, res, err)
+		}
+		if es := open(); len(es) != 0 {
+			t.Fatalf("%s mid-run left %d occurrences", name, len(es))
+		}
+		if stored, _ := l.Stores.Schedules.Get(ctx, "s1"); stored.GeneratedThrough != "" {
+			t.Fatalf("%s: generated_through %q", name, stored.GeneratedThrough)
+		}
 	}
 }

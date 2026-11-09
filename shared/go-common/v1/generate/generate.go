@@ -167,20 +167,83 @@ func resolve(y int, m time.Month, d, hour, minute int, loc *time.Location) time.
 
 // Entries turns occurrences into the scheduled entries the generator writes:
 // the schedule's plan on each, its values pre-filled from planned_values, made
-// at now by whoever made the schedule.
-func Entries(sc domain.Schedule, occs []Occurrence, now time.Time) []domain.Entry {
+// at now by whoever made the schedule. Only the plan for fields still active on
+// the tracker is carried, and of a choice only the options still active; a
+// choice left with none is dropped.
+func Entries(sc domain.Schedule, t domain.Tracker, occs []Occurrence, now time.Time) []domain.Entry {
+	plan := ActivePlan(sc.PlannedValues, t)
 	out := make([]domain.Entry, 0, len(occs))
 	for _, o := range occs {
 		at := o.At
 		out = append(out, domain.Entry{
 			EntryID: EntryID(sc.ScheduleID, o.Local), TrackerID: sc.TrackerID, ReceiverID: sc.ReceiverID, TeamID: sc.TeamID,
 			ScheduleID: sc.ScheduleID, OccurrenceLocal: o.Local, OccurrenceAt: &at,
-			PlannedValues: copyValues(sc.PlannedValues), UnrecordedAlert: sc.UnrecordedAlert, GraceMinutes: sc.GraceMinutes,
-			State: domain.EntryScheduled, Values: copyValues(sc.PlannedValues),
+			PlannedValues: copyValues(plan), UnrecordedAlert: sc.UnrecordedAlert, GraceMinutes: sc.GraceMinutes,
+			State: domain.EntryScheduled, Values: copyValues(plan),
 			CreatedBy: sc.CreatedBy, CreatedAt: now, TimelineAt: at, OpenAt: &at,
 		})
 	}
 	return out
+}
+
+// ActivePlan is planned_values cut to what the tracker still takes: a field
+// paused since the schedule was saved is left out, and a choice keeps only the
+// options still active, dropped entirely if that leaves none. The result is a
+// new map; plan is not changed.
+func ActivePlan(plan map[string]any, t domain.Tracker) map[string]any {
+	fields := make(map[string]domain.Field, len(t.Fields))
+	for _, f := range t.Fields {
+		fields[f.FieldID] = f
+	}
+	out := make(map[string]any, len(plan))
+	for id, v := range plan {
+		f, ok := fields[id]
+		if !ok || f.Status != domain.FieldActive {
+			continue
+		}
+		if f.Type == domain.FieldChoice {
+			var ok bool
+			if v, ok = activeOptions(f, v); !ok {
+				continue
+			}
+		}
+		out[id] = v
+	}
+	return out
+}
+
+// activeOptions keeps the choice's still-active option ids from v, a list as
+// stored. It reports false when that drops every option it had.
+func activeOptions(f domain.Field, v any) (any, bool) {
+	var ids []string
+	switch l := v.(type) {
+	case []any:
+		for _, item := range l {
+			if s, ok := item.(string); ok {
+				ids = append(ids, s)
+			}
+		}
+	case []string:
+		ids = l
+	default:
+		return v, true
+	}
+	if len(ids) == 0 {
+		return []any{}, true // planned as none; nothing retired out of it
+	}
+	active := map[string]bool{}
+	for _, o := range f.Options {
+		if o.Status == domain.OptionActive {
+			active[o.OptionID] = true
+		}
+	}
+	kept := []any{}
+	for _, id := range ids {
+		if active[id] {
+			kept = append(kept, id)
+		}
+	}
+	return kept, len(kept) > 0
 }
 
 func copyValues(m map[string]any) map[string]any {
@@ -194,7 +257,8 @@ func copyValues(m map[string]any) map[string]any {
 // Result is what one Generate call did.
 type Result struct {
 	// Skipped is true when nothing was generated because the schedule is
-	// removed, its tracker paused, or its receiver archived.
+	// removed, its tracker paused, or its receiver archived — found so before
+	// it ran, or while it ran, when what it wrote is taken back.
 	Skipped bool
 	// Written counts the entries created; Present those already there (an
 	// earlier run's, or one already logged or skipped), which are left as they are.
@@ -204,6 +268,14 @@ type Result struct {
 	Through string
 }
 
+// maxAttempts bounds how many times Generate starts over on a schedule that
+// changed while it ran.
+const maxAttempts = 3
+
+// afterWrite, when set by a test, runs between writing the entries and
+// re-reading what they were made from, to land a change in that window.
+var afterWrite func()
+
 // Generate writes the schedule's occurrences at or after from (through Horizon
 // past now, and at least the next one) as scheduled entries, then records
 // generated_through: the local date, YYYY-MM-DD, of the last occurrence it
@@ -212,42 +284,116 @@ type Result struct {
 // runs never duplicate an occurrence and never overwrite one already logged or
 // skipped. It does nothing for a removed schedule, a paused tracker, or an
 // archived receiver.
+//
+// The schedule, tracker and receiver it is handed may be stale by the time its
+// writes land: a removal, pause, archive or change may have deleted the
+// occurrences waiting before this run wrote its own. So once written it
+// re-reads all three. If the schedule is removed, the tracker paused or the
+// receiver archived, it takes back what it wrote and reports Skipped. If the
+// schedule changed (its updated_at moved), it takes back what it wrote and
+// starts over from the schedule as it now is. The bookmark is written only on
+// condition the schedule is still live and unchanged, and a refused bookmark
+// is treated as the same race.
 func Generate(ctx context.Context, s *store.Stores, sc domain.Schedule, t domain.Tracker, rc domain.Receiver, from, now time.Time) (Result, error) {
+	for attempt := 1; ; attempt++ {
+		res, fresh, err := generateOnce(ctx, s, sc, t, rc, from, now)
+		if err != nil || fresh == nil {
+			return res, err
+		}
+		if attempt == maxAttempts {
+			return Result{}, fmt.Errorf("schedule %s changed during each of %d attempts to generate it", sc.ScheduleID, maxAttempts)
+		}
+		sc, t, rc = fresh.sc, fresh.t, fresh.rc
+	}
+}
+
+// current is a schedule, its tracker and its receiver as last read.
+type current struct {
+	sc   domain.Schedule
+	t    domain.Tracker
+	rc   domain.Receiver
+	gone bool // one of the three no longer exists
+}
+
+// live reports whether the schedule should still be generating.
+func (c current) live() bool {
+	return !c.gone && c.sc.RemovedAt == nil && c.t.Status != domain.TrackerPaused && c.rc.Status != domain.ReceiverArchived
+}
+
+// reread reads the schedule, tracker and receiver afresh.
+func reread(ctx context.Context, s *store.Stores, sc domain.Schedule) (current, error) {
+	var c current
+	var err error
+	if c.sc, err = s.Schedules.Get(ctx, sc.ScheduleID); err == nil {
+		if c.t, err = s.Trackers.Get(ctx, sc.TrackerID); err == nil {
+			c.rc, err = s.Receivers.Get(ctx, sc.ReceiverID)
+		}
+	}
+	if errors.Is(err, store.ErrNotFound) {
+		return current{gone: true}, nil
+	}
+	return c, err
+}
+
+// generateOnce is one attempt. It returns fresh when the schedule changed
+// under it and it should start over from that.
+func generateOnce(ctx context.Context, s *store.Stores, sc domain.Schedule, t domain.Tracker, rc domain.Receiver, from, now time.Time) (Result, *current, error) {
 	if sc.RemovedAt != nil || t.Status == domain.TrackerPaused || rc.Status == domain.ReceiverArchived {
-		return Result{Skipped: true}, nil
+		return Result{Skipped: true}, nil, nil
 	}
 	loc, err := time.LoadLocation(rc.TimeZone)
 	if err != nil {
-		return Result{}, fmt.Errorf("receiver %s time zone: %w", rc.ReceiverID, err)
+		return Result{}, nil, fmt.Errorf("receiver %s time zone: %w", rc.ReceiverID, err)
 	}
 	occs, err := Expand(sc, loc, from, now)
 	if err != nil {
-		return Result{}, err
+		return Result{}, nil, err
 	}
 	var res Result
-	for _, e := range Entries(sc, occs, now) {
+	var written []string
+	for _, e := range Entries(sc, t, occs, now) {
 		created, err := s.Entries.CreateIfAbsent(ctx, e)
 		if err != nil {
-			return res, err
+			return res, nil, err
 		}
 		if created {
 			res.Written++
+			written = append(written, e.EntryID)
 		} else {
 			res.Present++
 		}
 	}
-	if len(occs) == 0 {
-		return res, nil
+	if afterWrite != nil {
+		afterWrite()
 	}
-	res.Through = occs[len(occs)-1].Date
-	if err := s.Schedules.SetGeneratedThrough(ctx, sc.ScheduleID, res.Through); err != nil {
-		if !errors.Is(err, store.ErrNotFound) {
-			return res, err
+	cur, err := reread(ctx, s, sc)
+	if err != nil {
+		return res, nil, err
+	}
+	if cur.live() && cur.sc.UpdatedAt.Equal(sc.UpdatedAt) {
+		if len(occs) == 0 {
+			return res, nil, nil
 		}
-		// Removed while this ran: the removal's own delete may have gone
-		// first, so take back what is still waiting.
-		_, err := s.Entries.DeleteFutureOpenForSchedule(ctx, sc.ScheduleID, now)
-		return Result{Skipped: true}, err
+		res.Through = occs[len(occs)-1].Date
+		err := s.Schedules.SetGeneratedThrough(ctx, sc.ScheduleID, res.Through, sc.UpdatedAt)
+		if err == nil {
+			return res, nil, nil
+		}
+		if !errors.Is(err, store.ErrNotFound) {
+			return res, nil, err
+		}
+		// Removed or changed since the re-read.
+		if cur, err = reread(ctx, s, sc); err != nil {
+			return res, nil, err
+		}
 	}
-	return res, nil
+	for _, id := range written {
+		if _, err := s.Entries.DeleteIfScheduled(ctx, id); err != nil {
+			return res, nil, err
+		}
+	}
+	if cur.live() {
+		return Result{}, &cur, nil
+	}
+	return Result{Skipped: true}, nil, nil
 }

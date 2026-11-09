@@ -80,8 +80,8 @@ func (s *ScheduleStore) Get(ctx context.Context, scheduleID string) (domain.Sche
 const liveCond = "attribute_exists(schedule_id) AND attribute_not_exists(removed_at)"
 
 // Update writes A schedule's Save onto a live schedule: its label, rule, time,
-// ends_on, planned_values and unrecorded_alert, an empty label or ends_on
-// removed. starts_on, removal and the generator's bookmark are untouched. It
+// ends_on, planned_values, unrecorded_alert and updated_at, an empty label or
+// ends_on removed. starts_on, removal and the generator's bookmark are untouched. It
 // returns the schedule as stored, or ErrNotFound if it does not exist or has
 // been removed.
 func (s *ScheduleStore) Update(ctx context.Context, sc domain.Schedule) (domain.Schedule, error) {
@@ -89,9 +89,10 @@ func (s *ScheduleStore) Update(ctx context.Context, sc domain.Schedule) (domain.
 	if err != nil {
 		return domain.Schedule{}, err
 	}
-	set := "SET #rule = :rule, #time = :time, planned_values = :pv, unrecorded_alert = :ua"
+	set := "SET #rule = :rule, #time = :time, planned_values = :pv, unrecorded_alert = :ua, updated_at = :u"
 	vals := map[string]types.AttributeValue{
 		":rule": item["rule"], ":time": item["time"], ":pv": item["planned_values"], ":ua": item["unrecorded_alert"],
+		":u": item["updated_at"],
 	}
 	var remove []string
 	for _, a := range []string{"label", "ends_on"} {
@@ -145,16 +146,21 @@ func (s *ScheduleStore) MarkRemoved(ctx context.Context, scheduleID string, at t
 	return err
 }
 
-// SetGeneratedThrough records the generator's bookmark on a live schedule. It
-// returns ErrNotFound if the schedule does not exist or has been removed, so a
-// generator racing a removal learns of it.
-func (s *ScheduleStore) SetGeneratedThrough(ctx context.Context, scheduleID, through string) error {
+// SetGeneratedThrough records the generator's bookmark on a live schedule that
+// has not changed since the copy the generator worked from: its updated_at is
+// still updatedAt (or, on a row written before updated_at existed, absent). It
+// returns ErrNotFound if the schedule does not exist, has been removed, or has
+// changed, so a generator racing a removal or a change learns of it.
+func (s *ScheduleStore) SetGeneratedThrough(ctx context.Context, scheduleID, through string, updatedAt time.Time) error {
 	_, err := s.client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
-		TableName:                 aws.String(s.table),
-		Key:                       scheduleKey(scheduleID),
-		UpdateExpression:          aws.String("SET generated_through = :g"),
-		ConditionExpression:       aws.String(liveCond),
-		ExpressionAttributeValues: map[string]types.AttributeValue{":g": &types.AttributeValueMemberS{Value: through}},
+		TableName:           aws.String(s.table),
+		Key:                 scheduleKey(scheduleID),
+		UpdateExpression:    aws.String("SET generated_through = :g"),
+		ConditionExpression: aws.String(liveCond + " AND (updated_at = :u OR attribute_not_exists(updated_at))"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":g": &types.AttributeValueMemberS{Value: through},
+			":u": timeKey(updatedAt),
+		},
 	})
 	var ccf *types.ConditionalCheckFailedException
 	if errors.As(err, &ccf) {

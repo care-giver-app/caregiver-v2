@@ -152,6 +152,10 @@ type Schedule struct {
 	GeneratedThrough string         `dynamodbav:"generated_through,omitempty"`
 	CreatedBy        string         `dynamodbav:"created_by"`
 	CreatedAt        time.Time      `dynamodbav:"created_at"`
+	// UpdatedAt is set when the schedule is made and on every change to it.
+	// The generator compares it with the copy it worked from, to tell that a
+	// change landed while it ran.
+	UpdatedAt time.Time `dynamodbav:"updated_at"`
 }
 
 // EntryState is what an entry is. Only scheduled, logged and skipped are stored;

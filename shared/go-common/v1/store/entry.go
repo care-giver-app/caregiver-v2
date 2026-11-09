@@ -191,22 +191,16 @@ func (s *EntryStore) deleteStillScheduled(ctx context.Context, in *dynamodb.Quer
 			return deleted, err
 		}
 		for _, item := range out.Items {
-			_, err := s.client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
-				TableName:                aws.String(s.table),
-				Key:                      map[string]types.AttributeValue{"entry_id": item["entry_id"]},
-				ConditionExpression:      aws.String("#s = :scheduled"),
-				ExpressionAttributeNames: map[string]string{"#s": "state"},
-				ExpressionAttributeValues: map[string]types.AttributeValue{
-					":scheduled": &types.AttributeValueMemberS{Value: string(domain.EntryScheduled)},
-				},
-			})
-			var ccf *types.ConditionalCheckFailedException
-			switch {
-			case err == nil:
-				deleted++
-			case errors.As(err, &ccf):
-			default:
+			id, ok := item["entry_id"].(*types.AttributeValueMemberS)
+			if !ok {
+				continue
+			}
+			gone, err := s.DeleteIfScheduled(ctx, id.Value)
+			if err != nil {
 				return deleted, err
+			}
+			if gone {
+				deleted++
 			}
 		}
 		if len(out.LastEvaluatedKey) == 0 {
@@ -214,6 +208,26 @@ func (s *EntryStore) deleteStillScheduled(ctx context.Context, in *dynamodb.Quer
 		}
 		in.ExclusiveStartKey = out.LastEvaluatedKey
 	}
+}
+
+// DeleteIfScheduled deletes the entry if it is still scheduled, and reports
+// whether it did. One logged or skipped meanwhile, or already gone, stays as
+// it is.
+func (s *EntryStore) DeleteIfScheduled(ctx context.Context, entryID string) (bool, error) {
+	_, err := s.client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
+		TableName:                aws.String(s.table),
+		Key:                      map[string]types.AttributeValue{"entry_id": &types.AttributeValueMemberS{Value: entryID}},
+		ConditionExpression:      aws.String("#s = :scheduled"),
+		ExpressionAttributeNames: map[string]string{"#s": "state"},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":scheduled": &types.AttributeValueMemberS{Value: string(domain.EntryScheduled)},
+		},
+	})
+	var ccf *types.ConditionalCheckFailedException
+	if errors.As(err, &ccf) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // CreateIfAbsent writes an entry unless one with its id already exists, and

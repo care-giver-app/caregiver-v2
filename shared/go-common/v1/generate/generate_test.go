@@ -1,6 +1,7 @@
 package generate_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -207,7 +208,8 @@ func TestEntries(t *testing.T) {
 		PlannedValues: map[string]any{"dose": 5.0}, UnrecordedAlert: true,
 	}
 	occ := generate.Occurrence{Local: "2026-11-09T08:00", Date: "2026-11-09", At: utc("2026-11-09T14:00:00Z")}
-	es := generate.Entries(sc, []generate.Occurrence{occ}, now)
+	tr := domain.Tracker{Fields: []domain.Field{{FieldID: "dose", Type: domain.FieldNumber, Status: domain.FieldActive}}}
+	es := generate.Entries(sc, tr, []generate.Occurrence{occ}, now)
 	if len(es) != 1 {
 		t.Fatalf("entries: %+v", es)
 	}
@@ -222,5 +224,38 @@ func TestEntries(t *testing.T) {
 	e.Values["dose"] = 6.0
 	if e.PlannedValues["dose"] != 5.0 || sc.PlannedValues["dose"] != 5.0 {
 		t.Fatal("values share a map with the plan")
+	}
+}
+
+func TestActivePlan(t *testing.T) {
+	tr := domain.Tracker{Fields: []domain.Field{
+		{FieldID: "dose", Type: domain.FieldNumber, Status: domain.FieldActive},
+		{FieldID: "note", Type: domain.FieldText, Status: domain.FieldPaused},
+		{FieldID: "pills", Type: domain.FieldChoice, Multiple: true, Status: domain.FieldActive, Options: []domain.ChoiceOption{
+			{OptionID: "a", Status: domain.OptionActive}, {OptionID: "b", Status: domain.OptionRetired},
+		}},
+		{FieldID: "arm", Type: domain.FieldChoice, Status: domain.FieldActive, Options: []domain.ChoiceOption{
+			{OptionID: "l", Status: domain.OptionRetired}, {OptionID: "r", Status: domain.OptionActive},
+		}},
+		{FieldID: "none", Type: domain.FieldChoice, Status: domain.FieldActive},
+	}}
+	plan := map[string]any{
+		"dose": 5.0, "note": "with food", "gone": 1.0, // a paused field and one no longer on the tracker
+		"pills": []any{"a", "b"}, // one option retired since
+		"arm":   []any{"l"},      // its only option retired since
+		"none":  []any{},         // planned as none
+	}
+	got := generate.ActivePlan(plan, tr)
+	if fmt.Sprint(got) != "map[dose:5 none:[] pills:[a]]" {
+		t.Fatalf("active plan: %v", got)
+	}
+	if len(plan) != 6 || fmt.Sprint(plan["pills"]) != "[a b]" {
+		t.Fatalf("the schedule's plan was changed: %v", plan)
+	}
+
+	es := generate.Entries(domain.Schedule{ScheduleID: "s1", PlannedValues: plan}, tr,
+		[]generate.Occurrence{{Local: "2026-11-09T08:00", Date: "2026-11-09", At: utc("2026-11-09T14:00:00Z")}}, utc("2026-11-08T18:00:00Z"))
+	if fmt.Sprint(es[0].PlannedValues) != fmt.Sprint(got) || fmt.Sprint(es[0].Values) != fmt.Sprint(got) {
+		t.Fatalf("entry plan: %v values: %v", es[0].PlannedValues, es[0].Values)
 	}
 }

@@ -65,7 +65,7 @@ func TestSchedule_UpdateWritesOnlyTheSave(t *testing.T) {
 
 	got, err := l.Stores.Schedules.Update(ctx, domain.Schedule{
 		ScheduleID: "s1", Rule: domain.Rule{Freq: "weekly", Interval: 2, ByDay: []string{"TU", "TH"}}, Time: "09:30",
-		PlannedValues: map[string]any{}, UnrecordedAlert: false,
+		PlannedValues: map[string]any{}, UnrecordedAlert: false, UpdatedAt: now.Add(time.Hour),
 		// Not the Save's to change:
 		TrackerID: "other", StartsOn: "2030-01-01", GeneratedThrough: "x", CreatedBy: "x",
 	})
@@ -74,7 +74,7 @@ func TestSchedule_UpdateWritesOnlyTheSave(t *testing.T) {
 	}
 	if got.Label != "" || got.EndsOn != "" || got.Time != "09:30" || got.Rule.Interval != 2 || len(got.Rule.ByDay) != 2 ||
 		len(got.PlannedValues) != 0 || got.UnrecordedAlert || got.TrackerID != "tr1" || got.StartsOn != "2026-11-01" ||
-		got.GeneratedThrough != "2026-11-15" || got.CreatedBy != "u1" || got.GraceMinutes == nil {
+		got.GeneratedThrough != "2026-11-15" || got.CreatedBy != "u1" || got.GraceMinutes == nil || !got.UpdatedAt.Equal(now.Add(time.Hour)) {
 		t.Fatalf("updated: %+v", got)
 	}
 	got, err = l.Stores.Schedules.Update(ctx, domain.Schedule{ScheduleID: "s1", Label: "Evening", EndsOn: "2026-12-24",
@@ -100,8 +100,12 @@ func TestSchedule_MarkRemovedAndBookmark(t *testing.T) {
 	seed(t, l, l.Names.Schedules, liveSchedule("s1", "tr1"))
 	seed(t, l, l.Names.Schedules, liveSchedule("s2", "tr2"))
 
-	if err := l.Stores.Schedules.SetGeneratedThrough(ctx, "s1", "2026-11-22"); err != nil {
+	if err := l.Stores.Schedules.SetGeneratedThrough(ctx, "s1", "2026-11-22", time.Time{}); err != nil {
 		t.Fatal(err)
+	}
+	// Changed since the generator's copy: the bookmark is refused.
+	if err := l.Stores.Schedules.SetGeneratedThrough(ctx, "s1", "2026-11-29", now); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("bookmark on a changed schedule: %v", err)
 	}
 	if sc, err := l.Stores.Schedules.Get(ctx, "s1"); err != nil || sc.GeneratedThrough != "2026-11-22" {
 		t.Fatalf("bookmark: %+v err=%v", sc, err)
@@ -119,7 +123,7 @@ func TestSchedule_MarkRemovedAndBookmark(t *testing.T) {
 	if err := l.Stores.Schedules.MarkRemoved(ctx, "missing", now); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("missing: %v", err)
 	}
-	if err := l.Stores.Schedules.SetGeneratedThrough(ctx, "s1", "2026-12-01"); !errors.Is(err, store.ErrNotFound) {
+	if err := l.Stores.Schedules.SetGeneratedThrough(ctx, "s1", "2026-12-01", time.Time{}); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("bookmark on removed: %v", err)
 	}
 	if _, err := l.Stores.Schedules.Get(ctx, "missing"); !errors.Is(err, store.ErrNotFound) {
