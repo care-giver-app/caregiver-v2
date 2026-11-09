@@ -5,6 +5,9 @@ enum StrideButtonStyle {
     /// A small secondary that hugs its title — an inline retry beside a message
     /// (Figma "Try again", 497:241).
     case compact
+    /// A solid red primary for an action that takes something away (Figma `Stride/Button`
+    /// Style=Destructive, 410:3218).
+    case destructive
 }
 
 private struct StridePressStyle: ButtonStyle {
@@ -29,13 +32,14 @@ struct StrideButton: View {
 
     var body: some View {
         switch style {
-        case .primary: primaryBody
+        case .primary: filledBody(Theme.Colors.accent)
+        case .destructive: filledBody(Theme.Colors.alert)
         case .secondary: secondaryBody
         case .compact: compactBody
         }
     }
 
-    private var primaryBody: some View {
+    private func filledBody(_ fill: Color) -> some View {
         Button(action: action) {
             ZStack {
                 if isLoading { ProgressView().tint(Theme.Colors.textOnAccent) }
@@ -45,7 +49,7 @@ struct StrideButton: View {
             .foregroundStyle(Theme.Colors.textOnAccent)
             .background {
                 RoundedRectangle(cornerRadius: Metrics.radius)
-                    .fill(Theme.Colors.accent)
+                    .fill(fill)
                     .overlay {
                         RoundedRectangle(cornerRadius: Metrics.radius)
                             .fill(LinearGradient(
@@ -54,7 +58,7 @@ struct StrideButton: View {
                             ))
                     }
             }
-            .shadow(color: Theme.Colors.accent.opacity(0.22), radius: 3.5, y: 3)
+            .shadow(color: fill.opacity(0.22), radius: 3.5, y: 3)
         }
         .buttonStyle(StridePressStyle())
         .disabled(isLoading)
@@ -107,6 +111,7 @@ struct StrideButton: View {
         StrideButton(title: "Continue", isLoading: true, action: {})
         StrideButton(title: "I already have an account", style: .secondary, action: {})
         StrideButton(title: "Try again", style: .compact, action: {})
+        StrideButton(title: "Remove", style: .destructive, action: {})
     }
     .padding(Theme.Spacing.lg)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
