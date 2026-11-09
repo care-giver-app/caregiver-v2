@@ -1675,7 +1675,9 @@ reading questions.
       as: sheet
   empty: >
     the care receiver has no trackers at all — the screen offers the first one
-    rather than showing an empty list
+    rather than showing an empty list. A caregiver who is not an admin cannot
+    make one, so for them it says that none exist yet and that an admin on the
+    team adds them
 
 - screen: Tracker detail
   kind: push
@@ -1866,7 +1868,8 @@ reading questions.
     - its schedules, each a row that opens it, and a way to add one
     - >
       its gap, behind a switch that says whether the tracker is watched by one at
-      all, and the longest the team will go without an entry when it is; a range
+      all, and the longest the team will go without an entry when it is — at
+      most a year, since a longer gap is a typo rather than a regimen; a range
       belongs to a number field and is set in that field
     - >
       the rule that a tracker has schedules or a gap but never both, enforced
