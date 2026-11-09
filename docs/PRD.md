@@ -1606,8 +1606,9 @@ team reads which of those is which.
 A schedule is written the moment its own sheet is saved, and removed the moment its removal is
 confirmed; the rest of Edit tracker — its name, icon, color, fields, and gap — waits for Edit
 tracker's Save, and Cancel discards only that. A schedule is a thing in its own right, with
-occurrences that start existing as soon as it does, while the rest is one description of the
-tracker and is changed as one.
+occurrences that start existing as soon as it does, while the rest is one description of the tracker
+and is changed as one. A new schedule's first occurrence is the first one at or after the moment it
+is saved, because care nobody had yet been asked for cannot have gone unrecorded.
 
 A paused tracker opens the same screen, reading as paused. It keeps everything worth reading — what
 it collected, what the team expected of it, and every entry ever logged against it — and offers no

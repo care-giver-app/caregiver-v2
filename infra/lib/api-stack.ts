@@ -7,6 +7,8 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as eventsTargets from 'aws-cdk-lib/aws-events-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
@@ -48,6 +50,8 @@ export interface ApiStackProps extends cdk.StackProps {
 
 export class ApiStack extends cdk.Stack {
   public readonly apiFunction: lambda.Function;
+  /** The daily occurrence generator (services/generator). */
+  public readonly generatorFunction: lambda.Function;
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
@@ -249,6 +253,9 @@ export class ApiStack extends cdk.Stack {
       { path: '/v1/trackers/{trackerId}/resume', methods: [apigw.HttpMethod.POST] },
       { path: '/v1/trackers/{trackerId}/entries', methods: [apigw.HttpMethod.GET] },
       { path: '/v1/trackers/{trackerId}/schedules', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/trackers/{trackerId}/schedules', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/schedules/{scheduleId}', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/schedules/{scheduleId}', methods: [apigw.HttpMethod.DELETE] },
       { path: '/v1/tracker-templates', methods: [apigw.HttpMethod.GET] },
     ];
     for (const route of authedRoutes) {
@@ -262,5 +269,75 @@ export class ApiStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'HttpApiUrl', { value: httpApi.apiEndpoint });
     new cdk.CfnOutput(this, 'ApiCustomUrl', { value: `https://${apiDomainName}` });
+
+    this.generatorFunction = this.generator(props);
+    new cdk.CfnOutput(this, 'GeneratorFunctionName', {
+      value: this.generatorFunction.functionName,
+    });
+  }
+
+  /**
+   * The daily occurrence generator: tops up every live schedule's scheduled
+   * entries through the horizon (docs/adr/0012-*, "The generator"). Built the
+   * same way as the API function, and invocable by hand by its fixed name.
+   */
+  private generator(props: ApiStackProps): lambda.Function {
+    const resourceName = `caregiver-${props.stage}-generator`;
+    const generatorDir = path.resolve(__dirname, '..', '..', 'services', 'generator');
+
+    execSync('GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags lambda.norpc -o bootstrap .', {
+      cwd: generatorDir,
+      stdio: 'inherit',
+    });
+
+    const logGroup = new logs.LogGroup(this, 'GeneratorFunctionLogs', {
+      logGroupName: `/aws/lambda/${resourceName}`,
+      retention:
+        props.stage === 'prod' ? logs.RetentionDays.ONE_MONTH : logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const { receiver, tracker, schedule, entry } = props.v1Tables;
+    const fn = new lambda.Function(this, 'GeneratorFunction', {
+      functionName: resourceName,
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      architecture: lambda.Architecture.ARM_64,
+      handler: 'bootstrap',
+      code: lambda.Code.fromAsset(generatorDir, {
+        exclude: ['*.go', '*.mod', '*.sum'],
+      }),
+      memorySize: 256,
+      timeout: cdk.Duration.minutes(2),
+      tracing: lambda.Tracing.ACTIVE,
+      environment: {
+        SERVICE: 'generator',
+        STAGE: props.stage,
+        APP_VERSION: props.version,
+        LOG_LEVEL: props.stage === 'prod' ? 'info' : 'debug',
+        V1_RECEIVERS_TABLE: receiver.tableName,
+        V1_TRACKERS_TABLE: tracker.tableName,
+        V1_SCHEDULES_TABLE: schedule.tableName,
+        V1_ENTRIES_TABLE: entry.tableName,
+      },
+      logGroup,
+    });
+
+    // Reads schedules (a scan for the live ones), trackers and receivers;
+    // writes entries (conditional creates, and deletes when a schedule is
+    // removed mid-run) and only generated_through on schedules.
+    receiver.grantReadData(fn);
+    tracker.grantReadData(fn);
+    schedule.grantReadData(fn);
+    schedule.grant(fn, 'dynamodb:UpdateItem');
+    entry.grantReadWriteData(fn);
+
+    new events.Rule(this, 'GeneratorDailySchedule', {
+      ruleName: `${resourceName}-daily`,
+      description: 'Run the occurrence generator once a day',
+      schedule: events.Schedule.cron({ minute: '0', hour: '9' }),
+      targets: [new eventsTargets.LambdaFunction(fn)],
+    });
+
+    return fn;
   }
 }

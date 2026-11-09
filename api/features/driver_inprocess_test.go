@@ -46,6 +46,9 @@ func newInProcess(t *testing.T) *inProcess {
 	mux.Handle("POST /v1/trackers/{trackerId}/resume", authn.Wrap(http.HandlerFunc(trk.Resume)))
 	mux.Handle("GET /v1/trackers/{trackerId}/entries", authn.Wrap(http.HandlerFunc(trk.Entries)))
 	mux.Handle("GET /v1/trackers/{trackerId}/schedules", authn.Wrap(http.HandlerFunc(trk.Schedules)))
+	mux.Handle("POST /v1/trackers/{trackerId}/schedules", authn.Wrap(http.HandlerFunc(trk.AddSchedule)))
+	mux.Handle("PUT /v1/schedules/{scheduleId}", authn.Wrap(http.HandlerFunc(trk.ChangeSchedule)))
+	mux.Handle("DELETE /v1/schedules/{scheduleId}", authn.Wrap(http.HandlerFunc(trk.RemoveSchedule)))
 	mux.Handle("GET /v1/tracker-templates", authn.Wrap(http.HandlerFunc(v1.NewTemplates().List)))
 	return &inProcess{local: local, adapter: httpadapter.NewV2(mux)}
 }

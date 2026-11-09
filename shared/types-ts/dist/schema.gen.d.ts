@@ -599,7 +599,7 @@ export interface paths {
         post?: never;
         /**
          * Remove this schedule? — Remove (admin only)
-         * @description The rule and every occurrence it made that is still waiting go. Every entry already logged, skipped or unrecorded stays exactly where it is, and still names the schedule it came from.
+         * @description The rule and every occurrence it made that is still waiting go. Every entry already logged, skipped or unrecorded stays exactly where it is, and still names the schedule it came from. Repeating a removal is safe: on a schedule already removed it takes away anything still waiting again and returns 204, not 404.
          */
         delete: operations['removeSchedule'];
         options?: never;

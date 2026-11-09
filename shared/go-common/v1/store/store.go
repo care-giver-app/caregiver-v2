@@ -53,6 +53,7 @@ const (
 	trackerIndex  = "tracker-index"
 	trackerTime   = "tracker-time"
 	openIndex     = "open-index"
+	scheduleIndex = "schedule-index"
 )
 
 // New builds Stores from a DynamoDB client and table names.
@@ -90,7 +91,10 @@ func NewClient(ctx context.Context, endpoint string) (*dynamodb.Client, error) {
 // ErrNotFound when no item exists.
 func getItem[T any](ctx context.Context, client *dynamodb.Client, table string, key map[string]types.AttributeValue) (T, error) {
 	var zero T
-	out, err := client.GetItem(ctx, &dynamodb.GetItemInput{TableName: aws.String(table), Key: key})
+	// Strongly consistent, so a read straight after a write sees it: the
+	// generator re-reads a schedule, tracker and receiver to learn of a change
+	// that landed while it ran.
+	out, err := client.GetItem(ctx, &dynamodb.GetItemInput{TableName: aws.String(table), Key: key, ConsistentRead: aws.Bool(true)})
 	if err != nil {
 		return zero, err
 	}

@@ -65,6 +65,9 @@ func newTrackerFixture(t *testing.T) *trackerFixture {
 	mux.HandleFunc("POST /v1/trackers/{trackerId}/resume", h.Resume)
 	mux.HandleFunc("GET /v1/trackers/{trackerId}/entries", h.Entries)
 	mux.HandleFunc("GET /v1/trackers/{trackerId}/schedules", h.Schedules)
+	mux.HandleFunc("POST /v1/trackers/{trackerId}/schedules", h.AddSchedule)
+	mux.HandleFunc("PUT /v1/schedules/{scheduleId}", h.ChangeSchedule)
+	mux.HandleFunc("DELETE /v1/schedules/{scheduleId}", h.RemoveSchedule)
 	mux.HandleFunc("GET /v1/tracker-templates", NewTemplates().List)
 	f.mux = mux
 	return f
@@ -347,19 +350,38 @@ func TestTrackers_Edit(t *testing.T) {
 		t.Fatalf("stored: %+v", got)
 	}
 
-	// A gap over live schedules is refused, with or without remove_schedules,
-	// until the schedule writes land.
-	f.put(t, f.l.Names.Schedules, domain.Schedule{ScheduleID: "s1", TrackerID: "tr1", ReceiverID: "r1", TeamID: "t1",
-		Rule: domain.Rule{Freq: "weekly", Interval: 1, ByDay: []string{"MO"}}, Time: "08:00", StartsOn: "2026-11-01",
-		CreatedBy: "admin", CreatedAt: trackerNow})
+	// A gap over live schedules is refused without remove_schedules; with it,
+	// every schedule goes as DELETE would take it, its waiting occurrences too.
 	newField := `,{"field_id":"` + got.Fields[2].FieldID + `","label":"Note","type":"text","required":false}`
 	all := weight + "," + mood + newField
+	if rec := put(edit("#123456", "null", all)); rec.Code != http.StatusOK {
+		t.Errorf("gap off: code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	for _, id := range []string{"s1", "s2"} {
+		f.put(t, f.l.Names.Schedules, domain.Schedule{ScheduleID: id, TrackerID: "tr1", ReceiverID: "r1", TeamID: "t1",
+			Rule: domain.Rule{Freq: "weekly", Interval: 1, ByDay: []string{"MO"}}, Time: "08:00", StartsOn: "2026-11-01",
+			CreatedBy: "admin", CreatedAt: trackerNow})
+	}
+	f.put(t, f.l.Names.Entries, scheduled("s1-ahead", "tr1", "s1", trackerNow.Add(time.Hour)))
+	f.put(t, f.l.Names.Entries, scheduled("s1-unrecorded", "tr1", "s1", trackerNow.Add(-time.Hour)))
 	if rec := put(edit("#123456", "24", all)); rec.Code != http.StatusConflict {
 		t.Errorf("gap over schedules: code=%d body=%s", rec.Code, rec.Body.String())
 	}
+	if n, _ := f.l.Stores.Schedules.CountLiveByTracker(ctx, "tr1"); n != 2 {
+		t.Fatalf("a refused gap removed schedules: %d left", n)
+	}
 	withFlag := strings.Replace(edit("#123456", "24", all), `"gap_hours"`, `"remove_schedules":true,"gap_hours"`, 1)
-	if rec := put(withFlag); rec.Code != http.StatusConflict {
-		t.Errorf("gap over schedules with remove_schedules: code=%d", rec.Code)
+	rec = put(withFlag)
+	if d := decode[trackerDetail](t, rec); rec.Code != http.StatusOK || d.GapHours == nil || *d.GapHours != 24 || d.ScheduleCount != 0 {
+		t.Fatalf("gap over schedules with remove_schedules: code=%d %+v", rec.Code, d)
+	}
+	for _, id := range []string{"s1", "s2"} {
+		if sc, _ := f.l.Stores.Schedules.Get(ctx, id); sc.RemovedAt == nil {
+			t.Errorf("%s not removed", id)
+		}
+	}
+	if ids := entryIDs(t, f, "tr1"); fmt.Sprint(ids) != "[s1-unrecorded]" {
+		t.Fatalf("entries after removing schedules: %v", ids)
 	}
 	if rec := put(edit("#123456", "null", all)); rec.Code != http.StatusOK {
 		t.Errorf("gap off: code=%d body=%s", rec.Code, rec.Body.String())

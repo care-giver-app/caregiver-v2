@@ -163,6 +163,56 @@ func TestEntry_DeleteFutureOpenForTracker(t *testing.T) {
 	}
 }
 
+func TestEntry_DeleteFutureOpenForSchedule(t *testing.T) {
+	l := dynamotest.StartLocal(t)
+	ctx := context.Background()
+	seed(t, l, l.Names.Entries, scheduledEntry("f1", "tr1", now.Add(time.Hour)))
+	seed(t, l, l.Names.Entries, scheduledEntry("f2", "tr1", now.Add(48*time.Hour)))
+	seed(t, l, l.Names.Entries, scheduledEntry("unrecorded", "tr1", now.Add(-time.Hour)))
+	seed(t, l, l.Names.Entries, skippedEntry("future-skipped", "tr1", now.Add(3*time.Hour)))
+	early := scheduledEntry("future-logged", "tr1", now.Add(2*time.Hour))
+	early.State, early.OpenAt, early.OccurredAt, early.LoggedBy, early.TimelineAt = domain.EntryLogged, nil, &now, "u1", now
+	seed(t, l, l.Names.Entries, early)
+	other := scheduledEntry("other-schedule", "tr1", now.Add(time.Hour))
+	other.ScheduleID = "s2"
+	seed(t, l, l.Names.Entries, other)
+
+	n, err := l.Stores.Entries.DeleteFutureOpenForSchedule(ctx, "s1", now)
+	if err != nil || n != 2 {
+		t.Fatalf("deleted %d err=%v", n, err)
+	}
+	left, _, err := l.Stores.Entries.ListByTrackerTimeline(ctx, "tr1", now.Add(72*time.Hour), nil, 50, "")
+	var ids []string
+	for _, e := range left {
+		ids = append(ids, e.EntryID)
+	}
+	if err != nil || fmt.Sprint(ids) != "[future-skipped other-schedule future-logged unrecorded]" {
+		t.Fatalf("left: %v err=%v", ids, err)
+	}
+	if n, err := l.Stores.Entries.DeleteFutureOpenForSchedule(ctx, "s1", now); err != nil || n != 0 {
+		t.Fatalf("second run: %d err=%v", n, err)
+	}
+}
+
+func TestEntry_CreateIfAbsent(t *testing.T) {
+	l := dynamotest.StartLocal(t)
+	ctx := context.Background()
+	e := scheduledEntry("occ", "tr1", now.Add(time.Hour))
+	if created, err := l.Stores.Entries.CreateIfAbsent(ctx, e); err != nil || !created {
+		t.Fatalf("first: %v %v", created, err)
+	}
+	logged := e
+	logged.State, logged.OpenAt = domain.EntryLogged, nil
+	seed(t, l, l.Names.Entries, logged)
+	if created, err := l.Stores.Entries.CreateIfAbsent(ctx, e); err != nil || created {
+		t.Fatalf("second: %v %v", created, err)
+	}
+	got, _, err := l.Stores.Entries.ListByTrackerTimeline(ctx, "tr1", now.Add(2*time.Hour), nil, 10, "")
+	if err != nil || len(got) != 1 || got[0].State != domain.EntryLogged {
+		t.Fatalf("overwritten: %+v err=%v", got, err)
+	}
+}
+
 // Entry rows exactly as scripts/migrate_to_v1.py writes them.
 func TestEntry_readsMigratedRows(t *testing.T) {
 	l := dynamotest.StartLocal(t)

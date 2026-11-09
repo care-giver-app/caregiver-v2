@@ -15,16 +15,27 @@ describe('ObservabilityStack', () => {
       handler: 'index.handler',
       code: lambda.Code.fromInline('exports.handler = async () => ({});'),
     });
+    const generatorFn = new lambda.Function(refStack, 'GeneratorFn', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromInline('exports.handler = async () => ({});'),
+    });
     const alarmTopic = new sns.Topic(refStack, 'AlarmTopic');
 
     const stack = new ObservabilityStack(app, 'TestObservability', {
       env: { account: '123456789012', region: 'us-east-1' },
       stage: 'dev',
       apiFunction: apiFn,
+      generatorFunction: generatorFn,
       alarmTopic,
     });
     const template = Template.fromStack(stack);
     template.resourceCountIs('AWS::CloudWatch::Dashboard', 1);
-    template.resourceCountIs('AWS::CloudWatch::Alarm', 4);
+    template.resourceCountIs('AWS::CloudWatch::Alarm', 5);
+    template.hasResourceProperties('AWS::CloudWatch::Alarm', {
+      AlarmName: 'caregiver-dev-generator-errors',
+      MetricName: 'Errors',
+      Threshold: 1,
+    });
   });
 });

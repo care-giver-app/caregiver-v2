@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/cucumber/godog"
 
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/domain"
@@ -34,12 +37,15 @@ type careWorld struct {
 	entries      []entryView                // every entry the last read of a tracker's entries returned
 	pages        int                        // how many pages that read took
 	templates    []map[string]any           // the template catalogue last read
+	schedules    map[string]string          // schedule label as written ("" for unlabelled) → schedule_id
+	lastDays     []string                   // the days (Mon, Tue, …) of the schedule last added
 }
 
 func newCareWorld() careWorld {
 	return careWorld{
 		now:       time.Now().UTC().Truncate(time.Second),
 		receivers: map[string]domain.Receiver{}, trackers: map[string]*domain.Tracker{}, signedIn: map[string]bool{},
+		schedules: map[string]string{},
 	}
 }
 
@@ -126,7 +132,27 @@ func (w *world) registerTrackers(sc *godog.ScenarioContext) {
 
 	sc.Step(`^"([^"]*)" reads the schedules of "([^"]*)"$`, w.readsSchedules)
 	sc.Step(`^the schedules are named "([^"]*)" and one named for its days and time rather than "([^"]*)"$`, w.schedulesNamed)
+	sc.Step(`^the schedules listed are `+quoted+`$`, w.schedulesListedAre)
+	sc.Step(`^no schedules are listed$`, w.noSchedulesListed)
+	sc.Step(`^the one schedule listed is named for its days and time rather than "([^"]*)"$`, w.oneScheduleNamedForItself)
+	sc.Step(`^the "([^"]*)" schedule is at (\d\d:\d\d)$`, w.scheduleIsAt)
+
+	sc.Step(`^"([^"]*)" adds a schedule labelled "([^"]*)" to "([^"]*)" `+days+` at (\d\d:\d\d)$`, w.addsLabelledSchedule)
+	sc.Step(`^"([^"]*)" adds a schedule labelled "([^"]*)" to "([^"]*)" `+days+` at (\d\d:\d\d), confirming it turns the gap off$`, w.addsScheduleReplacingGap)
+	sc.Step(`^"([^"]*)" adds an unlabelled schedule to "([^"]*)" `+days+` at (\d\d:\d\d)$`, w.addsUnlabelledSchedule)
+	sc.Step(`^"([^"]*)" adds a schedule labelled "([^"]*)" to "([^"]*)" every day at a time already past today$`, w.addsScheduleAlreadyPast)
+	sc.Step(`^"([^"]*)" changes the "([^"]*)" schedule of "([^"]*)" to `+days+` at (\d\d:\d\d)$`, w.changesSchedule)
+	sc.Step(`^"([^"]*)" removes the "([^"]*)" schedule of "([^"]*)"$`, w.removesSchedule)
+	sc.Step(`^"([^"]*)" turns on a gap of (\d+) hours for "([^"]*)", confirming its schedules are removed$`, w.turnsOnGapRemovingSchedules)
+	sc.Step(`^"([^"]*)" has these entries from its "([^"]*)" schedule:$`, w.hasTheseEntriesFromSchedule)
+	sc.Step(`^the entries name the "([^"]*)" schedule$`, w.entriesNameSchedule)
+	sc.Step(`^no entries are listed$`, w.noEntriesListed)
+	sc.Step(`^something is waiting ahead of "([^"]*)"$`, w.somethingWaitingAhead)
 }
+
+// days is how a feature says which days a schedule falls on: "every day" or
+// "on Mon, Wed and Fri".
+const days = `(every day|on [A-Za-z, ]+)`
 
 // ---- API shapes -------------------------------------------------------------
 
@@ -188,11 +214,12 @@ type trackerDetailView struct {
 }
 
 type entryView struct {
-	EntryID string         `json:"entry_id"`
-	State   string         `json:"state"`
-	At      string         `json:"at"`
-	Values  map[string]any `json:"values"`
-	ByName  string         `json:"by_name"`
+	EntryID      string         `json:"entry_id"`
+	State        string         `json:"state"`
+	At           string         `json:"at"`
+	Values       map[string]any `json:"values"`
+	ByName       string         `json:"by_name"`
+	ScheduleName string         `json:"schedule_name"`
 }
 
 type entryPageView struct {
@@ -204,6 +231,7 @@ type scheduleView struct {
 	ScheduleID string `json:"schedule_id"`
 	Label      string `json:"label"`
 	Name       string `json:"name"`
+	Time       string `json:"time"`
 }
 
 // apiTime is how the API writes a time.
@@ -429,23 +457,13 @@ func (w *world) seedSchedule(ctx context.Context, tracker, label, days, hhmm str
 	if err != nil {
 		return err
 	}
-	var byDay []string
-	if days == "every day" {
-		byDay = []string{"MO", "TU", "WE", "TH", "FR", "SA", "SU"}
-	} else {
-		for _, d := range strings.FieldsFunc(strings.TrimPrefix(days, "on "), func(r rune) bool { return r == ',' || r == ' ' }) {
-			if d == "and" {
-				continue
-			}
-			code, ok := weekdayCodes[d]
-			if !ok {
-				return fmt.Errorf("unknown weekday %q", d)
-			}
-			byDay = append(byDay, code)
-		}
+	byDay, _, err := parseDays(days)
+	if err != nil {
+		return err
 	}
 	// Schedules list oldest first; each one seeded is made a minute after the last.
 	id := w.nextID("sc")
+	w.care.schedules[label] = id
 	sc := domain.Schedule{
 		ScheduleID: id, TrackerID: t.TrackerID, ReceiverID: t.ReceiverID, TeamID: t.TeamID, Label: label,
 		Rule: domain.Rule{Freq: "weekly", Interval: 1, ByDay: byDay}, Time: hhmm, StartsOn: w.localDay(7),
@@ -454,6 +472,25 @@ func (w *world) seedSchedule(ctx context.Context, tracker, label, days, hhmm str
 	db := w.d.db()
 	w.track(scheduleKey(db.names, sc.ScheduleID))
 	return db.put(ctx, db.names.Schedules, sc)
+}
+
+// parseDays reads "every day" or "on Mon, Wed and Fri" into the rule's by_day
+// codes and the short names a derived schedule name uses.
+func parseDays(days string) (codes, short []string, err error) {
+	if days == "every day" {
+		return []string{"MO", "TU", "WE", "TH", "FR", "SA", "SU"}, nil, nil
+	}
+	for _, d := range strings.FieldsFunc(strings.TrimPrefix(days, "on "), func(r rune) bool { return r == ',' || r == ' ' }) {
+		if d == "and" {
+			continue
+		}
+		code, ok := weekdayCodes[d]
+		if !ok {
+			return nil, nil, fmt.Errorf("unknown weekday %q", d)
+		}
+		codes, short = append(codes, code), append(short, d)
+	}
+	return codes, short, nil
 }
 
 func (w *world) hasLabelledSchedule(ctx context.Context, tracker, label, days, hhmm string) error {
@@ -486,13 +523,22 @@ func (w *world) signedIn(ctx context.Context, label string) (*person, error) {
 // "logged", "skipped", "unrecorded" (scheduled, its time passed), or
 // "scheduled" (still to come). values are keyed by field label.
 func (w *world) seedEntry(ctx context.Context, tracker, state string, at time.Time, by string, values map[string]float64) error {
+	return w.seedPlannedEntry(ctx, tracker, "", state, at, by, values)
+}
+
+// seedPlannedEntry is seedEntry for an entry its schedule made; scheduleID ""
+// is one made by hand.
+func (w *world) seedPlannedEntry(ctx context.Context, tracker, scheduleID, state string, at time.Time, by string, values map[string]float64) error {
 	t, err := w.tracker(tracker)
 	if err != nil {
 		return err
 	}
 	e := domain.Entry{
 		EntryID: w.nextID("en"), TrackerID: t.TrackerID, ReceiverID: t.ReceiverID, TeamID: t.TeamID,
-		Values: map[string]any{}, CreatedBy: "features", CreatedAt: at, TimelineAt: at,
+		Values: map[string]any{}, CreatedBy: "features", CreatedAt: at, TimelineAt: at, ScheduleID: scheduleID,
+	}
+	if scheduleID != "" {
+		e.OccurrenceAt = &at
 	}
 	for label, v := range values {
 		e.Values[slug(label)] = v
@@ -600,6 +646,18 @@ func table(t *godog.Table) []map[string]string {
 }
 
 func (w *world) hasTheseEntries(ctx context.Context, tracker string, t *godog.Table) error {
+	return w.seedTable(ctx, tracker, "", t)
+}
+
+func (w *world) hasTheseEntriesFromSchedule(ctx context.Context, tracker, label string, t *godog.Table) error {
+	id, err := w.scheduleID(label)
+	if err != nil {
+		return err
+	}
+	return w.seedTable(ctx, tracker, id, t)
+}
+
+func (w *world) seedTable(ctx context.Context, tracker, scheduleID string, t *godog.Table) error {
 	for _, row := range table(t) {
 		at, err := w.at(row["when"])
 		if err != nil {
@@ -609,7 +667,7 @@ func (w *world) hasTheseEntries(ctx context.Context, tracker string, t *godog.Ta
 		if err != nil {
 			return err
 		}
-		if err := w.seedEntry(ctx, tracker, row["state"], at, row["by"], values); err != nil {
+		if err := w.seedPlannedEntry(ctx, tracker, scheduleID, row["state"], at, row["by"], values); err != nil {
 			return err
 		}
 	}
@@ -1435,6 +1493,276 @@ func (w *world) schedulesNamed(labelled, tracker string) error {
 		!strings.Contains(derived, "Mon") || !strings.Contains(derived, "Wed") || !strings.Contains(derived, "Fri") ||
 		!strings.Contains(derived, "8:00") {
 		return w.unexpected(want)
+	}
+	return nil
+}
+
+// ---- writing schedules ------------------------------------------------------------
+
+func (w *world) scheduleID(label string) (string, error) {
+	id, ok := w.care.schedules[label]
+	if !ok {
+		return "", fmt.Errorf("the scenario never made a schedule labelled %q", label)
+	}
+	return id, nil
+}
+
+// scheduleBody is A schedule's Save: the rule and time, nothing pre-filled, no
+// unrecorded alert.
+func scheduleBody(label, days, hhmm string) (map[string]any, []string, error) {
+	codes, short, err := parseDays(days)
+	if err != nil {
+		return nil, nil, err
+	}
+	body := map[string]any{
+		"rule": map[string]any{"freq": "weekly", "interval": 1, "by_day": codes}, "time": hhmm,
+		"planned_values": map[string]any{}, "unrecorded_alert": false,
+	}
+	if label != "" {
+		body["label"] = label
+	}
+	return body, short, nil
+}
+
+func (w *world) addSchedule(ctx context.Context, who, label, tracker, days, hhmm string, replaceGap bool) error {
+	p, err := w.person(ctx, who)
+	if err != nil {
+		return err
+	}
+	t, err := w.tracker(tracker)
+	if err != nil {
+		return err
+	}
+	body, short, err := scheduleBody(label, days, hhmm)
+	if err != nil {
+		return err
+	}
+	if replaceGap {
+		body["replace_gap"] = true
+	}
+	if err := w.call(ctx, p, http.MethodPost, "/v1/trackers/"+t.TrackerID+"/schedules", body); err != nil {
+		return err
+	}
+	if w.last.status == http.StatusCreated {
+		sc, err := decodeLast[scheduleView](w)
+		if err != nil {
+			return err
+		}
+		// Its generated entries are found through it at cleanup.
+		w.track(scheduleKey(w.d.db().names, sc.ScheduleID))
+		w.care.schedules[label] = sc.ScheduleID
+		w.care.lastDays = short
+	}
+	return nil
+}
+
+func (w *world) addsLabelledSchedule(ctx context.Context, who, label, tracker, days, hhmm string) error {
+	return w.addSchedule(ctx, who, label, tracker, days, hhmm, false)
+}
+
+func (w *world) addsScheduleReplacingGap(ctx context.Context, who, label, tracker, days, hhmm string) error {
+	return w.addSchedule(ctx, who, label, tracker, days, hhmm, true)
+}
+
+func (w *world) addsUnlabelledSchedule(ctx context.Context, who, tracker, days, hhmm string) error {
+	return w.addSchedule(ctx, who, "", tracker, days, hhmm, false)
+}
+
+// addsScheduleAlreadyPast adds an every-day schedule at a time earlier today
+// in the receiver's zone: an hour ago, or midnight if that was yesterday.
+func (w *world) addsScheduleAlreadyPast(ctx context.Context, who, label, tracker string) error {
+	local := time.Now().In(zone())
+	earlier := local.Add(-time.Hour)
+	if earlier.Day() != local.Day() {
+		earlier = time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, zone())
+	}
+	return w.addSchedule(ctx, who, label, tracker, "every day", earlier.Format("15:04"), false)
+}
+
+func (w *world) changesSchedule(ctx context.Context, who, label, tracker, days, hhmm string) error {
+	p, err := w.person(ctx, who)
+	if err != nil {
+		return err
+	}
+	if _, err := w.tracker(tracker); err != nil {
+		return err
+	}
+	id, err := w.scheduleID(label)
+	if err != nil {
+		return err
+	}
+	body, _, err := scheduleBody(label, days, hhmm)
+	if err != nil {
+		return err
+	}
+	return w.call(ctx, p, http.MethodPut, "/v1/schedules/"+id, body)
+}
+
+func (w *world) removesSchedule(ctx context.Context, who, label, tracker string) error {
+	p, err := w.person(ctx, who)
+	if err != nil {
+		return err
+	}
+	if _, err := w.tracker(tracker); err != nil {
+		return err
+	}
+	id, err := w.scheduleID(label)
+	if err != nil {
+		return err
+	}
+	return w.call(ctx, p, http.MethodDelete, "/v1/schedules/"+id, nil)
+}
+
+func (w *world) turnsOnGapRemovingSchedules(ctx context.Context, label string, hours int, tracker string) error {
+	return w.edit(ctx, label, tracker, func(body map[string]any, fields []map[string]any) ([]map[string]any, error) {
+		body["gap_hours"] = hours
+		body["remove_schedules"] = true
+		return fields, nil
+	})
+}
+
+// ---- reading schedules and what they made ---------------------------------------
+
+func (w *world) schedulesRead() ([]scheduleView, error) {
+	if w.last.status != http.StatusOK {
+		return nil, w.unexpected("the schedules to load (200)")
+	}
+	return decodeLast[[]scheduleView](w)
+}
+
+func (w *world) schedulesListedAre(list string) error {
+	scs, err := w.schedulesRead()
+	if err != nil {
+		return err
+	}
+	var got []string
+	for _, sc := range scs {
+		got = append(got, sc.Name)
+	}
+	if want := names(list); strings.Join(got, "|") != strings.Join(want, "|") {
+		return fmt.Errorf("expected the schedules %q, but they were %q", want, got)
+	}
+	return nil
+}
+
+func (w *world) noSchedulesListed() error {
+	scs, err := w.schedulesRead()
+	if err != nil {
+		return err
+	}
+	if len(scs) != 0 {
+		return fmt.Errorf("expected no schedules, but %d were listed", len(scs))
+	}
+	return nil
+}
+
+// oneScheduleNamedForItself checks the only schedule reads by a name made
+// from the days it was added on, never the tracker's name.
+func (w *world) oneScheduleNamedForItself(tracker string) error {
+	scs, err := w.schedulesRead()
+	if err != nil {
+		return err
+	}
+	want := fmt.Sprintf("one schedule, named for %v rather than %q", w.care.lastDays, tracker)
+	if len(scs) != 1 || strings.TrimSpace(scs[0].Name) == "" || strings.Contains(scs[0].Name, tracker) {
+		return w.unexpected(want)
+	}
+	for _, d := range w.care.lastDays {
+		if !strings.Contains(scs[0].Name, d) {
+			return w.unexpected(want)
+		}
+	}
+	return nil
+}
+
+func (w *world) scheduleIsAt(label, hhmm string) error {
+	scs, err := w.schedulesRead()
+	if err != nil {
+		return err
+	}
+	for _, sc := range scs {
+		if sc.Name == label {
+			if sc.Time != hhmm {
+				return fmt.Errorf("expected %q at %s, but it is at %s", label, hhmm, sc.Time)
+			}
+			return nil
+		}
+	}
+	return fmt.Errorf("no schedule %q was listed", label)
+}
+
+func (w *world) entriesNameSchedule(label string) error {
+	if len(w.care.entries) == 0 {
+		return w.unexpected(fmt.Sprintf("entries naming the %q schedule", label))
+	}
+	for _, e := range w.care.entries {
+		if e.ScheduleName != label {
+			return fmt.Errorf("expected every entry to name the %q schedule, but one at %s names %q", label, e.At, e.ScheduleName)
+		}
+	}
+	return nil
+}
+
+func (w *world) noEntriesListed() error {
+	if w.last.status != http.StatusOK {
+		return w.unexpected("the entries to load (200)")
+	}
+	if len(w.care.entries) != 0 {
+		return fmt.Errorf("expected no entries, but %d were listed, the first %s at %s", len(w.care.entries), w.care.entries[0].State, w.care.entries[0].At)
+	}
+	return nil
+}
+
+// somethingWaitingAhead reads the tracker's occurrences still to come straight
+// from the table, as nothingWaitingAhead does: Coming up is not built yet.
+func (w *world) somethingWaitingAhead(ctx context.Context, tracker string) error {
+	t, err := w.tracker(tracker)
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	ahead, _, err := w.d.db().stores().Entries.ListByTrackerTimeline(ctx, t.TrackerID, now.Add(400*24*time.Hour), &now, 1, "")
+	if err != nil {
+		return err
+	}
+	if len(ahead) == 0 {
+		return fmt.Errorf("expected care waiting ahead of %q, but nothing is", tracker)
+	}
+	return nil
+}
+
+// trackGenerated adds to cleanup every entry the scenario's schedules
+// generated. Their ids are made by the API, so they are found through the
+// schedule-index of each schedule the scenario tracked.
+func (w *world) trackGenerated(ctx context.Context) error {
+	db := w.d.db()
+	var schedules []string
+	for _, k := range w.rows {
+		if k.table == db.names.Schedules {
+			schedules = append(schedules, k.key["schedule_id"].(*types.AttributeValueMemberS).Value)
+		}
+	}
+	for _, id := range schedules {
+		in := &dynamodb.QueryInput{
+			TableName:                 aws.String(db.names.Entries),
+			IndexName:                 aws.String("schedule-index"),
+			KeyConditionExpression:    aws.String("schedule_id = :s"),
+			ProjectionExpression:      aws.String("entry_id"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{":s": s(id)},
+		}
+		for {
+			out, err := db.client.Query(ctx, in)
+			if err != nil {
+				return fmt.Errorf("find the entries of schedule %s: %w", id, err)
+			}
+			for _, item := range out.Items {
+				w.track(rowKey{db.names.Entries, map[string]types.AttributeValue{"entry_id": item["entry_id"]}})
+			}
+			if len(out.LastEvaluatedKey) == 0 {
+				break
+			}
+			in.ExclusiveStartKey = out.LastEvaluatedKey
+		}
 	}
 	return nil
 }

@@ -416,16 +416,21 @@ func (h *Trackers) Edit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.GapHours.Value != nil {
-		n, err := h.stores.Schedules.CountLiveByTracker(ctx, t.TrackerID)
+		scs, err := h.stores.Schedules.ListLiveByTracker(ctx, t.TrackerID)
 		if err != nil {
 			httpx.ServerError(w, r, err, "schedule load failed")
 			return
 		}
-		// remove_schedules is not honored yet: removing schedules lands with the
-		// schedule writes, so a gap over schedules is refused either way.
-		if n > 0 {
+		if len(scs) > 0 && !req.RemoveSchedules {
 			httpx.WriteError(w, http.StatusConflict, "this tracker has schedules; a gap would remove them")
 			return
+		}
+		// Confirmed: every schedule goes as Remove this schedule? would take it.
+		for _, sc := range scs {
+			if err := h.removeSchedule(ctx, sc.ScheduleID, now); err != nil {
+				httpx.ServerError(w, r, err, "schedule removal failed", "schedule_id", sc.ScheduleID)
+				return
+			}
 		}
 	}
 	t.Name, t.Icon, t.Color, t.Fields, t.GapHours = name, icon, req.Color, fields, req.GapHours.Value
@@ -451,17 +456,19 @@ func (h *Trackers) Resume(w http.ResponseWriter, r *http.Request) {
 
 // setStatus pauses or resumes; either is a no-op on a tracker already there.
 // Pausing deletes the occurrences still to come; a repeat finds none left.
+// Resuming a paused tracker generates its schedules again from now.
 func (h *Trackers) setStatus(w http.ResponseWriter, r *http.Request, status domain.TrackerStatus) {
 	c := requireCaller(w, r)
 	if c == nil {
 		return
 	}
-	t, _, ok := loadTracker(w, r, h.stores, r.PathValue("trackerId"))
+	t, rc, ok := loadTracker(w, r, h.stores, r.PathValue("trackerId"))
 	if !ok || !requireTeamRole(w, r, h.stores, c, t.TeamID, true) {
 		return
 	}
 	ctx := r.Context()
 	now := h.now().UTC()
+	was := t.Status
 	t, err := h.stores.Trackers.SetStatus(ctx, t.TrackerID, status, c.UserID, now)
 	if errors.Is(err, store.ErrNotFound) {
 		httpx.WriteError(w, http.StatusNotFound, "not found")
@@ -474,6 +481,17 @@ func (h *Trackers) setStatus(w http.ResponseWriter, r *http.Request, status doma
 		if _, err := h.stores.Entries.DeleteFutureOpenForTracker(ctx, t.TrackerID, now); err != nil {
 			httpx.ServerError(w, r, err, "update failed")
 			return
+		}
+	}
+	if status == domain.TrackerActive && was == domain.TrackerPaused {
+		// Its schedules generate again from now; nothing is back-filled across the pause.
+		scs, err := h.stores.Schedules.ListLiveByTracker(ctx, t.TrackerID)
+		if err != nil {
+			httpx.ServerError(w, r, err, "schedule load failed")
+			return
+		}
+		for _, sc := range scs {
+			h.generateFromNow(ctx, sc, t, rc, now)
 		}
 	}
 	h.writeDetail(w, r, http.StatusOK, t, now)
