@@ -142,7 +142,9 @@ struct AddTrackerV1Sheet: View {
                 }
                 .disabled(model.isCreating)
             }
-            ToolbarItem(placement: .cancellationAction) {
+            // Trailing, not .cancellationAction: that is leading too and would
+            // sit on top of Back (Figma 370:3329 has Back left, Cancel right).
+            ToolbarItem(placement: .topBarTrailing) {
                 Button("Cancel") { dismiss() }
                     .disabled(model.isCreating)
             }
