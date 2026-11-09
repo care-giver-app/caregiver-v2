@@ -50,3 +50,32 @@ extension EnvironmentValues {
         set { self[V1PushKey.self] = newValue }
     }
 }
+
+extension V1Route {
+    /// `path` taken back to its last Trackers list — where Pause lands (PRD "Pause this
+    /// tracker?"). With no Trackers list on it, back to the stack's root.
+    static func poppedToTrackers(_ path: [V1Route]) -> [V1Route] {
+        guard let i = path.lastIndex(where: { if case .trackers = $0 { true } else { false } }) else { return [] }
+        return Array(path[...i])
+    }
+}
+
+/// Takes the one `/v1` stack back to its Trackers list, for a pushed screen that must go
+/// back further than its own Back — Tracker detail or Schedules once their tracker is
+/// paused. RootView, which owns the stack's path, supplies it; elsewhere it does nothing.
+struct V1PopToTrackers: Sendable {
+    let pop: @MainActor @Sendable () -> Void
+
+    @MainActor func callAsFunction() { pop() }
+}
+
+private struct V1PopToTrackersKey: EnvironmentKey {
+    static let defaultValue = V1PopToTrackers {}
+}
+
+extension EnvironmentValues {
+    var v1PopToTrackers: V1PopToTrackers {
+        get { self[V1PopToTrackersKey.self] }
+        set { self[V1PopToTrackersKey.self] = newValue }
+    }
+}

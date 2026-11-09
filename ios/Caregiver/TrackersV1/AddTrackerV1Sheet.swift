@@ -33,7 +33,10 @@ struct AddTrackerV1Sheet: View {
         .interactiveDismissDisabled(model.isCreating)
         .task { await model.loadTemplates() }
         .sheet(item: $editing) { field in
-            FieldSheet(field: field, onSave: { model.save($0) }, onRemove: { model.remove(field.id) })
+            // Remove is only for a field already on the draft; a new one is just cancelled.
+            FieldSheet(field: field, onSave: { model.save($0) },
+                       onRemove: model.draft.fields.contains { $0.id == field.id }
+                           ? { model.remove(field.id) } : nil)
         }
     }
 
@@ -96,7 +99,9 @@ struct AddTrackerV1Sheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 12) {
-                    Button { model.part = .iconColor } label: { preview }
+                    Button { model.part = .iconColor } label: {
+                        TrackerIconPreview(icon: model.draft.icon, color: model.draft.color)
+                    }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Icon and color")
                     StrideField(placeholder: "Name", text: $model.draft.name)
@@ -142,22 +147,6 @@ struct AddTrackerV1Sheet: View {
                     .disabled(model.isCreating)
             }
         }
-    }
-
-    /// The 56pt tile with its pencil badge.
-    private var preview: some View {
-        TrackerIconTile(icon: model.draft.icon, color: model.draft.color, size: 56)
-            .overlay(alignment: .bottomTrailing) {
-                Circle()
-                    .fill(Theme.Colors.surface)
-                    .frame(width: 22, height: 22)
-                    .overlay {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Theme.Colors.accent)
-                    }
-                    .offset(x: 4, y: 4)
-            }
     }
 
     /// Figma `Stride/Field Row` Mode=Removable (405:3234).
@@ -235,8 +224,30 @@ struct AddTrackerV1Sheet: View {
     }
 }
 
-/// Start from scratch and Add a field: a plus on the accent tint, the action in accent.
-private struct AddTrackerActionRow: View {
+/// The 56pt tile with its pencil badge, opening the icon and color part (Add tracker,
+/// Edit tracker).
+struct TrackerIconPreview: View {
+    let icon: String
+    let color: String
+
+    var body: some View {
+        TrackerIconTile(icon: icon, color: color, size: 56)
+            .overlay(alignment: .bottomTrailing) {
+                Circle()
+                    .fill(Theme.Colors.surface)
+                    .frame(width: 22, height: 22)
+                    .overlay {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.Colors.accent)
+                    }
+                    .offset(x: 4, y: 4)
+            }
+    }
+}
+
+/// Start from scratch, Add a field and Add a schedule (here and on Edit tracker): a plus on the accent tint, the action in accent.
+struct AddTrackerActionRow: View {
     let title: String
 
     var body: some View {
@@ -265,7 +276,7 @@ private struct AddTrackerActionRow: View {
 }
 
 /// The bordered white card every row here sits on, as `StrideTrackerRow` draws it.
-private struct AddTrackerCard: ViewModifier {
+struct AddTrackerCard: ViewModifier {
     func body(content: Content) -> some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)

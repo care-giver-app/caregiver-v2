@@ -83,6 +83,23 @@ enum TrackerText {
     }
 
     /// "Paused Nov 3" headline and what it means (Figma 424:3832).
+    /// What Resume starts again, said before it is pressed (PRD "Tracker detail"): logging,
+    /// then its schedules from now, then whatever alerts it.
+    static func resumeExplanation(_ profile: TrackerProfile) -> String {
+        var parts = ["the team can log it again"]
+        if profile.scheduleCount > 0 {
+            parts.append("its \(scheduleCount(profile.scheduleCount)) start again from now")
+        }
+        let ranged = profile.fields.contains { !$0.paused && $0.range != nil }
+        if let hours = profile.gapHours {
+            parts.append("it alerts after \(duration(hours: hours)) without an entry")
+        }
+        if ranged {
+            parts.append("readings out of range alert the team")
+        }
+        return "Once resumed, " + ListFormatter.localizedString(byJoining: parts) + "."
+    }
+
     static let pausedExplanation = "Nothing new can be logged, and its alerts are off. Its history is kept."
 
     // MARK: Entries

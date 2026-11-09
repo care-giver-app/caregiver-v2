@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Schedules — one tracker's schedules, read by anyone on the team (PRD
-/// "Schedules"; Figma 428:4103). Nothing here edits; Edit arrives with PR 4.
+/// "Schedules"; Figma 428:4103). Nothing here edits; admins get Edit in the nav, which
+/// raises Edit tracker.
 struct SchedulesV1View: View {
     let trackerID: String
     let trackerName: String
@@ -10,6 +11,12 @@ struct SchedulesV1View: View {
     let service: TrackersService
 
     @State private var model: SchedulesV1Model?
+    @State private var editing = false
+    /// How Edit tracker ended, acted on once its sheet is down.
+    @State private var editOutcome: EditTrackerOutcome?
+    /// The tracker's name as Edit tracker last saved it.
+    @State private var savedName: String?
+    @Environment(\.v1PopToTrackers) private var popToTrackers
 
     var body: some View {
         Group {
@@ -26,8 +33,26 @@ struct SchedulesV1View: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                StrideNavTitle(title: "Schedules", subtitle: trackerName)
+                StrideNavTitle(title: "Schedules", subtitle: savedName ?? trackerName)
             }
+            if receiver.canManage {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") { editing = true }
+                }
+            }
+        }
+        .sheet(isPresented: $editing, onDismiss: {
+            let outcome = editOutcome
+            editOutcome = nil
+            switch outcome {
+            case .saved(let profile):
+                savedName = profile.name
+                Task { await model?.load() }
+            case .paused: popToTrackers()
+            case nil: break
+            }
+        }) {
+            EditTrackerV1Sheet(trackerID: trackerID, receiver: receiver, service: service) { editOutcome = $0 }
         }
         .tint(Theme.Colors.accent)
         .task {
