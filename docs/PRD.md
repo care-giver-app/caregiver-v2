@@ -1610,6 +1610,13 @@ occurrences that start existing as soon as it does, while the rest is one descri
 and is changed as one. A new schedule's first occurrence is the first one at or after the moment it
 is saved, because care nobody had yet been asked for cannot have gone unrecorded.
 
+A schedule pre-fills the tracker's fields and is written the moment it is saved, so it can only
+pre-fill fields the tracker already has. An admin who has changed the tracker in this sheet — added
+a field, paused one, renamed it — and then opens a schedule is asked to save those changes first,
+and saving them is what opens the schedule; declining stays on Edit tracker with nothing saved.
+Cancel afterwards discards only what changed since that save, because what was saved has already
+reached the team.
+
 A paused tracker opens the same screen, reading as paused. It keeps everything worth reading — what
 it collected, what the team expected of it, and every entry ever logged against it — and offers no
 way to add another, because having stopped collecting is what being paused means. In place of the
@@ -1864,6 +1871,9 @@ reading questions.
     - >
       the rule that a tracker has schedules or a gap but never both, enforced
       here, telling an admin what they are about to lose
+    - >
+      opening a schedule while something here is unsaved asks to save it first,
+      since a schedule can only pre-fill fields the tracker already has
     - Pause tracker
   exits:
     - action: Save
@@ -1890,7 +1900,12 @@ reading questions.
       to: A field
       as: sheet
     - action: add or change a schedule
+      when: nothing in Edit tracker is unsaved
       to: A schedule
+      as: sheet
+    - action: add or change a schedule
+      when: Edit tracker has unsaved changes
+      to: A schedule, once those changes are saved — asked first
       as: sheet
 
 - screen: A field
