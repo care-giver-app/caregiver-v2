@@ -195,19 +195,24 @@ func (h *Trackers) Schedules(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]trackerSchedule, 0, len(scs))
 	for _, sc := range scs {
-		v := trackerSchedule{
-			ScheduleID: sc.ScheduleID, TrackerID: sc.TrackerID, Label: strings.TrimSpace(sc.Label), Name: domain.ScheduleName(sc),
-			Rule: recurrence{Freq: sc.Rule.Freq, Interval: sc.Rule.Interval, ByDay: sc.Rule.ByDay},
-			Time: sc.Time, StartsOn: sc.StartsOn, EndsOn: sc.EndsOn,
-			PlannedValues: sc.PlannedValues, UnrecordedAlert: sc.UnrecordedAlert,
-		}
-		if v.Rule.ByDay == nil {
-			v.Rule.ByDay = []string{}
-		}
-		if v.PlannedValues == nil {
-			v.PlannedValues = map[string]any{}
-		}
-		out = append(out, v)
+		out = append(out, scheduleView(sc))
 	}
 	httpx.WriteJSON(w, http.StatusOK, out)
+}
+
+// scheduleView is sc as the TrackerSchedule schema.
+func scheduleView(sc domain.Schedule) trackerSchedule {
+	v := trackerSchedule{
+		ScheduleID: sc.ScheduleID, TrackerID: sc.TrackerID, Label: strings.TrimSpace(sc.Label), Name: domain.ScheduleName(sc),
+		Rule: recurrence{Freq: sc.Rule.Freq, Interval: sc.Rule.Interval, ByDay: sc.Rule.ByDay},
+		Time: sc.Time, StartsOn: sc.StartsOn, EndsOn: sc.EndsOn,
+		PlannedValues: sc.PlannedValues, UnrecordedAlert: sc.UnrecordedAlert,
+	}
+	if v.Rule.ByDay == nil {
+		v.Rule.ByDay = []string{}
+	}
+	if v.PlannedValues == nil {
+		v.PlannedValues = map[string]any{}
+	}
+	return v
 }

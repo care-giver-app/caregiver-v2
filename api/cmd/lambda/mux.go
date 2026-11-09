@@ -102,6 +102,9 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	mux.Handle("POST /v1/trackers/{trackerId}/resume", v1authn.Wrap(http.HandlerFunc(v1trk.Resume)))
 	mux.Handle("GET /v1/trackers/{trackerId}/entries", v1authn.Wrap(http.HandlerFunc(v1trk.Entries)))
 	mux.Handle("GET /v1/trackers/{trackerId}/schedules", v1authn.Wrap(http.HandlerFunc(v1trk.Schedules)))
+	mux.Handle("POST /v1/trackers/{trackerId}/schedules", v1authn.Wrap(http.HandlerFunc(v1trk.AddSchedule)))
+	mux.Handle("PUT /v1/schedules/{scheduleId}", v1authn.Wrap(http.HandlerFunc(v1trk.ChangeSchedule)))
+	mux.Handle("DELETE /v1/schedules/{scheduleId}", v1authn.Wrap(http.HandlerFunc(v1trk.RemoveSchedule)))
 	mux.Handle("GET /v1/tracker-templates", v1authn.Wrap(http.HandlerFunc(v1.NewTemplates().List)))
 
 	return middleware.RequestLogger(log)(mux), nil
