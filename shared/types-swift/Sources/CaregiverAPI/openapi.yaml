@@ -876,7 +876,9 @@ paths:
       description: >
         The rule and every occurrence it made that is still waiting go. Every
         entry already logged, skipped or unrecorded stays exactly where it is, and
-        still names the schedule it came from.
+        still names the schedule it came from. Repeating a removal is safe: on a
+        schedule already removed it takes away anything still waiting again and
+        returns 204, not 404.
       parameters:
         - { name: scheduleId, in: path, required: true, schema: { type: string } }
       responses:

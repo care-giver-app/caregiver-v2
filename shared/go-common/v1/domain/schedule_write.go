@@ -50,13 +50,15 @@ type ScheduleWrite struct {
 
 // ValidateScheduleWrite checks a schedule's Save against its tracker and
 // returns it with the label trimmed. today is the receiver's local date
-// (YYYY-MM-DD); ends_on may not be before it. planned_values must name only the
+// (YYYY-MM-DD); ends_on may not be before it, unless it is storedEndsOn — the
+// ends_on a changed schedule already has ("" for a new one), which may be past
+// by now and is saved again as it is. planned_values must name only the
 // tracker's active fields, each with a value of the field's kind: a number for
 // a number, a string for text, a bool for a yes/no, an RFC 3339 string for a
 // date and time, and a list of distinct active option ids for a choice — at
 // most one for a single-answer choice. A field nobody can know ahead is left
 // out, not sent as null.
-func ValidateScheduleWrite(w ScheduleWrite, t Tracker, today string) (ScheduleWrite, error) {
+func ValidateScheduleWrite(w ScheduleWrite, t Tracker, today, storedEndsOn string) (ScheduleWrite, error) {
 	w.Label = strings.TrimSpace(w.Label)
 	if utf8.RuneCountInString(w.Label) > MaxScheduleLabelLength {
 		return w, invalidSchedule("label must be at most %d characters", MaxScheduleLabelLength)
@@ -71,7 +73,7 @@ func ValidateScheduleWrite(w ScheduleWrite, t Tracker, today string) (ScheduleWr
 		if _, err := time.Parse(time.DateOnly, w.EndsOn); err != nil {
 			return w, invalidSchedule("ends_on must be a date (YYYY-MM-DD)")
 		}
-		if w.EndsOn < today {
+		if w.EndsOn != storedEndsOn && w.EndsOn < today {
 			return w, invalidSchedule("ends_on must not be before today")
 		}
 	}

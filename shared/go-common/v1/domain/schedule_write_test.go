@@ -34,13 +34,22 @@ func goodWrite() ScheduleWrite {
 }
 
 func TestValidateScheduleWrite(t *testing.T) {
-	got, err := ValidateScheduleWrite(goodWrite(), scheduleTracker(), "2026-11-08")
+	got, err := ValidateScheduleWrite(goodWrite(), scheduleTracker(), "2026-11-08", "")
 	if err != nil || got.Label != "Morning dose" {
 		t.Fatalf("good: %+v err=%v", got, err)
 	}
 	if _, err := ValidateScheduleWrite(ScheduleWrite{Rule: goodWrite().Rule, Time: "23:59", PlannedValues: map[string]any{"arm": []any{}}},
-		scheduleTracker(), "2026-11-08"); err != nil {
+		scheduleTracker(), "2026-11-08", ""); err != nil {
 		t.Fatalf("minimal: %v", err)
+	}
+	// A change keeps a past ends_on it already had; a new or moved one is checked.
+	past := goodWrite()
+	past.EndsOn = "2026-11-01"
+	if _, err := ValidateScheduleWrite(past, scheduleTracker(), "2026-11-08", "2026-11-01"); err != nil {
+		t.Fatalf("unchanged past ends_on: %v", err)
+	}
+	if _, err := ValidateScheduleWrite(past, scheduleTracker(), "2026-11-08", "2026-10-25"); !errors.Is(err, ErrInvalidSchedule) {
+		t.Fatalf("moved to a past ends_on: %v", err)
 	}
 
 	cases := map[string]struct {
@@ -75,7 +84,7 @@ func TestValidateScheduleWrite(t *testing.T) {
 	for name, c := range cases {
 		w := goodWrite()
 		c.change(&w)
-		_, err := ValidateScheduleWrite(w, scheduleTracker(), "2026-11-08")
+		_, err := ValidateScheduleWrite(w, scheduleTracker(), "2026-11-08", "")
 		if !errors.Is(err, ErrInvalidSchedule) || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %v, want an invalid schedule saying %q", name, err, c.want)
 		}

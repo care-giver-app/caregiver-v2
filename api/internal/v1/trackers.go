@@ -427,7 +427,7 @@ func (h *Trackers) Edit(w http.ResponseWriter, r *http.Request) {
 		}
 		// Confirmed: every schedule goes as Remove this schedule? would take it.
 		for _, sc := range scs {
-			if err := h.removeSchedule(ctx, sc.ScheduleID, now); err != nil && !errors.Is(err, store.ErrNotFound) {
+			if err := h.removeSchedule(ctx, sc.ScheduleID, now); err != nil {
 				httpx.ServerError(w, r, err, "schedule removal failed", "schedule_id", sc.ScheduleID)
 				return
 			}
@@ -491,10 +491,7 @@ func (h *Trackers) setStatus(w http.ResponseWriter, r *http.Request, status doma
 			return
 		}
 		for _, sc := range scs {
-			if err := h.generateFromNow(ctx, sc, t, rc, now); err != nil {
-				httpx.ServerError(w, r, err, "schedule generation failed", "schedule_id", sc.ScheduleID)
-				return
-			}
+			h.generateFromNow(ctx, sc, t, rc, now)
 		}
 	}
 	h.writeDetail(w, r, http.StatusOK, t, now)

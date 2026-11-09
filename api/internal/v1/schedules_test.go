@@ -267,6 +267,18 @@ func TestSchedules_Change(t *testing.T) {
 		t.Fatalf("generated_through: %q", got.GeneratedThrough)
 	}
 
+	// An ends_on gone past since it was saved is saved again as it is; moving
+	// it is held to today.
+	pastEnd, _ := f.l.Stores.Schedules.Get(ctx, "new-1")
+	pastEnd.EndsOn = "2026-11-01"
+	f.put(t, f.l.Names.Schedules, pastEnd)
+	if rec := put("admin", "new-1", strings.Replace(change, `"2026-12-31"`, `"2026-11-01"`, 1)); rec.Code != http.StatusOK {
+		t.Errorf("unchanged past ends_on: code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if rec := put("admin", "new-1", strings.Replace(change, `"2026-12-31"`, `"2026-11-02"`, 1)); rec.Code != http.StatusBadRequest {
+		t.Errorf("moved to a past ends_on: code=%d", rec.Code)
+	}
+
 	// A removed schedule cannot be changed.
 	if rec := f.do("admin", http.MethodDelete, "/v1/schedules/new-1", ""); rec.Code != http.StatusNoContent {
 		t.Fatalf("remove: %d", rec.Code)
@@ -307,8 +319,14 @@ func TestSchedules_Remove(t *testing.T) {
 	if code := del("admin", "new-1"); code != http.StatusNoContent {
 		t.Fatalf("remove: %d", code)
 	}
-	if code := del("admin", "new-1"); code != http.StatusNotFound {
+	// A repeat is safe: it answers 204 and deletes again whatever is still
+	// waiting (here, one a racing generator wrote after the first removal).
+	f.put(t, f.l.Names.Entries, scheduled("straggler", "tr1", "new-1", trackerNow.Add(24*time.Hour)))
+	if code := del("admin", "new-1"); code != http.StatusNoContent {
 		t.Errorf("removed twice: %d", code)
+	}
+	if code := del("cg", "new-1"); code != http.StatusForbidden {
+		t.Errorf("caregiver, repeated: %d", code)
 	}
 	if ids := entryIDs(t, f, "tr1"); fmt.Sprint(ids) != "[unrecorded logged]" {
 		t.Fatalf("entries after removal: %v", ids)
