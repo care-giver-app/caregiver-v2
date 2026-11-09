@@ -1745,6 +1745,7 @@ reading questions.
       a month calendar where a first day and a last day are tapped and the days
       between are drawn as one stretch; days after today cannot be picked, since
       entries still to come are not in this list
+    - a way back to earlier months, and forward again as far as this one
     - the stretch chosen, written out, and a way to clear it
   exits:
     - action: Done
