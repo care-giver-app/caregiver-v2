@@ -8,8 +8,12 @@ enum TrackersFixtures {
     static let teal = "#0d8c86"
     static let violet = "#6f5fe0"
 
+    /// As Trevor sees her: he is an admin of The Riverside Group.
     static let eleanor = TeamReceiver(id: "receiver-eleanor", name: "Eleanor",
-                                      timeZone: TimeZone(identifier: "America/Chicago")!)
+                                      timeZone: TimeZone(identifier: "America/Chicago")!, canManage: true)
+    /// As Marcus sees her: a caregiver, who logs but doesn't manage trackers.
+    static let eleanorForCaregiver = TeamReceiver(id: "receiver-eleanor", name: "Eleanor",
+                                                  timeZone: TimeZone(identifier: "America/Chicago")!)
 
     private static func ago(hours: Double) -> Date { Date().addingTimeInterval(-hours * 3600) }
 
@@ -120,7 +124,68 @@ enum TrackersFixtures {
                             time: "09:30", unrecordedAlert: false),
     ]
 
+    /// The catalog `GET /v1/tracker-templates` serves
+    /// (`shared/go-common/v1/domain/templates.json`), in its order.
+    static let templates: [TrackerTemplate] = [
+        TrackerTemplate(id: "mood", name: "Mood", icon: "face.smiling", color: "#6F5FE0", fields: [
+            FieldWrite(label: "Mood", kind: .choice, required: true, multiple: false,
+                       options: ["great", "ok", "low", "bad"].map { OptionWrite(label: $0) }),
+        ], gapHours: nil),
+        TrackerTemplate(id: "shower", name: "Shower", icon: "shower", color: "#38BDF8", fields: [], gapHours: 72),
+        TrackerTemplate(id: "urination", name: "Urination", icon: "drop.fill", color: "#EAB308", fields: [
+            FieldWrite(label: "Color", kind: .choice, required: false, multiple: false,
+                       options: ["clear", "light", "dark"].map { OptionWrite(label: $0) }),
+        ], gapHours: nil),
+        TrackerTemplate(id: "bowel_movement", name: "Bowel Movement", icon: "toilet", color: "#92400E", fields: [
+            FieldWrite(label: "Amount", kind: .choice, required: false, multiple: false,
+                       options: ["small", "normal", "large"].map { OptionWrite(label: $0) }),
+        ], gapHours: 72),
+        TrackerTemplate(id: "medication", name: "Medication", icon: "pills", color: "#30A46C", fields: [],
+                        gapHours: nil),
+        TrackerTemplate(id: "walk", name: "Walk", icon: "figure.walk", color: "#0EA5E9", fields: [
+            FieldWrite(label: "Duration", kind: .number, unit: "min", required: true),
+        ], gapHours: nil),
+        TrackerTemplate(id: "weight", name: "Weight", icon: "scalemass", color: "#4F8EF7", fields: [
+            FieldWrite(label: "Weight", kind: .number, unit: "lb", required: true,
+                       range: ValueRangeInfo(low: 80, high: 400)),
+        ], gapHours: nil),
+        TrackerTemplate(id: "doctor_appointment", name: "Doctor Appointment", icon: "stethoscope",
+                        color: "#0891B2", fields: [
+            FieldWrite(label: "Doctor", kind: .text, required: true),
+            FieldWrite(label: "Specialty", kind: .text, required: false),
+            FieldWrite(label: "Location", kind: .text, required: false),
+            FieldWrite(label: "Reason", kind: .text, required: false),
+            FieldWrite(label: "Outcome", kind: .text, required: false),
+            FieldWrite(label: "Follow-up", kind: .datetime, required: false),
+        ], gapHours: nil),
+    ]
+
     struct Unreachable: Error {}
+
+    /// The profile a write would leave behind, ids made up, so previews can go on to
+    /// Tracker detail.
+    static func profile(id: String, from w: TrackerWrite, status: TrackerStatus = .active,
+                        scheduleCount: Int = 0) -> TrackerProfile {
+        TrackerProfile(
+            id: id, name: w.name, icon: w.icon, color: w.color, status: status,
+            pausedAt: status == .paused ? Date() : nil,
+            fields: w.fields.enumerated().map { i, f in
+                TrackerFieldInfo(id: f.fieldID ?? "\(id)-f\(i)", label: f.label, kind: f.kind, unit: f.unit,
+                                 required: f.required, paused: f.paused, range: f.range, multiple: f.multiple,
+                                 options: f.options.enumerated().map { j, o in
+                                     ChoiceOptionInfo(id: o.optionID ?? "\(id)-f\(i)-o\(j)", label: o.label,
+                                                      retired: o.retired)
+                                 })
+            },
+            gapHours: w.gapHours, scheduleCount: scheduleCount, lastLoggedAt: nil, attention: []
+        )
+    }
+
+    static func schedule(id: String, from w: ScheduleWrite) -> TrackerScheduleItem {
+        TrackerScheduleItem(id: id, name: w.label ?? "Every week", label: w.label, days: w.days,
+                            interval: w.interval, time: w.time, endsOn: w.endsOn,
+                            plannedValues: w.plannedValues, unrecordedAlert: w.unrecordedAlert)
+    }
 
     static func service(receivers: [TeamReceiver] = [eleanor],
                         trackers: [TrackerItem] = trackers,
@@ -141,8 +206,35 @@ enum TrackersFixtures {
                 return p
             },
             listEntries: { id, _ in EntriesPage(entries: entries[id] ?? [], nextCursor: nil) },
-            listSchedules: { _ in medicationSchedules }
+            listSchedules: { _ in medicationSchedules },
+            listTemplates: { templates },
+            addTracker: { _, w in profile(id: "new-tracker", from: w) },
+            editTracker: { id, w, _ in
+                let before = profiles.first(where: { $0.id == id })
+                return profile(id: id, from: w, status: before?.status ?? .active,
+                               scheduleCount: w.gapHours == nil ? before?.scheduleCount ?? 0 : 0)
+            },
+            pauseTracker: { id in
+                guard let p = profiles.first(where: { $0.id == id }) else { throw Unreachable() }
+                return p.with(status: .paused)
+            },
+            resumeTracker: { id in
+                guard let p = profiles.first(where: { $0.id == id }) else { throw Unreachable() }
+                return p.with(status: .active)
+            },
+            addSchedule: { _, w, _ in schedule(id: "new-schedule", from: w) },
+            changeSchedule: { id, w in schedule(id: id, from: w) },
+            removeSchedule: { _ in }
         )
+    }
+}
+extension TrackerProfile {
+    /// This profile paused or resumed, as the pause and resume stubs answer.
+    func with(status: TrackerStatus) -> TrackerProfile {
+        TrackerProfile(id: id, name: name, icon: icon, color: color, status: status,
+                       pausedAt: status == .paused ? Date() : nil, fields: fields, gapHours: gapHours,
+                       scheduleCount: scheduleCount, lastLoggedAt: lastLoggedAt,
+                       attention: status == .paused ? [] : attention)
     }
 }
 #endif

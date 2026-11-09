@@ -546,8 +546,17 @@ final class AllTrackersEntryModelTests: XCTestCase {
         let harold = TeamReceiver(id: "r2", name: "Harold", timeZone: Fixed.chicago)
         let model = AllTrackersEntryModel(team: team, service: service(receivers: { _ in [eleanor, harold] }))
         await model.open()
-        XCTAssertEqual(model.receiver, eleanor)
+        XCTAssertEqual(model.receiver?.id, eleanor.id)
+        XCTAssertEqual(model.receiver?.canManage, true, "an admin of the team manages its trackers")
         XCTAssertEqual(model.outcome, .idle)
+    }
+
+    func testACaregiverReachesTheReceiverWithoutManaging() async {
+        let caregiver = Account.Team(teamID: "team-riverside", name: "The Riverside Group", role: "caregiver")
+        let eleanor = TeamReceiver(id: "r1", name: "Eleanor", timeZone: Fixed.chicago)
+        let model = AllTrackersEntryModel(team: caregiver, service: service(receivers: { _ in [eleanor] }))
+        await model.open()
+        XCTAssertEqual(model.receiver?.canManage, false)
     }
 
     func testATeamWithNoReceiversSaysSo() async {

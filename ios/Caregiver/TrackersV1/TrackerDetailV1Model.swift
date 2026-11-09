@@ -135,7 +135,7 @@ final class AllTrackersEntryModel {
         defer { isLoading = false }
         do {
             if let first = try await service.listReceivers(team.teamID).first {
-                receiver = first
+                receiver = first.managed(by: team)
             } else {
                 outcome = .noReceivers(teamName: team.name)
             }

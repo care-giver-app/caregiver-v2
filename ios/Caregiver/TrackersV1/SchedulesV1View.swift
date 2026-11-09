@@ -5,6 +5,8 @@ import SwiftUI
 struct SchedulesV1View: View {
     let trackerID: String
     let trackerName: String
+    /// Whose tracker it is; `canManage` says whether Edit is offered.
+    let receiver: TeamReceiver
     let service: TrackersService
 
     @State private var model: SchedulesV1Model?
@@ -93,7 +95,7 @@ struct SchedulesV1View: View {
 #Preview("Medication") {
     NavigationStack {
         SchedulesV1View(trackerID: "medication", trackerName: "Medication",
-                        service: TrackersFixtures.service())
+                        receiver: TrackersFixtures.eleanor, service: TrackersFixtures.service())
     }
 }
 #endif

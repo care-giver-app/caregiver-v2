@@ -118,7 +118,8 @@ struct TrackerDetailV1View: View {
     @ViewBuilder
     private func watchLine(_ profile: TrackerProfile) -> some View {
         if profile.scheduleCount > 0 {
-            NavigationLink(value: V1Route.schedules(trackerID: profile.id, trackerName: profile.name)) {
+            NavigationLink(value: V1Route.schedules(trackerID: profile.id, trackerName: profile.name,
+                                                    receiver: receiver)) {
                 HStack {
                     Text(TrackerText.scheduleCount(profile.scheduleCount))
                         .font(.system(size: 16, weight: .semibold))
