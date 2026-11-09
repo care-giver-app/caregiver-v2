@@ -104,3 +104,54 @@ func (s *Stores) RedeemInvitation(ctx context.Context, code string, m domain.Mem
 func conditionFailed(r types.CancellationReason) bool {
 	return aws.ToString(r.Code) == "ConditionalCheckFailed"
 }
+
+// ErrTrackerHasGap is returned by AddSchedule when the tracker is watched by a
+// gap and the caller did not confirm turning it off.
+var ErrTrackerHasGap = errors.New("tracker is watched by a gap")
+
+// AddSchedule writes a new schedule and, in the same transaction, checks its
+// tracker: a tracker has schedules or a gap, never both. With replaceGap false
+// the tracker must have no gap (ErrTrackerHasGap otherwise); with it true the
+// gap is removed. A tracker that no longer exists returns ErrNotFound.
+func (s *Stores) AddSchedule(ctx context.Context, sc domain.Schedule, replaceGap bool) error {
+	item, err := MarshalItem(sc)
+	if err != nil {
+		return err
+	}
+	tracker := types.TransactWriteItem{ConditionCheck: &types.ConditionCheck{
+		TableName:           aws.String(s.names.Trackers),
+		Key:                 trackerKey(sc.TrackerID),
+		ConditionExpression: aws.String("attribute_exists(tracker_id) AND attribute_not_exists(gap_hours)"),
+		// Returned on failure, to tell a missing tracker from a gapped one.
+		ReturnValuesOnConditionCheckFailure: types.ReturnValuesOnConditionCheckFailureAllOld,
+	}}
+	if replaceGap {
+		tracker = types.TransactWriteItem{Update: &types.Update{
+			TableName:           aws.String(s.names.Trackers),
+			Key:                 trackerKey(sc.TrackerID),
+			UpdateExpression:    aws.String("REMOVE gap_hours"),
+			ConditionExpression: aws.String("attribute_exists(tracker_id)"),
+		}}
+	}
+	_, err = s.client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{Put: &types.Put{
+				TableName:           aws.String(s.names.Schedules),
+				Item:                item,
+				ConditionExpression: aws.String("attribute_not_exists(schedule_id)"),
+			}},
+			tracker,
+		},
+	})
+	var tce *types.TransactionCanceledException
+	if !errors.As(err, &tce) {
+		return err
+	}
+	if r := tce.CancellationReasons; len(r) > 1 && conditionFailed(r[1]) {
+		if replaceGap || len(r[1].Item) == 0 {
+			return ErrNotFound
+		}
+		return ErrTrackerHasGap
+	}
+	return err
+}

@@ -149,7 +149,7 @@ func (s *EntryStore) OpenByReceiver(ctx context.Context, receiverID, trackerID s
 // conditional on the entry still being scheduled, so one logged meanwhile
 // survives. It returns how many were deleted.
 func (s *EntryStore) DeleteFutureOpenForTracker(ctx context.Context, trackerID string, now time.Time) (int, error) {
-	in := &dynamodb.QueryInput{
+	return s.deleteStillScheduled(ctx, &dynamodb.QueryInput{
 		TableName:              aws.String(s.table),
 		IndexName:              aws.String(trackerTime),
 		KeyConditionExpression: aws.String("tracker_id = :t AND timeline_at > :now"),
@@ -159,7 +159,31 @@ func (s *EntryStore) DeleteFutureOpenForTracker(ctx context.Context, trackerID s
 			":t":   &types.AttributeValueMemberS{Value: trackerID},
 			":now": timeKey(now),
 		},
-	}
+	})
+}
+
+// DeleteFutureOpenForSchedule deletes the schedule's scheduled entries whose
+// occurrence_at is after now, via the schedule-index — what changing or
+// removing a schedule replaces. Logged, skipped and already-unrecorded entries
+// stay, and each delete is conditional on the entry still being scheduled. It
+// returns how many were deleted.
+func (s *EntryStore) DeleteFutureOpenForSchedule(ctx context.Context, scheduleID string, now time.Time) (int, error) {
+	return s.deleteStillScheduled(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String(s.table),
+		IndexName:              aws.String(scheduleIndex),
+		KeyConditionExpression: aws.String("schedule_id = :s AND occurrence_at > :now"),
+		FilterExpression:       aws.String("attribute_exists(open_at)"),
+		ProjectionExpression:   aws.String("entry_id"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":s":   &types.AttributeValueMemberS{Value: scheduleID},
+			":now": timeKey(now),
+		},
+	})
+}
+
+// deleteStillScheduled deletes every entry the query finds, each on condition
+// that it is still scheduled, and returns how many went.
+func (s *EntryStore) deleteStillScheduled(ctx context.Context, in *dynamodb.QueryInput) (int, error) {
 	deleted := 0
 	for {
 		out, err := s.client.Query(ctx, in)
@@ -190,4 +214,25 @@ func (s *EntryStore) DeleteFutureOpenForTracker(ctx context.Context, trackerID s
 		}
 		in.ExclusiveStartKey = out.LastEvaluatedKey
 	}
+}
+
+// CreateIfAbsent writes an entry unless one with its id already exists, and
+// reports whether it wrote it. The generator's entry ids are deterministic, so
+// a re-run, or two runs at once, find the occurrence already there — and an
+// occurrence already logged or skipped is never overwritten.
+func (s *EntryStore) CreateIfAbsent(ctx context.Context, e domain.Entry) (bool, error) {
+	item, err := MarshalItem(e)
+	if err != nil {
+		return false, err
+	}
+	_, err = s.client.PutItem(ctx, &dynamodb.PutItemInput{
+		TableName:           aws.String(s.table),
+		Item:                item,
+		ConditionExpression: aws.String("attribute_not_exists(entry_id)"),
+	})
+	var ccf *types.ConditionalCheckFailedException
+	if errors.As(err, &ccf) {
+		return false, nil
+	}
+	return err == nil, err
 }

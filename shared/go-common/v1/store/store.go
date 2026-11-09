@@ -53,6 +53,7 @@ const (
 	trackerIndex  = "tracker-index"
 	trackerTime   = "tracker-time"
 	openIndex     = "open-index"
+	scheduleIndex = "schedule-index"
 )
 
 // New builds Stores from a DynamoDB client and table names.
