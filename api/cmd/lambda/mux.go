@@ -143,6 +143,8 @@ func newV1Stores(ctx context.Context) (*v1store.Stores, error) {
 		Trackers:    os.Getenv("V1_TRACKERS_TABLE"),
 		Schedules:   os.Getenv("V1_SCHEDULES_TABLE"),
 		Entries:     os.Getenv("V1_ENTRIES_TABLE"),
+		// Not yet required below: infra sets it with the Home handlers.
+		JournalNotes: os.Getenv("V1_JOURNAL_NOTES_TABLE"),
 	}
 	if names.Users == "" || names.Teams == "" || names.Memberships == "" || names.Invitations == "" ||
 		names.Receivers == "" || names.Trackers == "" || names.Schedules == "" || names.Entries == "" {

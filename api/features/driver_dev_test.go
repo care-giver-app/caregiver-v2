@@ -52,14 +52,15 @@ func newDevDriver(t *testing.T) *devDriver {
 		base: strings.TrimRight(base, "/"), poolID: poolID, clientID: clientID,
 		http: &http.Client{Timeout: 30 * time.Second},
 		t: tables{client: dynamodb.NewFromConfig(cfg), names: store.TableNames{
-			Users:       "caregiver-dev-v1-user",
-			Teams:       "caregiver-dev-v1-team",
-			Memberships: "caregiver-dev-v1-membership",
-			Invitations: "caregiver-dev-v1-invitation",
-			Receivers:   "caregiver-dev-v1-receiver",
-			Trackers:    "caregiver-dev-v1-tracker",
-			Schedules:   "caregiver-dev-v1-schedule",
-			Entries:     "caregiver-dev-v1-entry",
+			Users:        "caregiver-dev-v1-user",
+			Teams:        "caregiver-dev-v1-team",
+			Memberships:  "caregiver-dev-v1-membership",
+			Invitations:  "caregiver-dev-v1-invitation",
+			Receivers:    "caregiver-dev-v1-receiver",
+			Trackers:     "caregiver-dev-v1-tracker",
+			Schedules:    "caregiver-dev-v1-schedule",
+			Entries:      "caregiver-dev-v1-entry",
+			JournalNotes: "caregiver-dev-v1-journal-note",
 		}},
 	}
 }

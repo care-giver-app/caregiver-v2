@@ -121,9 +121,96 @@ func (s *EntryStore) RecentLoggedByTracker(ctx context.Context, trackerID string
 	}
 }
 
+func entryKey(entryID string) map[string]types.AttributeValue {
+	return map[string]types.AttributeValue{"entry_id": &types.AttributeValueMemberS{Value: entryID}}
+}
+
+// Get returns one entry, in whatever state it is in, or ErrNotFound.
+func (s *EntryStore) Get(ctx context.Context, entryID string) (domain.Entry, error) {
+	return getItem[domain.Entry](ctx, s.client, s.table, entryKey(entryID))
+}
+
+// ListByReceiverBetween returns every entry of the receiver, in every state and
+// from every tracker (paused ones included), whose timeline_at is in [from, to),
+// oldest first, via the receiver-time index. It reads to the end: the caller
+// bounds it to one local day, which family scale keeps small. Leaving out the
+// occurrences still to come is the caller's, since that depends on now.
+func (s *EntryStore) ListByReceiverBetween(ctx context.Context, receiverID string, from, to time.Time) ([]domain.Entry, error) {
+	if !to.After(from) {
+		return nil, nil
+	}
+	return queryAll[domain.Entry](ctx, s.client, &dynamodb.QueryInput{
+		TableName:              aws.String(s.table),
+		IndexName:              aws.String(receiverTime),
+		KeyConditionExpression: aws.String("receiver_id = :r AND timeline_at BETWEEN :from AND :to"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":r":    &types.AttributeValueMemberS{Value: receiverID},
+			":from": timeKey(from),
+			// Stored times carry nanoseconds, so the nanosecond before to is
+			// the last one inside a half-open [from, to).
+			":to": timeKey(to.Add(-time.Nanosecond)),
+		},
+		ScanIndexForward: aws.Bool(true),
+	})
+}
+
+// NextOpenByTracker returns, for each of trackerIDs, its soonest scheduled
+// entry whose open_at is after now, soonest first; a tracker with none is
+// absent. It walks the receiver's open-index forward from now and stops once
+// every tracker asked about has been found, so a tracker with a far-off next
+// occurrence (the generator always writes each schedule's next one, however
+// far beyond its horizon) costs reading up to it, never past it. Entries of
+// trackers not asked about — paused ones, say — are passed over.
+func (s *EntryStore) NextOpenByTracker(ctx context.Context, receiverID string, trackerIDs []string, now time.Time) ([]domain.Entry, error) {
+	want := make(map[string]bool, len(trackerIDs))
+	for _, id := range trackerIDs {
+		want[id] = true
+	}
+	if len(want) == 0 {
+		return nil, nil
+	}
+	in := &dynamodb.QueryInput{
+		TableName:              aws.String(s.table),
+		IndexName:              aws.String(openIndex),
+		KeyConditionExpression: aws.String("receiver_id = :r AND open_at > :now"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":r":   &types.AttributeValueMemberS{Value: receiverID},
+			":now": timeKey(now),
+		},
+		ScanIndexForward: aws.Bool(true),
+	}
+	var next []domain.Entry
+	for {
+		out, err := s.client.Query(ctx, in)
+		if err != nil {
+			return nil, err
+		}
+		var page []domain.Entry
+		if err := attributevalue.UnmarshalListOfMaps(out.Items, &page); err != nil {
+			return nil, err
+		}
+		for _, e := range page {
+			if want[e.TrackerID] {
+				delete(want, e.TrackerID)
+				next = append(next, e)
+				if len(want) == 0 {
+					return next, nil
+				}
+			}
+		}
+		if len(out.LastEvaluatedKey) == 0 {
+			return next, nil
+		}
+		in.ExclusiveStartKey = out.LastEvaluatedKey
+	}
+}
+
 // OpenByReceiver returns the receiver's scheduled (still open) entries with
 // open_at in [from, to], oldest first, via the sparse open-index. A non-empty
-// trackerID keeps only that tracker's.
+// trackerID keeps only that tracker's. Quick log's waiting list is one call:
+// from now less UnrecordedWindow to the end of the receiver's today. A paused
+// tracker's past unrecorded entries are still open, so callers that must leave
+// paused trackers out filter them.
 func (s *EntryStore) OpenByReceiver(ctx context.Context, receiverID, trackerID string, from, to time.Time) ([]domain.Entry, error) {
 	in := &dynamodb.QueryInput{
 		TableName:              aws.String(s.table),
@@ -216,7 +303,7 @@ func (s *EntryStore) deleteStillScheduled(ctx context.Context, in *dynamodb.Quer
 func (s *EntryStore) DeleteIfScheduled(ctx context.Context, entryID string) (bool, error) {
 	_, err := s.client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
 		TableName:                aws.String(s.table),
-		Key:                      map[string]types.AttributeValue{"entry_id": &types.AttributeValueMemberS{Value: entryID}},
+		Key:                      entryKey(entryID),
 		ConditionExpression:      aws.String("#s = :scheduled"),
 		ExpressionAttributeNames: map[string]string{"#s": "state"},
 		ExpressionAttributeValues: map[string]types.AttributeValue{
