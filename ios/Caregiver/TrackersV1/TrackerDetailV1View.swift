@@ -3,7 +3,8 @@ import SwiftUI
 /// Tracker detail — one tracker, whole: what it is, how it is doing, and every
 /// entry logged, skipped or unrecorded against it, newest first (PRD "Tracker
 /// detail"; Figma 371:3339 active, 371:3397 never logged, 372:3371 gap alert,
-/// 372:3407 paused). Edit, Log an entry and Resume arrive with PR 4 / Home.
+/// 372:3407 paused). Admins get Edit in the nav, and Resume on a paused tracker. Log an
+/// entry arrives with Home.
 struct TrackerDetailV1View: View {
     let trackerID: String
     let receiver: TeamReceiver
@@ -13,6 +14,10 @@ struct TrackerDetailV1View: View {
     /// All on open, every time — the choice is not remembered (PRD "Tracker detail").
     @State private var window: EntryWindow = .all
     @State private var choosingDates = false
+    @State private var editing = false
+    /// How Edit tracker ended, acted on once its sheet is down.
+    @State private var editOutcome: EditTrackerOutcome?
+    @Environment(\.v1PopToTrackers) private var popToTrackers
 
     private var zone: TimeZone { receiver.timeZone }
 
@@ -29,9 +34,32 @@ struct TrackerDetailV1View: View {
         .strideBackButton()
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let model, model.canEdit {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") { editing = true }
+                }
+            }
+        }
+        .sheet(isPresented: $editing, onDismiss: {
+            let outcome = editOutcome
+            editOutcome = nil
+            switch outcome {
+            case .saved, .schedulesChanged: Task { await model?.load() }
+            case .paused: popToTrackers()
+            case nil: break
+            }
+        }) {
+            if let profile = model?.profile {
+                EditTrackerV1Sheet(profile: profile, receiver: receiver, service: service) { editOutcome = $0 }
+            }
+        }
         .tint(Theme.Colors.accent)
         .task {
-            if model == nil {
+            if let model {
+                // Back from Schedules, where Edit tracker may have changed it.
+                await model.load()
+            } else {
                 let model = TrackerDetailV1Model(trackerID: trackerID, receiver: receiver, service: service)
                 self.model = model
                 await model.load()
@@ -86,9 +114,14 @@ struct TrackerDetailV1View: View {
         .refreshable { await model.load() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if profile.status == .paused {
-                pausedStatus(profile, now: now)
-                    .padding(.horizontal, Theme.Spacing.lg)
-                    .padding(.vertical, Theme.Spacing.sm)
+                VStack(spacing: 12) {
+                    pausedStatus(profile, now: now)
+                    if model.canResume {
+                        resume(profile, model: model)
+                    }
+                }
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.vertical, Theme.Spacing.sm)
             }
         }
     }
@@ -118,7 +151,8 @@ struct TrackerDetailV1View: View {
     @ViewBuilder
     private func watchLine(_ profile: TrackerProfile) -> some View {
         if profile.scheduleCount > 0 {
-            NavigationLink(value: V1Route.schedules(trackerID: profile.id, trackerName: profile.name)) {
+            NavigationLink(value: V1Route.schedules(trackerID: profile.id, trackerName: profile.name,
+                                                    receiver: receiver)) {
                 HStack {
                     Text(TrackerText.scheduleCount(profile.scheduleCount))
                         .font(.system(size: 16, weight: .semibold))
@@ -165,7 +199,23 @@ struct TrackerDetailV1View: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// Figma 424:3832, without Resume (PR 4).
+    /// Figma 372:3407: Resume, saying first what it starts again. It doesn't ask twice.
+    private func resume(_ profile: TrackerProfile, model: TrackerDetailV1Model) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            if let failed = model.resumeFailed {
+                StrideAlertBanner(message: "Couldn't resume the tracker. \(failed.message)")
+            }
+            Text(TrackerText.resumeExplanation(profile))
+                .font(Theme.Typography.subhead)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            StrideButton(title: "Resume", isLoading: model.isResuming) {
+                Task { await model.resume() }
+            }
+        }
+    }
+
+    /// Figma 424:3832: when it was paused and what that means.
     private func pausedStatus(_ profile: TrackerProfile, now: Date) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(TrackerText.paused(at: profile.pausedAt, now: now, zone: zone))
@@ -371,6 +421,13 @@ private extension View {
 #Preview("Paused") {
     NavigationStack {
         TrackerDetailV1View(trackerID: "walk", receiver: TrackersFixtures.eleanor,
+                            service: TrackersFixtures.service())
+    }
+}
+
+#Preview("Paused, caregiver") {
+    NavigationStack {
+        TrackerDetailV1View(trackerID: "walk", receiver: TrackersFixtures.eleanorForCaregiver,
                             service: TrackersFixtures.service())
     }
 }

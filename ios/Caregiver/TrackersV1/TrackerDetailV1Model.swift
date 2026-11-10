@@ -48,6 +48,33 @@ final class TrackerDetailV1Model {
         await load()
     }
 
+    // MARK: Resume
+
+    private(set) var isResuming = false
+    private(set) var resumeFailed: AppError?
+
+    /// Resume, offered to admins on a paused tracker (PRD "Tracker detail").
+    var canResume: Bool { receiver.canManage && profile?.status == .paused }
+    /// Edit, offered to admins on any tracker, paused ones included (PRD).
+    var canEdit: Bool { receiver.canManage && profile != nil }
+
+    /// Resume, without asking twice: the tracker goes back the way it was. Resume answers
+    /// with the tracker as it now is, so only its entries are read again.
+    func resume() async {
+        guard canResume, !isResuming else { return }
+        isResuming = true
+        resumeFailed = nil
+        defer { isResuming = false }
+        do {
+            phase = .loaded(try await service.resumeTracker(trackerID))
+            refreshFailed = false
+        } catch {
+            resumeFailed = AppError.from(error)
+            return
+        }
+        await entries.refresh()
+    }
+
     private func loadDetail() async {
         do {
             phase = .loaded(try await service.trackerDetail(trackerID))
@@ -135,7 +162,7 @@ final class AllTrackersEntryModel {
         defer { isLoading = false }
         do {
             if let first = try await service.listReceivers(team.teamID).first {
-                receiver = first
+                receiver = first.managed(by: team)
             } else {
                 outcome = .noReceivers(teamName: team.name)
             }

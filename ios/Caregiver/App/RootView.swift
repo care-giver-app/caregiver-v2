@@ -39,6 +39,10 @@ struct RootView: View {
                                       trackers: .live(session.api), path: $v1Path)
                         .v1Destinations(service: .live(session.api))
                 }
+                .environment(\.v1Push, V1Push { [path = $v1Path] in path.wrappedValue.append($0) })
+                .environment(\.v1PopToTrackers, V1PopToTrackers { [path = $v1Path] in
+                    path.wrappedValue = V1Route.poppedToTrackers(path.wrappedValue)
+                })
                 .tint(Theme.Colors.accent)
             }
         }

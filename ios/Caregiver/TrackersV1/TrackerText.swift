@@ -82,6 +82,23 @@ enum TrackerText {
         return "Its \(length) gap counts from the day it was made."
     }
 
+    /// What Resume starts again, said before it is pressed (PRD "Tracker detail"): logging,
+    /// then its schedules from now, then whatever alerts it.
+    static func resumeExplanation(_ profile: TrackerProfile) -> String {
+        var parts = ["the team can log it again"]
+        if profile.scheduleCount > 0 {
+            parts.append("its \(scheduleCount(profile.scheduleCount)) start again from now")
+        }
+        let ranged = profile.fields.contains { !$0.paused && $0.range != nil }
+        if let hours = profile.gapHours {
+            parts.append("it alerts after \(duration(hours: hours)) without an entry")
+        }
+        if ranged {
+            parts.append("readings out of range alert the team")
+        }
+        return "Once resumed, " + ListFormatter.localizedString(byJoining: parts) + "."
+    }
+
     /// "Paused Nov 3" headline and what it means (Figma 424:3832).
     static let pausedExplanation = "Nothing new can be logged, and its alerts are off. Its history is kept."
 
@@ -201,6 +218,35 @@ enum TrackerText {
         case (false, _): parts = [days(s.days), frequency(intervalWeeks: s.interval), clock(s.time)]
         }
         return parts.joined(separator: " · ")
+    }
+
+    /// The name the server gives a schedule left unlabelled
+    /// (`shared/go-common/v1/domain/schedule_name.go`): "Mon, Wed, Fri at 8:00 AM",
+    /// "Every day at 9:00 PM", "Every 2 weeks: Mon at 8:00 AM". Nil with no days chosen.
+    static func derivedScheduleName(days: [ScheduleWeekday], interval: Int, time: String) -> String? {
+        let set = Set(days)
+        guard !set.isEmpty else { return nil }
+        let names: [ScheduleWeekday: String] = [.mo: "Mon", .tu: "Tue", .we: "Wed", .th: "Thu",
+                                                .fr: "Fri", .sa: "Sat", .su: "Sun"]
+        let all = set.count == ScheduleWeekday.allCases.count
+        let when = all ? "Every day" : set.sorted().compactMap { names[$0] }.joined(separator: ", ")
+        var name = "\(when) at \(clock(time))"
+        if interval > 1 {
+            if all { name = "every day at \(clock(time))" }
+            name = "Every \(interval) weeks: \(name)"
+        }
+        return name
+    }
+
+    /// A schedule's Repeats choice (PRD "A schedule": a month is four weeks).
+    static func repeats(intervalWeeks n: Int) -> String {
+        switch n {
+        case 1: "Every week"
+        case 2: "Every two weeks"
+        case 4: "Every month"
+        case 8: "Every two months"
+        default: "Every \(n) weeks"
+        }
     }
 
     static let alertsIfUnrecorded = "Alerts the team if it goes unrecorded"

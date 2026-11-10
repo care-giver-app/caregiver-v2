@@ -2,12 +2,17 @@ import SwiftUI
 
 /// Trackers — every tracker of the active care receiver, in three filtered views
 /// (PRD "Trackers"; Figma 369:3180 default, 369:3277 needs attention, 393:3597
-/// paused, 369:3312 empty). Add new and the empty state's Add a tracker are PR 4.
+/// paused, 369:3312 empty). Admins add trackers from Add new and the empty state's Add a
+/// tracker; Create lands on the new tracker, pushed on the one `/v1` stack.
 struct TrackersV1View: View {
     let receiver: TeamReceiver
     let service: TrackersService
 
     @State private var model: TrackersListModel?
+    @State private var isAdding = false
+    /// The tracker Add tracker just made, pushed once its sheet is gone.
+    @State private var created: String?
+    @Environment(\.v1Push) private var push
 
     var body: some View {
         Group {
@@ -26,6 +31,21 @@ struct TrackersV1View: View {
             ToolbarItem(placement: .principal) {
                 StrideNavTitle(title: "Trackers", subtitle: receiver.name)
             }
+            if receiver.canManage {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { isAdding = true } label: {
+                        Label("Add new", systemImage: "plus").labelStyle(.titleAndIcon)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $isAdding, onDismiss: {
+            // Pushed only once the sheet is down, so the push lands on the stack beneath it.
+            guard let id = created else { return }
+            created = nil
+            push(.tracker(id: id, receiver: receiver))
+        }) {
+            AddTrackerV1Sheet(receiver: receiver, service: service) { created = $0.id }
         }
         .tint(Theme.Colors.accent)
         .task {
@@ -56,15 +76,22 @@ struct TrackersV1View: View {
         }
     }
 
-    /// Figma 369:3316 without its Add a tracker, which arrives with Add tracker (PR 4).
+    /// Figma 369:3316. Add a tracker is an admin's; a caregiver sees the words alone.
     private var empty: some View {
         VStack(spacing: Theme.Spacing.sm) {
             Text("Nothing is being tracked yet")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.Colors.textPrimary)
-            Text("Create your first tracker for \(receiver.name)")
+            // A caregiver can't make one, so they're told who does (PRD "Trackers", empty).
+            Text(receiver.canManage
+                 ? "Create your first tracker for \(receiver.name)"
+                 : "An admin on the team can add the first one.")
                 .font(.system(size: 14))
                 .foregroundStyle(Theme.Colors.textSecondary)
+            if receiver.canManage {
+                StrideButton(title: "Add a tracker") { isAdding = true }
+                    .padding(.top, Theme.Spacing.md)
+            }
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, Theme.Spacing.lg)
@@ -164,6 +191,22 @@ struct StrideNavTitle: View {
     NavigationStack {
         TrackersV1View(receiver: TrackersFixtures.eleanor, service: TrackersFixtures.service(trackers: []))
     }
+}
+
+#Preview("Empty receiver, caregiver") {
+    NavigationStack {
+        TrackersV1View(receiver: TrackersFixtures.eleanorForCaregiver,
+                       service: TrackersFixtures.service(trackers: []))
+    }
+}
+
+#Preview("Add tracker, then its detail") {
+    @Previewable @State var path: [V1Route] = []
+    NavigationStack(path: $path) {
+        TrackersV1View(receiver: TrackersFixtures.eleanor, service: TrackersFixtures.service())
+            .v1Destinations(service: TrackersFixtures.service())
+    }
+    .environment(\.v1Push, V1Push { [path = $path] in path.wrappedValue.append($0) })
 }
 
 #Preview("Every tracker paused") {
