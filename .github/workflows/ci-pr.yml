@@ -120,7 +120,11 @@ jobs:
   deploy-dev:
     name: Deploy to dev
     needs: [lint, cdk-diff]
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Renovate opens PRs in batches; each one queued here bumps any waiting deploy out of the
+    # one-pending slot, and leaves dev running a dependency branch. Its PRs still run every check.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !startsWith(github.head_ref, 'renovate/')
     runs-on: ubuntu-latest
     concurrency:
       group: deploy-dev
