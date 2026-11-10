@@ -107,6 +107,14 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	mux.Handle("DELETE /v1/schedules/{scheduleId}", v1authn.Wrap(http.HandlerFunc(v1trk.RemoveSchedule)))
 	mux.Handle("GET /v1/tracker-templates", v1authn.Wrap(http.HandlerFunc(v1.NewTemplates().List)))
 
+	v1home := v1.NewHome(v1Stores)
+	mux.Handle("GET /v1/receivers/{receiverId}/attention", v1authn.Wrap(http.HandlerFunc(v1home.Attention)))
+	mux.Handle("GET /v1/receivers/{receiverId}/coming-up", v1authn.Wrap(http.HandlerFunc(v1home.ComingUp)))
+	mux.Handle("GET /v1/receivers/{receiverId}/timeline", v1authn.Wrap(http.HandlerFunc(v1home.Timeline)))
+	mux.Handle("GET /v1/receivers/{receiverId}/waiting", v1authn.Wrap(http.HandlerFunc(v1home.Waiting)))
+	mux.Handle("GET /v1/entries/{entryId}", v1authn.Wrap(http.HandlerFunc(v1home.Entry)))
+	mux.Handle("GET /v1/journal-notes/{noteId}", v1authn.Wrap(http.HandlerFunc(v1home.JournalNote)))
+
 	return middleware.RequestLogger(log)(mux), nil
 }
 
@@ -135,20 +143,20 @@ func newStores(ctx context.Context) (*store.Stores, error) {
 
 func newV1Stores(ctx context.Context) (*v1store.Stores, error) {
 	names := v1store.TableNames{
-		Users:       os.Getenv("V1_USERS_TABLE"),
-		Teams:       os.Getenv("V1_TEAMS_TABLE"),
-		Memberships: os.Getenv("V1_MEMBERSHIPS_TABLE"),
-		Invitations: os.Getenv("V1_INVITATIONS_TABLE"),
-		Receivers:   os.Getenv("V1_RECEIVERS_TABLE"),
-		Trackers:    os.Getenv("V1_TRACKERS_TABLE"),
-		Schedules:   os.Getenv("V1_SCHEDULES_TABLE"),
-		Entries:     os.Getenv("V1_ENTRIES_TABLE"),
-		// Not yet required below: infra sets it with the Home handlers.
+		Users:        os.Getenv("V1_USERS_TABLE"),
+		Teams:        os.Getenv("V1_TEAMS_TABLE"),
+		Memberships:  os.Getenv("V1_MEMBERSHIPS_TABLE"),
+		Invitations:  os.Getenv("V1_INVITATIONS_TABLE"),
+		Receivers:    os.Getenv("V1_RECEIVERS_TABLE"),
+		Trackers:     os.Getenv("V1_TRACKERS_TABLE"),
+		Schedules:    os.Getenv("V1_SCHEDULES_TABLE"),
+		Entries:      os.Getenv("V1_ENTRIES_TABLE"),
 		JournalNotes: os.Getenv("V1_JOURNAL_NOTES_TABLE"),
 	}
 	if names.Users == "" || names.Teams == "" || names.Memberships == "" || names.Invitations == "" ||
-		names.Receivers == "" || names.Trackers == "" || names.Schedules == "" || names.Entries == "" {
-		return nil, fmt.Errorf("all V1_*_TABLE env vars (users, teams, memberships, invitations, receivers, trackers, schedules, entries) must be set")
+		names.Receivers == "" || names.Trackers == "" || names.Schedules == "" || names.Entries == "" ||
+		names.JournalNotes == "" {
+		return nil, fmt.Errorf("all V1_*_TABLE env vars (users, teams, memberships, invitations, receivers, trackers, schedules, entries, journal notes) must be set")
 	}
 	client, err := v1store.NewClient(ctx, os.Getenv("DYNAMODB_ENDPOINT"))
 	if err != nil {

@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -105,6 +106,28 @@ func (h *Trackers) Entries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	names, err := loadEntryNames(ctx, h.stores, entries)
+	if err != nil {
+		httpx.ServerError(w, r, err, "entry names load failed")
+		return
+	}
+	page := entryPage{Entries: make([]entryView, 0, len(entries)), NextCursor: next}
+	for _, e := range entries {
+		page.Entries = append(page.Entries, names.view(e, now))
+	}
+	httpx.WriteJSON(w, http.StatusOK, page)
+}
+
+// entryNames resolves the names entry views carry: who logged or skipped each
+// entry, and the schedule it came from (removed schedules still name theirs).
+type entryNames struct {
+	users     map[string]domain.User
+	schedules map[string]domain.Schedule
+}
+
+// loadEntryNames reads the caregivers and schedules entries name, and any
+// further users the caller will name alongside them.
+func loadEntryNames(ctx context.Context, s *store.Stores, entries []domain.Entry, moreUsers ...string) (entryNames, error) {
 	var userIDs, scheduleIDs []string
 	for _, e := range entries {
 		if id := byUserID(e); id != "" {
@@ -114,35 +137,38 @@ func (h *Trackers) Entries(w http.ResponseWriter, r *http.Request) {
 			scheduleIDs = append(scheduleIDs, e.ScheduleID)
 		}
 	}
-	users, err := h.stores.Users.BatchGet(ctx, userIDs)
-	if err != nil {
-		httpx.ServerError(w, r, err, "caregiver load failed")
-		return
+	for _, id := range moreUsers {
+		if id != "" {
+			userIDs = append(userIDs, id)
+		}
 	}
-	schedules, err := h.stores.Schedules.BatchGet(ctx, scheduleIDs)
+	users, err := s.Users.BatchGet(ctx, userIDs)
 	if err != nil {
-		httpx.ServerError(w, r, err, "schedule load failed")
-		return
+		return entryNames{}, err
 	}
+	schedules, err := s.Schedules.BatchGet(ctx, scheduleIDs)
+	if err != nil {
+		return entryNames{}, err
+	}
+	return entryNames{users: users, schedules: schedules}, nil
+}
 
-	page := entryPage{Entries: make([]entryView, 0, len(entries)), NextCursor: next}
-	for _, e := range entries {
-		v := entryView{
-			EntryID: e.EntryID, TrackerID: e.TrackerID, State: string(e.DisplayState(now)),
-			At: apiTime(e.TimelineAt), Values: e.Values, Note: e.Note, ScheduleID: e.ScheduleID,
-		}
-		if v.Values == nil {
-			v.Values = map[string]any{}
-		}
-		if id := byUserID(e); id != "" {
-			v.ByName = caregiverName(users, id)
-		}
-		if sc, ok := schedules[e.ScheduleID]; ok {
-			v.ScheduleName = domain.ScheduleName(sc)
-		}
-		page.Entries = append(page.Entries, v)
+// view is e as the Entry schema, in the state it reads as at now.
+func (n entryNames) view(e domain.Entry, now time.Time) entryView {
+	v := entryView{
+		EntryID: e.EntryID, TrackerID: e.TrackerID, State: string(e.DisplayState(now)),
+		At: apiTime(e.TimelineAt), Values: e.Values, Note: e.Note, ScheduleID: e.ScheduleID,
 	}
-	httpx.WriteJSON(w, http.StatusOK, page)
+	if v.Values == nil {
+		v.Values = map[string]any{}
+	}
+	if id := byUserID(e); id != "" {
+		v.ByName = caregiverName(n.users, id)
+	}
+	if sc, ok := n.schedules[e.ScheduleID]; ok {
+		v.ScheduleName = domain.ScheduleName(sc)
+	}
+	return v
 }
 
 // byUserID is who logged or skipped e, or "" while it is waiting.

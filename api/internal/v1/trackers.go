@@ -146,12 +146,38 @@ func attentionView(a domain.Attention) trackerAttention {
 
 // attentionInputs reads what EvaluateAttention needs for one tracker: its
 // recent logged entries and its open entries in the unrecorded window.
-func (h *Trackers) attentionInputs(ctx context.Context, t domain.Tracker, now time.Time) (logged, open []domain.Entry, err error) {
-	if logged, err = h.stores.Entries.RecentLoggedByTracker(ctx, t.TrackerID, store.RecentLoggedLimit); err != nil {
+func attentionInputs(ctx context.Context, s *store.Stores, t domain.Tracker, now time.Time) (logged, open []domain.Entry, err error) {
+	if logged, err = s.Entries.RecentLoggedByTracker(ctx, t.TrackerID, store.RecentLoggedLimit); err != nil {
 		return nil, nil, err
 	}
-	open, err = h.stores.Entries.OpenByReceiver(ctx, t.ReceiverID, t.TrackerID, now.Add(-domain.UnrecordedWindow), now)
+	open, err = s.Entries.OpenByReceiver(ctx, t.ReceiverID, t.TrackerID, now.Add(-domain.UnrecordedWindow), now)
 	return logged, open, err
+}
+
+// receiverAttention evaluates each of a receiver's trackers at now, with one
+// read of the receiver's open entries serving them all. It returns each
+// tracker's EvaluateAttention result and its recent logged entries, both keyed
+// by tracker_id.
+func receiverAttention(ctx context.Context, s *store.Stores, receiverID string, trackers []domain.Tracker, now time.Time) (map[string][]domain.Attention, map[string][]domain.Entry, error) {
+	open, err := s.Entries.OpenByReceiver(ctx, receiverID, "", now.Add(-domain.UnrecordedWindow), now)
+	if err != nil {
+		return nil, nil, err
+	}
+	openBy := make(map[string][]domain.Entry)
+	for _, e := range open {
+		openBy[e.TrackerID] = append(openBy[e.TrackerID], e)
+	}
+	attention := make(map[string][]domain.Attention, len(trackers))
+	logged := make(map[string][]domain.Entry, len(trackers))
+	for _, t := range trackers {
+		l, err := s.Entries.RecentLoggedByTracker(ctx, t.TrackerID, store.RecentLoggedLimit)
+		if err != nil {
+			return nil, nil, err
+		}
+		logged[t.TrackerID] = l
+		attention[t.TrackerID] = domain.EvaluateAttention(t, now, l, openBy[t.TrackerID])
+	}
+	return attention, logged, nil
 }
 
 // detail builds the TrackerDetail of t as it stands at now.
@@ -160,7 +186,7 @@ func (h *Trackers) detail(ctx context.Context, t domain.Tracker, now time.Time) 
 	if err != nil {
 		return trackerDetail{}, err
 	}
-	logged, open, err := h.attentionInputs(ctx, t, now)
+	logged, open, err := attentionInputs(ctx, h.stores, t, now)
 	if err != nil {
 		return trackerDetail{}, err
 	}
@@ -207,15 +233,10 @@ func (h *Trackers) ListByReceiver(w http.ResponseWriter, r *http.Request) {
 		httpx.ServerError(w, r, err, "tracker load failed")
 		return
 	}
-	// One read of the receiver's open entries serves every row.
-	open, err := h.stores.Entries.OpenByReceiver(ctx, rc.ReceiverID, "", now.Add(-domain.UnrecordedWindow), now)
+	attention, logged, err := receiverAttention(ctx, h.stores, rc.ReceiverID, trackers, now)
 	if err != nil {
 		httpx.ServerError(w, r, err, "entry load failed")
 		return
-	}
-	openBy := make(map[string][]domain.Entry)
-	for _, e := range open {
-		openBy[e.TrackerID] = append(openBy[e.TrackerID], e)
 	}
 	sort.Slice(trackers, func(i, j int) bool {
 		a, b := strings.ToLower(trackers[i].Name), strings.ToLower(trackers[j].Name)
@@ -226,16 +247,11 @@ func (h *Trackers) ListByReceiver(w http.ResponseWriter, r *http.Request) {
 	})
 	out := make([]trackerRow, 0, len(trackers))
 	for _, t := range trackers {
-		logged, err := h.stores.Entries.RecentLoggedByTracker(ctx, t.TrackerID, store.RecentLoggedLimit)
-		if err != nil {
-			httpx.ServerError(w, r, err, "entry load failed")
-			return
-		}
 		out = append(out, trackerRow{
 			TrackerID: t.TrackerID, Name: t.Name, Icon: t.Icon, Color: t.Color, Status: string(t.Status),
-			LastLoggedAt:   apiTimePtr(domain.LastLoggedAt(logged)),
+			LastLoggedAt:   apiTimePtr(domain.LastLoggedAt(logged[t.TrackerID])),
 			PausedAt:       apiTimePtr(t.PausedAt),
-			NeedsAttention: len(domain.EvaluateAttention(t, now, logged, openBy[t.TrackerID])) > 0,
+			NeedsAttention: len(attention[t.TrackerID]) > 0,
 		})
 	}
 	httpx.WriteJSON(w, http.StatusOK, out)

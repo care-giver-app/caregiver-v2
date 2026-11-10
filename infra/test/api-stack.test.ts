@@ -132,7 +132,7 @@ describe('ApiStack', () => {
     const t = Template.fromStack(apiStack);
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
-    t.resourceCountIs('AWS::ApiGatewayV2::Route', 48);
+    t.resourceCountIs('AWS::ApiGatewayV2::Route', 54);
 
     for (const routeKey of [
       'GET /me',
@@ -168,6 +168,12 @@ describe('ApiStack', () => {
       'PUT /v1/schedules/{scheduleId}',
       'DELETE /v1/schedules/{scheduleId}',
       'GET /v1/tracker-templates',
+      'GET /v1/receivers/{receiverId}/attention',
+      'GET /v1/receivers/{receiverId}/coming-up',
+      'GET /v1/receivers/{receiverId}/timeline',
+      'GET /v1/receivers/{receiverId}/waiting',
+      'GET /v1/entries/{entryId}',
+      'GET /v1/journal-notes/{noteId}',
     ]) {
       t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
         RouteKey: routeKey,
@@ -182,7 +188,7 @@ describe('ApiStack', () => {
     }
   });
 
-  test('gives the API the getting-in and trackers v1 tables and no others', () => {
+  test('gives the API the getting-in, trackers and home v1 tables and no others', () => {
     const app = new cdk.App();
     const env = { account: '123456789012', region: 'us-east-2' };
     const shared = new SharedStack(app, 'CaregiverDev-Shared', { env, stage: 'dev' });
@@ -209,6 +215,7 @@ describe('ApiStack', () => {
       'V1_TRACKERS_TABLE',
       'V1_SCHEDULES_TABLE',
       'V1_ENTRIES_TABLE',
+      'V1_JOURNAL_NOTES_TABLE',
     ]) {
       expect(json).toContain(name);
     }
@@ -221,10 +228,11 @@ describe('ApiStack', () => {
       'V1TrackerTable',
       'V1ScheduleTable',
       'V1EntryTable',
+      'V1JournalNoteTable',
     ]) {
       expect(json).toContain(id);
     }
-    for (const id of ['V1DeviceTable', 'V1JournalNoteTable', 'V1AssignmentTable']) {
+    for (const id of ['V1DeviceTable', 'V1AssignmentTable']) {
       expect(json).not.toContain(id);
     }
   });
