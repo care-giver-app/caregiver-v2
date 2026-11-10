@@ -800,6 +800,34 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: addEntry
+      summary: Quick log's step for a picked tracker — log ad hoc, or plan
+      description: >
+        Any member may call it. With `at` now or earlier it logs the care ad hoc
+        and every required active field must be given. With `at` in the future it
+        plans a one-off scheduled entry instead — `values` pre-fill it, a reading
+        nobody has taken may be left out, and `unrecorded_alert` says whether the
+        team is told if it goes unrecorded. Only active fields and active options
+        are accepted. Refused with 409 on a paused tracker.
+      parameters:
+        - { name: trackerId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewEntry' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntryDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/EntryNotInState' }
   /v1/trackers/{trackerId}/schedules:
     get:
       operationId: listTrackerSchedules
@@ -886,6 +914,302 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /v1/receivers/{receiverId}/attention:
+    get:
+      operationId: listNeedsAttention
+      summary: What needs attention for one care receiver, most important first
+      description: >
+        Worked out when it is read; nothing here is dismissed. Ordered unrecorded
+        care first, then readings outside their range, then trackers past their
+        gap, and never more than one item for a tracker — the one that matters
+        most by that order, then the most recent. Unrecorded care leaves the list
+        forty-eight hours after its scheduled time, settled or not. Paused
+        trackers contribute nothing. Home asks for three; See all leads to the
+        Trackers list instead of asking for more.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+        - {
+            name: limit,
+            in: query,
+            required: false,
+            schema: { type: integer, minimum: 1, maximum: 50, default: 3 },
+          }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AttentionItem' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/receivers/{receiverId}/coming-up:
+    get:
+      operationId: listComingUp
+      summary: Each tracker's next scheduled entry, soonest first
+      description: >
+        One entry per tracker, so a dose given twice a day cannot push next
+        week's appointment out of sight. Only entries whose time is still ahead;
+        paused trackers have none. Home asks for three; the Coming up screen
+        leaves `limit` off and gets every one. An empty list means nothing is
+        scheduled ahead, and Home leaves the section out.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+        - {
+            name: limit,
+            in: query,
+            required: false,
+            schema: { type: integer, minimum: 1, maximum: 100 },
+          }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ReceiverEntry' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/receivers/{receiverId}/timeline:
+    get:
+      operationId: getDayTimeline
+      summary: One day of one care receiver, in time order
+      description: >
+        `date` is a day in the receiver's time zone, no later than today there.
+        Holds the entries logged that day, the day's skipped and unrecorded
+        occurrences, and the journal notes written about it, oldest first —
+        paused trackers' entries included, since they still belong to the days
+        they happened on. Occurrences still to come are not listed; Coming up is
+        what looks ahead. An empty `items` is the day where nothing was logged
+        and nothing was expected.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+        - { name: date, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DayTimeline' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/receivers/{receiverId}/waiting:
+    get:
+      operationId: listWaitingEntries
+      summary: The occurrences Quick log's picker leads with
+      description: >
+        Everything still unrecorded from the forty-eight hours before now, oldest
+        first, then everything scheduled for the rest of today in the receiver's
+        time zone, soonest first. Skipped and logged ones are settled and not
+        listed; paused trackers have none.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ReceiverEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/receivers/{receiverId}/journal-notes:
+    post:
+      operationId: addJournalNote
+      summary: Write a journal note about this care receiver's day
+      description: >
+        Any member may write one. `at` is the time the note is about, and cannot
+        be in the future — a note cannot be planned. Notifies nobody.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JournalNoteWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JournalNote' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/journal-notes/{noteId}:
+    get:
+      operationId: getJournalNote
+      summary: One journal note
+      parameters:
+        - { name: noteId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JournalNote' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: changeJournalNote
+      summary: Edit journal note — Save
+      description: >
+        Any member may edit any note. Records who changed it last and when; the
+        author stays the author. `at` still cannot be in the future.
+      parameters:
+        - { name: noteId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JournalNoteWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JournalNote' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteJournalNote
+      summary: Delete this note? — Delete
+      description: Any member may delete any note. It is gone.
+      parameters:
+        - { name: noteId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/entries/{entryId}:
+    get:
+      operationId: getEntry
+      summary: Entry detail — one entry, in whatever state it is in
+      parameters:
+        - { name: entryId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntryDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: changeEntry
+      summary: Edit entry — Save, on a logged or skipped entry
+      description: >
+        Any member may edit any entry. Editing a skipped entry logs it: the care
+        happened after all, and the caller becomes who logged it. A scheduled or
+        unrecorded entry cannot be edited (409) — Log it is what records it.
+        Records who changed it last and when.
+      parameters:
+        - { name: entryId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EntryCare' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntryDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/EntryNotInState' }
+    delete:
+      operationId: deleteEntry
+      summary: Delete this entry? — Delete, on a logged or skipped entry
+      description: >
+        Any member may delete any entry. One logged ad hoc is gone (204). One that
+        fulfilled a planned entry returns to waiting — scheduled, or unrecorded
+        if its time has passed — with its pre-filled values back, and is returned
+        (200). A scheduled or unrecorded entry cannot be deleted (409).
+      parameters:
+        - { name: entryId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: The entry, waiting again
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntryDetail' }
+        '204': { description: Gone }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/EntryNotInState' }
+  /v1/entries/{entryId}/log:
+    post:
+      operationId: logEntry
+      summary: Log it — record a scheduled or unrecorded entry
+      description: >
+        `occurred_at` is the run's one time, not the occurrence's; it cannot be in
+        the future. Refused with 409 if somebody settled it first, or if its
+        tracker is paused.
+      parameters:
+        - { name: entryId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EntryCare' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntryDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/EntryNotInState' }
+  /v1/entries/{entryId}/skip:
+    post:
+      operationId: skipEntry
+      summary: Skip — settle a scheduled or unrecorded entry as not happening
+      description: >
+        Records who skipped it and when, with an optional note saying why. Its
+        time may be past or still ahead. Refused with 409 if somebody settled it
+        first, or if its tracker is paused.
+      parameters:
+        - { name: entryId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SkipEntry' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EntryDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/EntryNotInState' }
   /v1/tracker-templates:
     get:
       operationId: listTemplates
@@ -1521,6 +1845,144 @@ components:
           type: array
           items: { $ref: '#/components/schemas/Entry' }
         next_cursor: { type: string, description: Absent on the last page }
+    TrackerBadge:
+      type: object
+      description: Enough of a tracker to draw its row
+      required: [tracker_id, name, icon, color]
+      properties:
+        tracker_id: { type: string }
+        name: { type: string }
+        icon: { type: string }
+        color: { type: string }
+    ReceiverEntry:
+      type: object
+      description: An entry with its tracker, for lists that mix trackers
+      required: [tracker, entry]
+      properties:
+        tracker: { $ref: '#/components/schemas/TrackerBadge' }
+        entry: { $ref: '#/components/schemas/Entry' }
+    AttentionItem:
+      type: object
+      required: [tracker, attention]
+      properties:
+        tracker: { $ref: '#/components/schemas/TrackerBadge' }
+        attention: { $ref: '#/components/schemas/TrackerAttention' }
+        field_label: { type: string, description: out_of_range only }
+        unit: { type: string, description: out_of_range only, when the field has one }
+    JournalNote:
+      type: object
+      required: [note_id, receiver_id, at, body, author_name, created_at]
+      properties:
+        note_id: { type: string }
+        receiver_id: { type: string }
+        at: { type: string, format: date-time, description: The time it is about }
+        body: { type: string }
+        author_name: { type: string, description: 'Who wrote it, or "a former caregiver"' }
+        created_at: { type: string, format: date-time }
+        updated_by_name:
+          type: string
+          description: Who changed it last; absent if it has never been changed
+        updated_at: { type: string, format: date-time }
+    JournalNoteWrite:
+      type: object
+      required: [at, body]
+      properties:
+        at: { type: string, format: date-time }
+        body: { type: string, minLength: 1, maxLength: 5000 }
+    TimelineItem:
+      type: object
+      description: Exactly one of `entry` (with `tracker`) or `note`, as `kind` says
+      required: [kind, at]
+      properties:
+        kind: { type: string, enum: [entry, note] }
+        at: { type: string, format: date-time }
+        tracker: { $ref: '#/components/schemas/TrackerBadge' }
+        entry: { $ref: '#/components/schemas/Entry' }
+        note: { $ref: '#/components/schemas/JournalNote' }
+    DayTimeline:
+      type: object
+      required: [date, items]
+      properties:
+        date: { type: string, format: date }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/TimelineItem' }
+    OutOfRange:
+      type: object
+      required: [field_id, value, range]
+      properties:
+        field_id: { type: string }
+        value: { type: number }
+        range: { $ref: '#/components/schemas/ValueRange' }
+    EntryDetail:
+      type: object
+      description: >
+        Everything Entry detail shows. `fields` is the tracker's field list, so the
+        screen and Edit entry can label every value — paused fields included,
+        since an old entry may hold their values.
+      required: [entry, tracker, fields, planned, out_of_range]
+      properties:
+        entry: { $ref: '#/components/schemas/Entry' }
+        tracker: { $ref: '#/components/schemas/TrackerBadge' }
+        fields:
+          type: array
+          items: { $ref: '#/components/schemas/TrackerField' }
+        planned:
+          type: boolean
+          description: >
+            True when it fulfils a plan — from a schedule or planned by hand — so
+            deleting it leaves the occurrence waiting again rather than removing it
+        occurrence_at:
+          type: string
+          format: date-time
+          description: When it was due; planned entries only
+        unrecorded_alert: { type: boolean, description: planned entries only }
+        settled_at:
+          type: string
+          format: date-time
+          description: When it was logged or skipped (the act, not the care); absent while waiting
+        updated_by_name:
+          type: string
+          description: Who changed it last; absent if it has never been changed
+        updated_at: { type: string, format: date-time }
+        out_of_range:
+          type: array
+          description: >
+            Each logged number outside its field's range as the range stands now.
+            Empty unless logged.
+          items: { $ref: '#/components/schemas/OutOfRange' }
+    NewEntry:
+      type: object
+      required: [values]
+      properties:
+        at:
+          type: string
+          format: date-time
+          description: When the care happened, or is planned for. Absent means now.
+        values:
+          type: object
+          description: Keyed by field_id; a choice is a list of option_ids
+          additionalProperties: true
+        note: { type: string, maxLength: 2000 }
+        unrecorded_alert:
+          type: boolean
+          default: false
+          description: Only when `at` is in the future
+    EntryCare:
+      type: object
+      description: What logging or editing an entry records
+      required: [occurred_at, values]
+      properties:
+        occurred_at: { type: string, format: date-time, description: Never in the future }
+        values:
+          type: object
+          description: Keyed by field_id; a choice is a list of option_ids
+          additionalProperties: true
+        note: { type: string, maxLength: 2000 }
+    SkipEntry:
+      type: object
+      properties:
+        note: { type: string, maxLength: 2000 }
     CatalogTemplate:
       type: object
       required: [template_id, name, icon, color, fields]
@@ -1593,6 +2055,15 @@ components:
       description: >
         A tracker has schedules or a gap, never both. Resend with the confirming
         flag once the admin has been told what they are about to lose.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    EntryNotInState:
+      description: >
+        The entry is not in a state this allows — somebody settled it first, it
+        is still waiting, or its tracker is paused. Reload it and show what is
+        there now.
       content:
         application/json:
           schema:

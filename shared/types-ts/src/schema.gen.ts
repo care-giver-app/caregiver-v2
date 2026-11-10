@@ -553,7 +553,11 @@ export interface paths {
      */
     get: operations['listTrackerEntries'];
     put?: never;
-    post?: never;
+    /**
+     * Quick log's step for a picked tracker — log ad hoc, or plan
+     * @description Any member may call it. With `at` now or earlier it logs the care ad hoc and every required active field must be given. With `at` in the future it plans a one-off scheduled entry instead — `values` pre-fill it, a reading nobody has taken may be left out, and `unrecorded_alert` says whether the team is told if it goes unrecorded. Only active fields and active options are accepted. Refused with 409 on a paused tracker.
+     */
+    post: operations['addEntry'];
     delete?: never;
     options?: never;
     head?: never;
@@ -603,6 +607,196 @@ export interface paths {
      * @description The rule and every occurrence it made that is still waiting go. Every entry already logged, skipped or unrecorded stays exactly where it is, and still names the schedule it came from. Repeating a removal is safe: on a schedule already removed it takes away anything still waiting again and returns 204, not 404.
      */
     delete: operations['removeSchedule'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/receivers/{receiverId}/attention': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * What needs attention for one care receiver, most important first
+     * @description Worked out when it is read; nothing here is dismissed. Ordered unrecorded care first, then readings outside their range, then trackers past their gap, and never more than one item for a tracker — the one that matters most by that order, then the most recent. Unrecorded care leaves the list forty-eight hours after its scheduled time, settled or not. Paused trackers contribute nothing. Home asks for three; See all leads to the Trackers list instead of asking for more.
+     */
+    get: operations['listNeedsAttention'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/receivers/{receiverId}/coming-up': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Each tracker's next scheduled entry, soonest first
+     * @description One entry per tracker, so a dose given twice a day cannot push next week's appointment out of sight. Only entries whose time is still ahead; paused trackers have none. Home asks for three; the Coming up screen leaves `limit` off and gets every one. An empty list means nothing is scheduled ahead, and Home leaves the section out.
+     */
+    get: operations['listComingUp'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/receivers/{receiverId}/timeline': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * One day of one care receiver, in time order
+     * @description `date` is a day in the receiver's time zone, no later than today there. Holds the entries logged that day, the day's skipped and unrecorded occurrences, and the journal notes written about it, oldest first — paused trackers' entries included, since they still belong to the days they happened on. Occurrences still to come are not listed; Coming up is what looks ahead. An empty `items` is the day where nothing was logged and nothing was expected.
+     */
+    get: operations['getDayTimeline'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/receivers/{receiverId}/waiting': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * The occurrences Quick log's picker leads with
+     * @description Everything still unrecorded from the forty-eight hours before now, oldest first, then everything scheduled for the rest of today in the receiver's time zone, soonest first. Skipped and logged ones are settled and not listed; paused trackers have none.
+     */
+    get: operations['listWaitingEntries'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/receivers/{receiverId}/journal-notes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Write a journal note about this care receiver's day
+     * @description Any member may write one. `at` is the time the note is about, and cannot be in the future — a note cannot be planned. Notifies nobody.
+     */
+    post: operations['addJournalNote'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/journal-notes/{noteId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** One journal note */
+    get: operations['getJournalNote'];
+    /**
+     * Edit journal note — Save
+     * @description Any member may edit any note. Records who changed it last and when; the author stays the author. `at` still cannot be in the future.
+     */
+    put: operations['changeJournalNote'];
+    post?: never;
+    /**
+     * Delete this note? — Delete
+     * @description Any member may delete any note. It is gone.
+     */
+    delete: operations['deleteJournalNote'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/entries/{entryId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Entry detail — one entry, in whatever state it is in */
+    get: operations['getEntry'];
+    /**
+     * Edit entry — Save, on a logged or skipped entry
+     * @description Any member may edit any entry. Editing a skipped entry logs it: the care happened after all, and the caller becomes who logged it. A scheduled or unrecorded entry cannot be edited (409) — Log it is what records it. Records who changed it last and when.
+     */
+    put: operations['changeEntry'];
+    post?: never;
+    /**
+     * Delete this entry? — Delete, on a logged or skipped entry
+     * @description Any member may delete any entry. One logged ad hoc is gone (204). One that fulfilled a planned entry returns to waiting — scheduled, or unrecorded if its time has passed — with its pre-filled values back, and is returned (200). A scheduled or unrecorded entry cannot be deleted (409).
+     */
+    delete: operations['deleteEntry'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/entries/{entryId}/log': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Log it — record a scheduled or unrecorded entry
+     * @description `occurred_at` is the run's one time, not the occurrence's; it cannot be in the future. Refused with 409 if somebody settled it first, or if its tracker is paused.
+     */
+    post: operations['logEntry'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/entries/{entryId}/skip': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Skip — settle a scheduled or unrecorded entry as not happening
+     * @description Records who skipped it and when, with an optional note saying why. Its time may be past or still ahead. Refused with 409 if somebody settled it first, or if its tracker is paused.
+     */
+    post: operations['skipEntry'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -1085,6 +1279,128 @@ export interface components {
       /** @description Absent on the last page */
       next_cursor?: string;
     };
+    /** @description Enough of a tracker to draw its row */
+    TrackerBadge: {
+      tracker_id: string;
+      name: string;
+      icon: string;
+      color: string;
+    };
+    /** @description An entry with its tracker, for lists that mix trackers */
+    ReceiverEntry: {
+      tracker: components['schemas']['TrackerBadge'];
+      entry: components['schemas']['Entry'];
+    };
+    AttentionItem: {
+      tracker: components['schemas']['TrackerBadge'];
+      attention: components['schemas']['TrackerAttention'];
+      /** @description out_of_range only */
+      field_label?: string;
+      /** @description out_of_range only */
+      unit?: string;
+    };
+    JournalNote: {
+      note_id: string;
+      receiver_id: string;
+      /**
+       * Format: date-time
+       * @description The time it is about
+       */
+      at: string;
+      body: string;
+      /** @description Who wrote it, or "a former caregiver" */
+      author_name: string;
+      /** Format: date-time */
+      created_at: string;
+      /** @description Who changed it last; absent if it has never been changed */
+      updated_by_name?: string;
+      /** Format: date-time */
+      updated_at?: string;
+    };
+    JournalNoteWrite: {
+      /** Format: date-time */
+      at: string;
+      body: string;
+    };
+    /** @description Exactly one of `entry` (with `tracker`) or `note`, as `kind` says */
+    TimelineItem: {
+      /** @enum {string} */
+      kind: 'entry' | 'note';
+      /** Format: date-time */
+      at: string;
+      tracker?: components['schemas']['TrackerBadge'];
+      entry?: components['schemas']['Entry'];
+      note?: components['schemas']['JournalNote'];
+    };
+    DayTimeline: {
+      /** Format: date */
+      date: string;
+      items: components['schemas']['TimelineItem'][];
+    };
+    OutOfRange: {
+      field_id: string;
+      value: number;
+      range: components['schemas']['ValueRange'];
+    };
+    /** @description Everything Entry detail shows. `fields` is the tracker's field list, so the screen and Edit entry can label every value — paused fields included, since an old entry may hold their values. */
+    EntryDetail: {
+      entry: components['schemas']['Entry'];
+      tracker: components['schemas']['TrackerBadge'];
+      fields: components['schemas']['TrackerField'][];
+      /** @description True when it fulfils a plan — from a schedule or planned by hand — so deleting it leaves the occurrence waiting again rather than removing it */
+      planned: boolean;
+      /**
+       * Format: date-time
+       * @description When it was due; planned entries only
+       */
+      occurrence_at?: string;
+      /** @description planned entries only */
+      unrecorded_alert?: boolean;
+      /**
+       * Format: date-time
+       * @description When it was logged or skipped (the act, not the care); absent while waiting
+       */
+      settled_at?: string;
+      /** @description Who changed it last; absent if it has never been changed */
+      updated_by_name?: string;
+      /** Format: date-time */
+      updated_at?: string;
+      /** @description Each logged number outside its field's range as the range stands now. Empty unless logged. */
+      out_of_range: components['schemas']['OutOfRange'][];
+    };
+    NewEntry: {
+      /**
+       * Format: date-time
+       * @description When the care happened, or is planned for. Absent means now.
+       */
+      at?: string;
+      /** @description Keyed by field_id; a choice is a list of option_ids */
+      values: {
+        [key: string]: unknown;
+      };
+      note?: string;
+      /**
+       * @description Only when `at` is in the future
+       * @default false
+       */
+      unrecorded_alert: boolean;
+    };
+    /** @description What logging or editing an entry records */
+    EntryCare: {
+      /**
+       * Format: date-time
+       * @description Never in the future
+       */
+      occurred_at: string;
+      /** @description Keyed by field_id; a choice is a list of option_ids */
+      values: {
+        [key: string]: unknown;
+      };
+      note?: string;
+    };
+    SkipEntry: {
+      note?: string;
+    };
     CatalogTemplate: {
       template_id: string;
       name: string;
@@ -1172,6 +1488,15 @@ export interface components {
     };
     /** @description A tracker has schedules or a gap, never both. Resend with the confirming flag once the admin has been told what they are about to lose. */
     SchedulesOrGap: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/json': components['schemas']['Error'];
+      };
+    };
+    /** @description The entry is not in a state this allows — somebody settled it first, it is still waiting, or its tracker is paused. Reload it and show what is there now. */
+    EntryNotInState: {
       headers: {
         [name: string]: unknown;
       };
@@ -2305,6 +2630,37 @@ export interface operations {
       404: components['responses']['NotFound'];
     };
   };
+  addEntry: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        trackerId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NewEntry'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EntryDetail'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['EntryNotInState'];
+    };
+  };
   listTrackerSchedules: {
     parameters: {
       query?: never;
@@ -2412,6 +2768,374 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+    };
+  };
+  listNeedsAttention: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        receiverId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AttentionItem'][];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  listComingUp: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        receiverId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReceiverEntry'][];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  getDayTimeline: {
+    parameters: {
+      query: {
+        date: string;
+      };
+      header?: never;
+      path: {
+        receiverId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DayTimeline'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  listWaitingEntries: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        receiverId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReceiverEntry'][];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  addJournalNote: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        receiverId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['JournalNoteWrite'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JournalNote'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  getJournalNote: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        noteId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JournalNote'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  changeJournalNote: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        noteId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['JournalNoteWrite'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['JournalNote'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  deleteJournalNote: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        noteId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  getEntry: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        entryId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EntryDetail'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+    };
+  };
+  changeEntry: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        entryId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EntryCare'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EntryDetail'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['EntryNotInState'];
+    };
+  };
+  deleteEntry: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        entryId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The entry, waiting again */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EntryDetail'];
+        };
+      };
+      /** @description Gone */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['EntryNotInState'];
+    };
+  };
+  logEntry: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        entryId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EntryCare'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EntryDetail'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['EntryNotInState'];
+    };
+  };
+  skipEntry: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        entryId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SkipEntry'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EntryDetail'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['EntryNotInState'];
     };
   };
   listTemplates: {

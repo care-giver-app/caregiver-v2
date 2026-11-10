@@ -976,8 +976,11 @@ The timeline is one day of one receiver: the entries logged that day and the jou
 about it, in time order, and among them the occurrences the day expected — the dose nobody wrote
 down, the one somebody skipped. Needs attention is about the state of the care rather than about a
 day and shows at most three things, so a timeline holding only what got logged would leave last
-Tuesday's unrecorded dose visible nowhere at all. A day is empty only when nothing was logged and
-nothing was expected, and then Home says so and offers a first log or a journal note, because the
+Tuesday's unrecorded dose visible nowhere at all. What the day expected means what has already come
+due: a dose planned for this evening is not yet part of the day's account but what is coming up, and
+Coming up is where it is shown, because the same plan in two places on one screen would be read as
+two doses. A day is empty only when nothing was logged and nothing came due, however much is planned
+for later in it, and then Home says so and offers a first log or a journal note, because the
 quiet Tuesday is the state this screen spends most of its life in and a blank space is not an
 account of it.
 
@@ -1116,7 +1119,7 @@ under what is coming up rather than in the day behind it.
     - >
       the daily timeline for one day — entries and journal notes together in time
       order, holding the day's unrecorded and skipped occurrences alongside what
-      was logged
+      was logged. Occurrences still to come are not in it; coming up holds them
     - >
       the date, with a day stepper that walks back a day at a time and stops at
       today, and a Today button whenever the day shown is not today
@@ -1154,11 +1157,11 @@ under what is coming up rather than in the day behind it.
       to: Jump to day
       as: sheet
     - action: Log an entry
-      when: nothing was logged or expected on the day shown
+      when: nothing was logged or came due on the day shown
       to: Quick log
       as: sheet
     - action: Write a note
-      when: nothing was logged or expected on the day shown
+      when: nothing was logged or came due on the day shown
       to: Quick log, with a journal note already picked
       as: sheet
     - action: the ⊕ button in the tab bar
@@ -1202,7 +1205,7 @@ under what is coming up rather than in the day behind it.
       nothing needs attention — Home says so plainly rather than leaving a space
       where a warning would be
     - >
-      nothing logged on the day shown and nothing expected either — Home says so,
+      nothing logged on the day shown and nothing came due either — Home says so,
       and offers a first log or a journal note rather than leaving the day blank
     - >
       the care team has no care receivers — Home says so and offers an admin the
