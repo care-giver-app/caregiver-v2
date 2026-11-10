@@ -3,6 +3,7 @@ package store_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -84,14 +85,22 @@ func TestEntry_NextOpenByTracker(t *testing.T) {
 	seed(t, l, l.Names.Entries, scheduledEntry("meds-now", "meds", now))
 	seed(t, l, l.Names.Entries, scheduledEntry("appt", "appt", now.Add(4*24*time.Hour)))
 	seed(t, l, l.Names.Entries, scheduledEntry("bp-next", "bp", now.Add(30*time.Minute)))
-	seed(t, l, l.Names.Entries, skippedEntry("bp-skipped", "bp", now.Add(10*time.Minute)))
+	// More skipped occurrences ahead of bp's next than one page reads: the
+	// filter empties that page and the query must page on to find it.
+	for i := 0; i < 12; i++ {
+		seed(t, l, l.Names.Entries, skippedEntry(fmt.Sprintf("bp-skipped-%02d", i), "bp", now.Add(time.Duration(i+1)*time.Minute)))
+	}
+	// An ad-hoc tracker: only logged history, nothing ahead.
+	for i := 0; i < 5; i++ {
+		seed(t, l, l.Names.Entries, loggedEntry(fmt.Sprintf("adhoc-%d", i), "adhoc", now.Add(-time.Duration(i+1)*time.Hour), nil))
+	}
 	seed(t, l, l.Names.Entries, scheduledEntry("paused-next", "paused", now.Add(5*time.Minute)))
 
-	got, err := l.Stores.Entries.NextOpenByTracker(ctx, "r1", []string{"meds", "appt", "bp", "nothing-planned"}, now)
+	got, err := l.Stores.Entries.NextOpenByTracker(ctx, []string{"meds", "appt", "bp", "adhoc", "nothing-planned"}, now)
 	if err != nil || !sameIDs(got, "bp-next", "meds-a", "appt") {
 		t.Fatalf("got %v err=%v", ids(got), err)
 	}
-	none, err := l.Stores.Entries.NextOpenByTracker(ctx, "r1", nil, now)
+	none, err := l.Stores.Entries.NextOpenByTracker(ctx, nil, now)
 	if err != nil || len(none) != 0 {
 		t.Fatalf("no trackers: %v err=%v", ids(none), err)
 	}

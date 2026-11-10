@@ -115,6 +115,8 @@ func TestHome_Attention(t *testing.T) {
 			logged("w-old", "tr-w", "admin", trackerNow.Add(-3*time.Hour), map[string]any{"w": 500.0}),
 			logged("w2-new", "tr-w2", "admin", trackerNow.Add(-2*time.Hour), map[string]any{"w": 50.0}),
 			scheduled("paused-1h", "tr-paused", "", trackerNow.Add(-time.Hour)),
+			// Corrupt data: its tracker is gone. Left out, not a failed read.
+			scheduled("orphan-1h", "tr-gone", "", trackerNow.Add(-time.Hour)),
 		})
 
 	get := func(q string) ([]map[string]any, int) {
@@ -256,6 +258,8 @@ func TestHome_Timeline(t *testing.T) {
 			scheduled("unrecorded", "tr-med", "", trackerNow.Add(-time.Hour)),
 			scheduled("to-come", "tr-med", "", trackerNow.Add(2*time.Hour)),
 			logged("paused-log", "tr-paused", "admin", time.Date(2026, 11, 8, 16, 0, 0, 0, time.UTC), map[string]any{"w": 150.0}),
+			// Corrupt data: its tracker is gone. Left out, not a failed day.
+			logged("orphan", "tr-gone", "admin", time.Date(2026, 11, 8, 12, 0, 0, 0, time.UTC), nil),
 		},
 		journalNote("n-am", "cg", time.Date(2026, 11, 8, 10, 0, 0, 0, time.UTC)),
 		edited,

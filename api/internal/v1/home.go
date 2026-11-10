@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/care-giver-app/caregiver-v2/api/internal/httpx"
+	"github.com/care-giver-app/caregiver-v2/shared/go-common/logger"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/domain"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/store"
 )
@@ -188,7 +189,12 @@ func (h *Home) Attention(w http.ResponseWriter, r *http.Request) {
 		httpx.ServerError(w, r, err, "tracker load failed")
 		return
 	}
-	attention, _, err := receiverAttention(ctx, h.stores, rc.ReceiverID, active, now)
+	logged, err := recentLogged(ctx, h.stores, active)
+	if err != nil {
+		httpx.ServerError(w, r, err, "entry load failed")
+		return
+	}
+	attention, err := receiverAttention(ctx, h.stores, rc.ReceiverID, active, logged, now)
 	if err != nil {
 		httpx.ServerError(w, r, err, "entry load failed")
 		return
@@ -233,7 +239,7 @@ func (h *Home) ComingUp(w http.ResponseWriter, r *http.Request) {
 	for _, t := range active {
 		ids = append(ids, t.TrackerID)
 	}
-	next, err := h.stores.Entries.NextOpenByTracker(ctx, rc.ReceiverID, ids, now)
+	next, err := h.stores.Entries.NextOpenByTracker(ctx, ids, now)
 	if err != nil {
 		httpx.ServerError(w, r, err, "entry load failed")
 		return
@@ -272,7 +278,12 @@ func (h *Home) Waiting(w http.ResponseWriter, r *http.Request) {
 	// an occurrence leaves both at the same instant.
 	waiting := make([]domain.Entry, 0, len(open))
 	for _, e := range open {
-		if byID[e.TrackerID].Status != domain.TrackerActive || e.OccurrenceAt == nil || !e.OccurrenceAt.After(since) {
+		t, ok := byID[e.TrackerID]
+		if !ok {
+			logMissingTracker(ctx, e)
+			continue
+		}
+		if t.Status != domain.TrackerActive || e.OccurrenceAt == nil || !e.OccurrenceAt.After(since) {
 			continue
 		}
 		waiting = append(waiting, e)
@@ -281,6 +292,13 @@ func (h *Home) Waiting(w http.ResponseWriter, r *http.Request) {
 	// first, is one ascending order by occurrence time.
 	sort.SliceStable(waiting, func(i, j int) bool { return waiting[i].OccurrenceAt.Before(*waiting[j].OccurrenceAt) })
 	h.writeReceiverEntries(w, r, byID, waiting, now)
+}
+
+// logMissingTracker logs an entry whose tracker is gone: corrupt data, left
+// out of the read rather than failing it, so one bad row does not hide the
+// rest.
+func logMissingTracker(ctx context.Context, e domain.Entry) {
+	logger.FromContext(ctx).Error("entry's tracker missing", "entry_id", e.EntryID, "tracker_id", e.TrackerID)
 }
 
 func (h *Home) writeReceiverEntries(w http.ResponseWriter, r *http.Request, byID map[string]domain.Tracker, entries []domain.Entry, now time.Time) {
@@ -335,8 +353,8 @@ func (h *Home) Timeline(w http.ResponseWriter, r *http.Request) {
 			continue // still to come: Coming up's, not the day's
 		}
 		if _, ok := byID[e.TrackerID]; !ok {
-			httpx.ServerError(w, r, errors.New("entry's tracker missing"), "tracker load failed", "entry_id", e.EntryID)
-			return
+			logMissingTracker(ctx, e)
+			continue
 		}
 		entries = append(entries, e)
 	}
@@ -474,20 +492,10 @@ func (h *Home) JournalNote(w http.ResponseWriter, r *http.Request) {
 	if !ok || !requireTeamRole(w, r, h.stores, c, rc.TeamID, false) {
 		return
 	}
-	users, err := h.stores.Users.BatchGet(ctx, nonEmpty(n.Author, n.UpdatedBy))
+	names, err := loadEntryNames(ctx, h.stores, nil, n.Author, n.UpdatedBy)
 	if err != nil {
 		httpx.ServerError(w, r, err, "caregiver load failed")
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, noteView(n, users))
-}
-
-func nonEmpty(ids ...string) []string {
-	out := make([]string, 0, len(ids))
-	for _, id := range ids {
-		if id != "" {
-			out = append(out, id)
-		}
-	}
-	return out
+	httpx.WriteJSON(w, http.StatusOK, noteView(n, names.users))
 }

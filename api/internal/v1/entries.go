@@ -3,8 +3,8 @@ package v1
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -49,14 +49,9 @@ func (h *Trackers) Entries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
-	limit := defaultEntryLimit
-	if s := q.Get("limit"); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil || n < 1 || n > maxEntryLimit {
-			httpx.WriteError(w, http.StatusBadRequest, "limit must be 1-100")
-			return
-		}
-		limit = n
+	limit, ok := queryLimit(w, r, defaultEntryLimit, maxEntryLimit)
+	if !ok {
+		return
 	}
 	loc, err := time.LoadLocation(rc.TimeZone)
 	if err != nil {
@@ -144,11 +139,11 @@ func loadEntryNames(ctx context.Context, s *store.Stores, entries []domain.Entry
 	}
 	users, err := s.Users.BatchGet(ctx, userIDs)
 	if err != nil {
-		return entryNames{}, err
+		return entryNames{}, fmt.Errorf("caregiver load: %w", err)
 	}
 	schedules, err := s.Schedules.BatchGet(ctx, scheduleIDs)
 	if err != nil {
-		return entryNames{}, err
+		return entryNames{}, fmt.Errorf("schedule load: %w", err)
 	}
 	return entryNames{users: users, schedules: schedules}, nil
 }

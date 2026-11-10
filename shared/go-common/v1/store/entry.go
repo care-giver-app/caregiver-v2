@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"errors"
+	"sort"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -154,52 +156,100 @@ func (s *EntryStore) ListByReceiverBetween(ctx context.Context, receiverID strin
 	})
 }
 
+// nextOpenConcurrency caps how many per-tracker queries NextOpenByTracker
+// has in flight at once.
+const nextOpenConcurrency = 8
+
+// nextOpenPageSize is how many of a tracker's future entries each page of
+// NextOpenByTracker's query reads. DynamoDB applies Limit before the filter,
+// so a page can come back empty with more to read; the query pages on.
+const nextOpenPageSize = 10
+
 // NextOpenByTracker returns, for each of trackerIDs, its soonest scheduled
-// entry whose open_at is after now, soonest first; a tracker with none is
-// absent. It walks the receiver's open-index forward from now and stops once
-// every tracker asked about has been found, so a tracker with a far-off next
-// occurrence (the generator always writes each schedule's next one, however
-// far beyond its horizon) costs reading up to it, never past it. Entries of
-// trackers not asked about — paused ones, say — are passed over.
-func (s *EntryStore) NextOpenByTracker(ctx context.Context, receiverID string, trackerIDs []string, now time.Time) ([]domain.Entry, error) {
-	want := make(map[string]bool, len(trackerIDs))
-	for _, id := range trackerIDs {
-		want[id] = true
-	}
-	if len(want) == 0 {
+// entry whose occurrence is after now, soonest first; a tracker with none is
+// absent. Each tracker is one query of the tracker-time index forward from
+// now that stops at its first scheduled entry, so a tracker with nothing
+// planned (an ad-hoc one) costs reading only its future entries, which are
+// few, and one with a far-off next occurrence costs reading up to it. The
+// queries run concurrently, at most nextOpenConcurrency at a time.
+func (s *EntryStore) NextOpenByTracker(ctx context.Context, trackerIDs []string, now time.Time) ([]domain.Entry, error) {
+	if len(trackerIDs) == 0 {
 		return nil, nil
 	}
-	in := &dynamodb.QueryInput{
-		TableName:              aws.String(s.table),
-		IndexName:              aws.String(openIndex),
-		KeyConditionExpression: aws.String("receiver_id = :r AND open_at > :now"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":r":   &types.AttributeValueMemberS{Value: receiverID},
-			":now": timeKey(now),
-		},
-		ScanIndexForward: aws.Bool(true),
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	found := make([]*domain.Entry, len(trackerIDs))
+	errs := make([]error, len(trackerIDs))
+	sem := make(chan struct{}, nextOpenConcurrency)
+	var wg sync.WaitGroup
+	for i, id := range trackerIDs {
+		wg.Add(1)
+		go func(i int, id string) {
+			defer wg.Done()
+			select {
+			case sem <- struct{}{}:
+			case <-ctx.Done():
+				errs[i] = ctx.Err()
+				return
+			}
+			defer func() { <-sem }()
+			found[i], errs[i] = s.nextOpen(ctx, id, now)
+			if errs[i] != nil {
+				cancel()
+			}
+		}(i, id)
+	}
+	wg.Wait()
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
 	}
 	var next []domain.Entry
+	for _, e := range found {
+		if e != nil {
+			next = append(next, *e)
+		}
+	}
+	sort.SliceStable(next, func(i, j int) bool {
+		if !next[i].TimelineAt.Equal(next[j].TimelineAt) {
+			return next[i].TimelineAt.Before(next[j].TimelineAt)
+		}
+		return next[i].TrackerID < next[j].TrackerID
+	})
+	return next, nil
+}
+
+// nextOpen is the tracker's soonest scheduled entry after now, or nil.
+func (s *EntryStore) nextOpen(ctx context.Context, trackerID string, now time.Time) (*domain.Entry, error) {
+	in := &dynamodb.QueryInput{
+		TableName:              aws.String(s.table),
+		IndexName:              aws.String(trackerTime),
+		KeyConditionExpression: aws.String("tracker_id = :t AND timeline_at > :now"),
+		// A logged entry's timeline_at is when it occurred, never ahead of
+		// now; a skipped occurrence still to come is not care waiting.
+		FilterExpression:         aws.String("#s = :scheduled"),
+		ExpressionAttributeNames: map[string]string{"#s": "state"},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":t":         &types.AttributeValueMemberS{Value: trackerID},
+			":now":       timeKey(now),
+			":scheduled": &types.AttributeValueMemberS{Value: string(domain.EntryScheduled)},
+		},
+		ScanIndexForward: aws.Bool(true),
+		Limit:            aws.Int32(nextOpenPageSize),
+	}
 	for {
 		out, err := s.client.Query(ctx, in)
 		if err != nil {
 			return nil, err
 		}
-		var page []domain.Entry
-		if err := attributevalue.UnmarshalListOfMaps(out.Items, &page); err != nil {
-			return nil, err
-		}
-		for _, e := range page {
-			if want[e.TrackerID] {
-				delete(want, e.TrackerID)
-				next = append(next, e)
-				if len(want) == 0 {
-					return next, nil
-				}
+		if len(out.Items) > 0 {
+			var e domain.Entry
+			if err := attributevalue.UnmarshalMap(out.Items[0], &e); err != nil {
+				return nil, err
 			}
+			return &e, nil
 		}
 		if len(out.LastEvaluatedKey) == 0 {
-			return next, nil
+			return nil, nil
 		}
 		in.ExclusiveStartKey = out.LastEvaluatedKey
 	}

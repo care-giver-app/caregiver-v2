@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -154,30 +155,66 @@ func attentionInputs(ctx context.Context, s *store.Stores, t domain.Tracker, now
 	return logged, open, err
 }
 
-// receiverAttention evaluates each of a receiver's trackers at now, with one
+// recentLoggedConcurrency caps how many RecentLoggedByTracker queries
+// recentLogged has in flight at once.
+const recentLoggedConcurrency = 8
+
+// recentLogged reads each tracker's recent logged entries, keyed by
+// tracker_id, one query per tracker run concurrently, at most
+// recentLoggedConcurrency at a time.
+func recentLogged(ctx context.Context, s *store.Stores, trackers []domain.Tracker) (map[string][]domain.Entry, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	got := make([][]domain.Entry, len(trackers))
+	errs := make([]error, len(trackers))
+	sem := make(chan struct{}, recentLoggedConcurrency)
+	var wg sync.WaitGroup
+	for i, t := range trackers {
+		wg.Add(1)
+		go func(i int, trackerID string) {
+			defer wg.Done()
+			select {
+			case sem <- struct{}{}:
+			case <-ctx.Done():
+				errs[i] = ctx.Err()
+				return
+			}
+			defer func() { <-sem }()
+			got[i], errs[i] = s.Entries.RecentLoggedByTracker(ctx, trackerID, store.RecentLoggedLimit)
+			if errs[i] != nil {
+				cancel()
+			}
+		}(i, t.TrackerID)
+	}
+	wg.Wait()
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
+	logged := make(map[string][]domain.Entry, len(trackers))
+	for i, t := range trackers {
+		logged[t.TrackerID] = got[i]
+	}
+	return logged, nil
+}
+
+// receiverAttention evaluates each of a receiver's trackers at now against
+// its recent logged entries (recentLogged's, keyed by tracker_id), with one
 // read of the receiver's open entries serving them all. It returns each
-// tracker's EvaluateAttention result and its recent logged entries, both keyed
-// by tracker_id.
-func receiverAttention(ctx context.Context, s *store.Stores, receiverID string, trackers []domain.Tracker, now time.Time) (map[string][]domain.Attention, map[string][]domain.Entry, error) {
+// tracker's EvaluateAttention result keyed by tracker_id.
+func receiverAttention(ctx context.Context, s *store.Stores, receiverID string, trackers []domain.Tracker, logged map[string][]domain.Entry, now time.Time) (map[string][]domain.Attention, error) {
 	open, err := s.Entries.OpenByReceiver(ctx, receiverID, "", now.Add(-domain.UnrecordedWindow), now)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	openBy := make(map[string][]domain.Entry)
 	for _, e := range open {
 		openBy[e.TrackerID] = append(openBy[e.TrackerID], e)
 	}
 	attention := make(map[string][]domain.Attention, len(trackers))
-	logged := make(map[string][]domain.Entry, len(trackers))
 	for _, t := range trackers {
-		l, err := s.Entries.RecentLoggedByTracker(ctx, t.TrackerID, store.RecentLoggedLimit)
-		if err != nil {
-			return nil, nil, err
-		}
-		logged[t.TrackerID] = l
-		attention[t.TrackerID] = domain.EvaluateAttention(t, now, l, openBy[t.TrackerID])
+		attention[t.TrackerID] = domain.EvaluateAttention(t, now, logged[t.TrackerID], openBy[t.TrackerID])
 	}
-	return attention, logged, nil
+	return attention, nil
 }
 
 // detail builds the TrackerDetail of t as it stands at now.
@@ -233,7 +270,12 @@ func (h *Trackers) ListByReceiver(w http.ResponseWriter, r *http.Request) {
 		httpx.ServerError(w, r, err, "tracker load failed")
 		return
 	}
-	attention, logged, err := receiverAttention(ctx, h.stores, rc.ReceiverID, trackers, now)
+	logged, err := recentLogged(ctx, h.stores, trackers)
+	if err != nil {
+		httpx.ServerError(w, r, err, "entry load failed")
+		return
+	}
+	attention, err := receiverAttention(ctx, h.stores, rc.ReceiverID, trackers, logged, now)
 	if err != nil {
 		httpx.ServerError(w, r, err, "entry load failed")
 		return
