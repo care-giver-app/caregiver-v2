@@ -214,19 +214,27 @@ export class ApiStack extends cdk.Stack {
     httpApi.addRoutes({
       path: '/health',
       methods: [apigw.HttpMethod.GET],
-      integration: new integ.HttpLambdaIntegration('HealthIntegration', this.apiFunction),
+      integration: new integ.HttpLambdaIntegration('HealthIntegration', this.apiFunction, {
+        scopePermissionToRoute: false,
+      }),
     });
 
     httpApi.addRoutes({
       path: '/flags',
       methods: [apigw.HttpMethod.GET],
-      integration: new integ.HttpLambdaIntegration('FlagsIntegration', this.apiFunction),
+      integration: new integ.HttpLambdaIntegration('FlagsIntegration', this.apiFunction, {
+        scopePermissionToRoute: false,
+      }),
     });
 
     const authorizer = new HttpUserPoolAuthorizer('JwtAuthorizer', props.userPool, {
       userPoolClients: [props.userPoolClient],
     });
-    const lambdaIntegration = new integ.HttpLambdaIntegration('ApiIntegration', this.apiFunction);
+    // One API-wide invoke permission instead of one per route: Lambda caps a function's
+    // resource policy at 20 KB, and ~56 per-route statements went over it.
+    const lambdaIntegration = new integ.HttpLambdaIntegration('ApiIntegration', this.apiFunction, {
+      scopePermissionToRoute: false,
+    });
 
     const authedRoutes: Array<{ path: string; methods: apigw.HttpMethod[] }> = [
       { path: '/me', methods: [apigw.HttpMethod.GET] },
