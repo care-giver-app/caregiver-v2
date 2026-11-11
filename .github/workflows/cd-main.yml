@@ -16,7 +16,7 @@ jobs:
   deploy-prod:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         # Version comes from package.json `packageManager` field; do NOT add `with: version`.
       - uses: actions/setup-node@v4
