@@ -319,14 +319,17 @@ struct HomeV1View: View {
             HStack(spacing: 4) {
                 stepperButton("chevron.left", label: "Previous day") { Task { await model.stepBack() } }
                 stepperButton("calendar", label: "Jump to day") { isJumping = true }
-                if model.canStepForward {
-                    stepperButton("chevron.right", label: "Next day") { Task { await model.stepForward() } }
+                // Disabled rather than hidden at today, so the stepper's buttons never move
+                // (Figma 436:3226; Trevor, #77).
+                stepperButton("chevron.right", label: "Next day", enabled: model.canStepForward) {
+                    Task { await model.stepForward() }
                 }
             }
         }
     }
 
-    private func stepperButton(_ icon: String, label: String, action: @escaping () -> Void) -> some View {
+    private func stepperButton(_ icon: String, label: String, enabled: Bool = true,
+                               action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: icon == "calendar" ? 14 : 13, weight: .semibold))
@@ -336,6 +339,8 @@ struct HomeV1View: View {
                 .overlay { RoundedRectangle(cornerRadius: 10).stroke(Theme.Colors.border, lineWidth: 1) }
         }
         .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.45)
         .accessibilityLabel(label)
     }
 
