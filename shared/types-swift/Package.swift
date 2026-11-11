@@ -11,9 +11,9 @@ let package = Package(
         .library(name: "CaregiverAPI", targets: ["CaregiverAPI"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.4.0"),
-        .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.5.0"),
-        .package(url: "https://github.com/apple/swift-openapi-urlsession", from: "1.0.2"),
+        .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.14.4"),
+        .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.13.4"),
+        .package(url: "https://github.com/apple/swift-openapi-urlsession", from: "1.4.0"),
     ],
     targets: [
         .target(
