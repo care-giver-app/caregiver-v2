@@ -92,8 +92,8 @@ struct DetailRow: Equatable, Sendable {
 }
 
 /// What Entry detail offers, by the entry's state rather than by where it was opened
-/// from (PRD "Entry detail"). PR3 reads only: nothing renders these yet — PR4 adds Log
-/// it and Skip (into Quick log), Edit (Edit entry) and Delete (Delete this entry?).
+/// from (PRD "Entry detail"). Log it and Skip open Quick log; Edit (Edit entry) and
+/// Delete (Delete this entry?) are still to be rendered.
 enum EntryOffer: Equatable, Sendable {
     case logIt, skip, edit, delete
 

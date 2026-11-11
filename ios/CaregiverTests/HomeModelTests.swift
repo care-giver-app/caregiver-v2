@@ -356,6 +356,38 @@ final class HomeModelTests: XCTestCase {
         XCTAssertEqual(calls.count("attention:eleanor"), 2)
     }
 
+    // MARK: Back from Quick log
+
+    func testALoggingRunReturnsToTheDayItLoggedReadAfresh() async {
+        let model = model()
+        await model.show(Fixed.eleanor)
+        await model.stepBack()
+        await model.reflect(QuickLogModel.Outcome(planning: false, latestDay: Fixed.nov7, savedAny: true))
+        XCTAssertEqual(model.day, Fixed.nov7)
+        XCTAssertEqual(calls.lastDay, Fixed.nov7)
+        XCTAssertEqual(calls.count("attention:eleanor"), 2)
+        XCTAssertEqual(calls.count("comingUp:eleanor"), 2)
+    }
+
+    func testAPlanningRunReadsHomeAfreshOnTheDayShowing() async {
+        let model = model()
+        await model.show(Fixed.eleanor)
+        await model.stepBack()
+        let nov6 = LocalDay(year: 2026, month: 11, day: 6)
+        await model.reflect(QuickLogModel.Outcome(planning: true, latestDay: LocalDay(year: 2026, month: 11, day: 9),
+                                                  savedAny: true))
+        XCTAssertEqual(model.day, nov6)
+        XCTAssertEqual(calls.count("comingUp:eleanor"), 2)
+        XCTAssertEqual(calls.lastDay, nov6)
+    }
+
+    func testARunThatSavedNothingReadsNothing() async {
+        let model = model()
+        await model.show(Fixed.eleanor)
+        await model.reflect(QuickLogModel.Outcome(planning: false, latestDay: nil, savedAny: false))
+        XCTAssertEqual(calls.count("attention:eleanor"), 1)
+    }
+
     func testRefreshReloadsTheWholeScreen() async {
         let model = model()
         await model.show(Fixed.eleanor)

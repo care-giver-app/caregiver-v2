@@ -11,6 +11,69 @@ enum QuickLogText {
     static let trackerPaused = "This tracker was paused, so nothing was saved for it."
 
     static func noteTooLong(_ max: Int) -> String { "Keep the note to \(max) characters or fewer." }
+
+    // MARK: The sheet's words (Figma section 5 · Quick log, 448:4146)
+
+    static let pickHeading = "What to record"
+    static let whenHeading = "When did it happen?"
+    static let waitingLabel = "WAITING"
+    static let trackersLabel = "TRACKERS"
+    static let addTracker = "Add a tracker"
+    static let now = "Now"
+    static let earlierToday = "Earlier today"
+    static let futureTime = "A future time"
+    static let pickATime = "Pick a time"
+    static let planIt = "Plan it"
+    static let oneTime = "One time for everything you picked."
+    static let planningCaption = "This plans entries instead of logging them. Journal notes can't be planned."
+    static let alertIfUnrecorded = "Alert if it goes unrecorded"
+    static let plannedStepCaption = "Fill in what you already know. The rest is left for whoever logs it."
+    static let resultsLabel = "RESULTS"
+    static let couldNotSave = "Couldn't save"
+    static let saved = "Saved"
+    static let loadFailed = "Couldn't load what there is to record."
+    static let fieldsFailed = "Couldn't load the trackers' fields."
+    static let noReceiver = "There's no one to record for yet. Care receivers are added on Team."
+
+    /// "STEP 2 OF 3", "STEP 1 OF 2 · PLANNING".
+    static func stepLabel(_ index: Int, of count: Int, planning: Bool) -> String {
+        "STEP \(index + 1) OF \(count)" + (planning ? " · PLANNING" : "")
+    }
+
+    /// "3 saved", "2 of 3 saved", "2 planned" (Figma 448:4542, 448:4583).
+    static func resultsHeading(saved: Int, of count: Int, planning: Bool) -> String {
+        let verb = planning ? "planned" : "saved"
+        return saved == count ? "\(count) \(verb)" : "\(saved) of \(count) \(verb)"
+    }
+
+    /// A waiting occurrence: its schedule and time — "Morning · 8:00 AM" today, with the
+    /// day when it is not today: "Evening · Yesterday at 8:00 PM".
+    static func occurrenceLine(_ entry: TrackerEntry, now: Date, zone: TimeZone) -> String {
+        guard LocalDay(entry.at, zone: zone) != LocalDay(now, zone: zone) else {
+            return HomeText.itemTime(entry, zone: zone)
+        }
+        let when = HomeText.entryWhen(entry.at, now: now, zone: zone)
+        guard let schedule = entry.scheduleName, !schedule.isEmpty else { return when }
+        return "\(schedule) · \(when)"
+    }
+
+    /// What one line of the result says under its title: a plan's time; what became of
+    /// a waiting occurrence ("Morning · skipped"); "Logged", "Saved", or "Couldn't save".
+    static func resultLine(_ result: QuickLogModel.Result, planning: Bool, now: Date, zone: TimeZone) -> String {
+        switch result.status {
+        case .failed:
+            return couldNotSave
+        case .savedNote:
+            return saved
+        case .savedEntry(let d):
+            if planning { return HomeText.entryWhen(d.entry.at, now: now, zone: zone) }
+            let state = TrackerText.stateLabel(d.entry.state)
+            if case .occurrence = result.item, let schedule = d.entry.scheduleName, !schedule.isEmpty {
+                return "\(schedule) · \(state.lowercased())"
+            }
+            return state
+        }
+    }
 }
 
 /// Quick log (PRD "The tab bar", "Quick log"): one sheet that runs in three parts — what
@@ -83,6 +146,8 @@ final class QuickLogModel {
         /// Nil for a journal note.
         let tracker: TrackerBadgeInfo?
         let status: Status
+        /// A failure worth trying again: not one the server refused for the entry's state.
+        var retryable = false
 
         var id: Item { item }
 
@@ -93,7 +158,7 @@ final class QuickLogModel {
     }
 
     /// What the run's caller needs once it is done.
-    struct Outcome: Equatable {
+    struct Outcome: Equatable, Sendable {
         /// A planning run's entries sit under Coming up; a logging run's in the day behind it.
         let planning: Bool
         /// The latest day, in the receiver's zone, anything saved belongs to; nil if nothing saved.
@@ -141,6 +206,8 @@ final class QuickLogModel {
     private(set) var fieldsFailed: AppError?
 
     private(set) var results: [Result] = []
+    /// Failed lines of the result being saved again.
+    private(set) var retrying: Set<Item> = []
     /// Add a tracker was taken: Quick log is dismissed and Add tracker takes its place.
     private(set) var wantsAddTracker = false
 
@@ -463,7 +530,7 @@ final class QuickLogModel {
                 return Result(item: item, title: QuickLogText.journalNote, tracker: nil, status: .savedNote(note))
             } catch {
                 return Result(item: item, title: QuickLogText.journalNote, tracker: nil,
-                              status: .failed(AppError.from(error).message))
+                              status: .failed(AppError.from(error).message), retryable: true)
             }
         case .tracker(let id):
             let tracker = activeTrackers.first { $0.id == id }
@@ -499,7 +566,36 @@ final class QuickLogModel {
         } catch is EntryNotInState {
             return Result(item: item, title: title, tracker: badge, status: .failed(paused))
         } catch {
-            return Result(item: item, title: title, tracker: badge, status: .failed(AppError.from(error).message))
+            return Result(item: item, title: title, tracker: badge, status: .failed(AppError.from(error).message),
+                          retryable: true)
+        }
+    }
+
+    /// The result's Retry (Figma 448:4570): one failed line saved again, as it was entered.
+    /// A plan whose time has come since cannot be saved as a plan, and is said so.
+    func retry(_ item: Item) async {
+        guard part == .result, let i = results.firstIndex(where: { $0.item == item }),
+              results[i].retryable, !retrying.contains(item) else { return }
+        retrying.insert(item)
+        defer { retrying.remove(item) }
+        let now = clock()
+        let result: Result
+        if isPlanning, futureTime <= now.addingTimeInterval(Self.futureMargin) {
+            let r = results[i]
+            result = Result(item: r.item, title: r.title, tracker: r.tracker,
+                            status: .failed(QuickLogText.futureProblem))
+        } else {
+            result = await save(item, now: now)
+        }
+        if let j = results.firstIndex(where: { $0.item == item }) { results[j] = result }
+    }
+
+    /// The run's one time as it stands: now, the earlier time, or the future time.
+    func runTime(now: Date) -> Date {
+        switch when {
+        case .now: now
+        case .earlierToday: earlierTime
+        case .future: futureTime
         }
     }
 

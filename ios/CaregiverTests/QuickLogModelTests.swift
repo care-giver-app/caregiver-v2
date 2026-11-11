@@ -605,6 +605,95 @@ final class QuickLogModelTests: XCTestCase {
         let m = await loaded()
         XCTAssertNil(m.outcome)
     }
+
+    // MARK: Retry (Figma 448:4570)
+
+    func testAFailedLineCanBeRetriedAndTheOutcomeFollows() async {
+        writes.failures = ["note": URLError(.notConnectedToInternet)]
+        let m = await loaded(.journalNote)
+        m.continueFromPick()
+        await m.continueFromWhen()
+        m.updateDraft(.journalNote) { $0.note = "Fine." }
+        await m.advance()
+        XCTAssertTrue(m.results[0].retryable)
+        XCTAssertEqual(m.outcome?.savedAny, false)
+
+        writes.failures = [:]
+        await m.retry(.journalNote)
+        XCTAssertTrue(m.results[0].saved)
+        XCTAssertEqual(m.outcome?.savedAny, true)
+        XCTAssertEqual(writes.writes.count, 2)
+        XCTAssertEqual(m.retrying, [])
+    }
+
+    func testARefusalForTheEntrysStateIsNotRetried() async {
+        writes.failures = ["bp": EntryNotInState(message: "the tracker is paused")]
+        let m = await loaded()
+        await intoSteps(m, [.tracker(id: "bp")])
+        bpReading(m)
+        await m.advance()
+        XCTAssertFalse(m.results[0].retryable)
+        await m.retry(.tracker(id: "bp"))
+        XCTAssertEqual(writes.writes.count, 1)
+    }
+
+    func testRetryingAPlanWhoseTimeHasComeSaysSoAndSendsNothing() async {
+        writes.failures = ["bp": URLError(.timedOut)]
+        let m = await loaded()
+        m.toggle(.tracker(id: "bp"))
+        m.continueFromPick()
+        m.when = .future
+        await m.continueFromWhen()
+        await m.advance()
+        XCTAssertEqual(m.outcome?.planning, true)
+        XCTAssertTrue(m.results[0].retryable)
+
+        writes.failures = [:]
+        clock.now = m.futureTime
+        await m.retry(.tracker(id: "bp"))
+        XCTAssertEqual(m.results[0].status, .failed(QuickLogText.futureProblem))
+        XCTAssertFalse(m.results[0].retryable)
+        XCTAssertEqual(writes.writes.count, 1)
+    }
+
+    // MARK: What the sheet says
+
+    func testStepLabelsAndResultHeadings() {
+        XCTAssertEqual(QuickLogText.stepLabel(1, of: 3, planning: false), "STEP 2 OF 3")
+        XCTAssertEqual(QuickLogText.stepLabel(0, of: 2, planning: true), "STEP 1 OF 2 · PLANNING")
+        XCTAssertEqual(QuickLogText.resultsHeading(saved: 3, of: 3, planning: false), "3 saved")
+        XCTAssertEqual(QuickLogText.resultsHeading(saved: 2, of: 3, planning: false), "2 of 3 saved")
+        XCTAssertEqual(QuickLogText.resultsHeading(saved: 2, of: 2, planning: true), "2 planned")
+        XCTAssertEqual(QuickLogText.resultsHeading(saved: 0, of: 1, planning: true), "0 of 1 planned")
+    }
+
+    func testAnOccurrenceSaysItsDayWhenItIsNotToday() {
+        // Tonight's 7 PM check, and last night's 8 PM dose, with "now" 6 PM Saturday.
+        XCTAssertEqual(QuickLogText.occurrenceLine(Q.tonightCheck.entry, now: Q.now, zone: Q.chicago),
+                       "Evening check · 7:00 PM")
+        XCTAssertEqual(QuickLogText.occurrenceLine(Q.unrecordedDose.entry, now: Q.now, zone: Q.chicago),
+                       "Evening · Yesterday at 8:00 PM")
+    }
+
+    func testEachResultLineSaysWhatBecameOfIt() {
+        let skipped = Q.detail("dose-last-night", .skipped, at: Q.unrecordedDose.entry.at)
+        let scheduledSkip = EntryDetailInfo(
+            entry: TrackerEntry(id: "dose-last-night", state: .skipped, at: skipped.entry.at, values: [:],
+                                note: nil, byName: "Trevor", scheduleName: "Evening"),
+            tracker: Q.medBadge, fields: Q.medFields, planned: true, occurrenceAt: skipped.entry.at,
+            unrecordedAlert: false, settledAt: Q.now, updatedByName: nil, updatedAt: nil, outOfRange: [])
+        func line(_ item: QuickLogModel.Item, _ status: QuickLogModel.Result.Status, planning: Bool = false) -> String {
+            QuickLogText.resultLine(QuickLogModel.Result(item: item, title: "", tracker: nil, status: status),
+                                    planning: planning, now: Q.now, zone: Q.chicago)
+        }
+        XCTAssertEqual(line(.occurrence(entryID: "dose-last-night"), .savedEntry(scheduledSkip)), "Evening · skipped")
+        XCTAssertEqual(line(.tracker(id: "bp"), .savedEntry(Q.detail("n", .logged, at: Q.now, tracker: Q.bpBadge))),
+                       "Logged")
+        let tomorrow8 = Q.at("2026-11-08T14:00:00Z")
+        XCTAssertEqual(line(.tracker(id: "bp"), .savedEntry(Q.detail("p", .scheduled, at: tomorrow8)), planning: true),
+                       "Tomorrow at 8:00 AM")
+        XCTAssertEqual(line(.journalNote, .failed("offline")), QuickLogText.couldNotSave)
+    }
 }
 
 final class EntryValuesDraftTests: XCTestCase {

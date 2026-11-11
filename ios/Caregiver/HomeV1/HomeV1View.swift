@@ -16,6 +16,7 @@ struct HomeV1View: View {
     @State private var isJumping = false
     @Environment(\.v1Push) private var push
     @Environment(\.v1QuickLog) private var quickLog
+    @Environment(\.v1QuickLogRuns) private var quickLogRuns
 
     init(receiver: ActiveReceiverModel, home: HomeService, trackers: TrackersService,
          model: HomeModel? = nil) {
@@ -43,6 +44,11 @@ struct HomeV1View: View {
         .strideBackground()
         .toolbar(.hidden, for: .navigationBar)
         .task { if receiver.phase == .loading { await receiver.load() } }
+        .onChange(of: quickLogRuns) { _, runs in
+            // A Quick log run saved something: Home already reflects it on return.
+            guard let outcome = runs.last else { return }
+            Task { await model.reflect(outcome) }
+        }
         .sheet(isPresented: $isAddingReceiver) { AddCareReceiverPlaceholderSheet() }
         .sheet(isPresented: $isAddingTracker, onDismiss: {
             // Pushed only once the sheet is down, so the push lands on the stack beneath it.

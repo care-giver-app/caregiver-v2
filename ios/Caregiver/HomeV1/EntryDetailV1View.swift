@@ -6,15 +6,18 @@ import SwiftUI
 /// named with the range it was expected to hold to; its fields and note; the schedule it
 /// came from; who logged or skipped it, and who changed it last.
 ///
-/// Reads only for now. What it offers by state (`EntryDetailContent.offers`) — Log it and
-/// Skip at the bottom, Edit in the nav, Delete at the bottom — arrives with Home's write
-/// side, and goes in `actions(_:)` and the toolbar here.
+/// What it offers goes by state (`EntryDetailContent.offers`): a scheduled or unrecorded
+/// entry offers Log it and Skip at the bottom (Figma 445:4258), each opening Quick log on
+/// this one entry with the choice made; it reads itself again when a run saves. Edit in
+/// the nav and Delete at the bottom, for a logged or skipped entry, are still to come.
 struct EntryDetailV1View: View {
     let entryID: String
     let receiver: TeamReceiver
     let home: HomeService
 
     @State private var model: HomeReadModel<EntryDetailInfo>?
+    @Environment(\.v1QuickLog) private var quickLog
+    @Environment(\.v1QuickLogRuns) private var quickLogRuns
 
     var body: some View {
         Group {
@@ -25,6 +28,8 @@ struct EntryDetailV1View: View {
             }
         }
         .homePushedChrome()
+        // Back from Quick log, which may have logged or skipped this entry.
+        .onChange(of: quickLogRuns) { Task { await model?.load() } }
         .task {
             // Every appearance reads it again: it may have been logged, edited or deleted since.
             if let model {
@@ -47,7 +52,9 @@ struct EntryDetailV1View: View {
         case .failed:
             StrideErrorState(message: "Couldn't load this entry.") { Task { await model.retry() } }
         case .loaded(let detail):
-            loaded(EntryDetailContent(detail, now: model.now, zone: receiver.timeZone), model: model)
+            let content = EntryDetailContent(detail, now: model.now, zone: receiver.timeZone)
+            loaded(content, model: model)
+                .safeAreaInset(edge: .bottom, spacing: 0) { actions(content.offers, detail: detail) }
         }
     }
 
@@ -94,6 +101,25 @@ struct EntryDetailV1View: View {
             .padding(.bottom, Theme.Spacing.lg)
         }
         .refreshable { await model.load() }
+    }
+
+    /// Figma 445:4258: Log it, then Skip, both into Quick log at this entry's step.
+    @ViewBuilder
+    private func actions(_ offers: [EntryOffer], detail: EntryDetailInfo) -> some View {
+        if offers.contains(.logIt) || offers.contains(.skip) {
+            VStack(spacing: 10) {
+                if offers.contains(.logIt) {
+                    StrideButton(title: "Log it") { quickLog(.entry(detail, choice: .logIt), receiver: receiver) }
+                }
+                if offers.contains(.skip) {
+                    StrideButton(title: "Skip", style: .secondary) {
+                        quickLog(.entry(detail, choice: .skip), receiver: receiver)
+                    }
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.vertical, Theme.Spacing.sm)
+        }
     }
 
     /// Figma 445:4287 (out of range, red) / 445:4235 (unrecorded, amber).

@@ -2,8 +2,10 @@ import SwiftUI
 
 /// The signed-in `/v1` app: four tabs and the ⊕ button, driven by `StrideTabBar` (PRD
 /// "The tab bar"). Home holds the one `/v1` navigation stack; Insights, Team and Settings
-/// are named placeholders until their areas are built on this path. ⊕ and Home's empty
-/// day both open Quick log through one presenter (`V1QuickLog`), a placeholder for now.
+/// are named placeholders until their areas are built on this path. Every way into Quick
+/// log — ⊕, Home's empty day, Entry detail, Tracker detail — goes through one presenter
+/// (`V1QuickLog` into `QuickLogPresenter`), which also tells the screens beneath when a
+/// run has saved something (`v1QuickLogRuns`).
 struct V1TabShell: View {
     let account: Account
     let trackers: TrackersService
@@ -12,7 +14,7 @@ struct V1TabShell: View {
     @Binding var path: [V1Route]
 
     @State private var selectedTab: StrideTab = .home
-    @State private var quickLog: QuickLogStart?
+    @State private var quickLog = QuickLogPresenter()
     @State private var receiver: ActiveReceiverModel
 
     init(account: Account, trackers: TrackersService, home: HomeService,
@@ -37,7 +39,10 @@ struct V1TabShell: View {
             .environment(\.v1PopToTrackers, V1PopToTrackers { [path = $path] in
                 path.wrappedValue = V1Route.poppedToTrackers(path.wrappedValue)
             })
-            .environment(\.v1QuickLog, V1QuickLog { [quickLog = $quickLog] in quickLog.wrappedValue = $0 })
+            .environment(\.v1QuickLog, V1QuickLog { [quickLog = $quickLog, receiver] start, r in
+                quickLog.wrappedValue.open(start, receiver: r ?? receiver.active?.receiver)
+            })
+            .environment(\.v1QuickLogRuns, quickLog.runs)
             .tag(StrideTab.home)
 
             NavigationStack {
@@ -61,10 +66,24 @@ struct V1TabShell: View {
             .tag(StrideTab.settings)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            StrideTabBar(selection: $selectedTab) { quickLog = .pick }
+            StrideTabBar(selection: $selectedTab) { quickLog.open(.pick, receiver: receiver.active?.receiver) }
         }
-        .sheet(item: $quickLog) { start in
-            QuickLogPlaceholderSheet(start: start)
+        .sheet(item: $quickLog.sheet, onDismiss: {
+            // Add tracker in Quick log's place made one: push it on Home's stack now the sheet is down.
+            guard let created = quickLog.takeCreated() else { return }
+            selectedTab = .home
+            path.append(.tracker(id: created.trackerID, receiver: created.receiver))
+        }) { sheet in
+            switch sheet {
+            case .quickLog(let start, let r):
+                QuickLogV1Sheet(start: start, receiver: r, home: home, trackers: trackers,
+                                onAddTracker: { quickLog.swapToAddTracker(r) },
+                                onEnd: { quickLog.quickLogEnded($0) })
+            case .addTracker(let r):
+                AddTrackerV1Sheet(receiver: r, service: trackers) { quickLog.trackerCreated($0.id, receiver: r) }
+            case .noReceiver:
+                QuickLogNoReceiverSheet()
+            }
         }
         .tint(Theme.Colors.accent)
     }
@@ -145,17 +164,20 @@ enum QuickLogStart: Equatable, Identifiable, Sendable {
     }
 }
 
-/// Opens Quick log. Every way in — ⊕, and Home's empty-day Log an entry and Write a
-/// note — goes through this one presenter, so Quick log replaces the placeholder in one
-/// place. V1TabShell supplies it; elsewhere it does nothing.
+/// Opens Quick log. Every way in — ⊕, Home's empty-day Log an entry and Write a note,
+/// Entry detail's Log it and Skip, Tracker detail's Log an entry — goes through this one
+/// presenter. `receiver` is the screen's own; nil means the active care receiver.
+/// V1TabShell supplies it; elsewhere it does nothing.
 struct V1QuickLog: Sendable {
-    let open: @MainActor @Sendable (QuickLogStart) -> Void
+    let open: @MainActor @Sendable (QuickLogStart, TeamReceiver?) -> Void
 
-    @MainActor func callAsFunction(_ start: QuickLogStart = .pick) { open(start) }
+    @MainActor func callAsFunction(_ start: QuickLogStart = .pick, receiver: TeamReceiver? = nil) {
+        open(start, receiver)
+    }
 }
 
 private struct V1QuickLogKey: EnvironmentKey {
-    static let defaultValue = V1QuickLog { _ in }
+    static let defaultValue = V1QuickLog { _, _ in }
 }
 
 extension EnvironmentValues {
@@ -165,16 +187,12 @@ extension EnvironmentValues {
     }
 }
 
-/// Stands in for Quick log, which is still to be built on this path.
-struct QuickLogPlaceholderSheet: View {
-    var start: QuickLogStart = .pick
+/// ⊕ before there is anyone to record for: Quick log is about a care receiver.
+struct QuickLogNoReceiverSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        V1Placeholder(title: "Quick log",
-                      line: start == .journalNote
-                          ? "Quick log, with a journal note already picked, isn't built on this path yet."
-                          : "Quick log isn't built on this path yet.") {
+        V1Placeholder(title: "Quick log", line: QuickLogText.noReceiver) {
             StrideButton(title: "Close", style: .secondary) { dismiss() }
         }
     }
@@ -216,11 +234,7 @@ struct V1PushedPlaceholder: View {
                home: HomeFixtures.service(), store: .inMemory(), onSignOut: {}, path: $path)
 }
 
-#Preview("Quick log placeholder") {
-    QuickLogPlaceholderSheet()
-}
-
-#Preview("Quick log placeholder, note picked") {
-    QuickLogPlaceholderSheet(start: .journalNote)
+#Preview("Quick log, no one to record for") {
+    QuickLogNoReceiverSheet()
 }
 #endif

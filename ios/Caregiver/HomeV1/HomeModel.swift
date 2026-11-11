@@ -135,6 +135,19 @@ final class HomeModel {
         await loadAll()
     }
 
+    /// Back from a Quick log run that saved something (PRD "Quick log" exits): the whole
+    /// screen is read again, so a planning run's entries show under Coming up and a
+    /// logging run's in the day — on the day they were logged, if Home was showing
+    /// another, since a run's one time is today at the latest.
+    func reflect(_ outcome: QuickLogModel.Outcome) async {
+        guard outcome.savedAny, receiver != nil else { return }
+        if !outcome.planning, let logged = outcome.latestDay, logged != day, logged <= today {
+            day = logged
+            dayPhase = .loading
+        }
+        await loadAll()
+    }
+
     func retry() async {
         phase = .loading
         dayPhase = .loading
