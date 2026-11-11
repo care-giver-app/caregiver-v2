@@ -4,9 +4,10 @@ import Foundation
 /// care receiver's zone, never the device's, and `now` is passed in.
 enum HomeText {
     /// What a caregiver who is not an admin is told when the receiver has no active
-    /// trackers (Figma 438:4075). Quick log says the same thing "in the same words Home
-    /// uses" (PRD "The tab bar"), so it lives here once.
-    static let noTrackersCaregiverLine = "Waiting on an admin to set up a tracker."
+    /// trackers. Home, the Trackers list and Quick log all say it "in the same words Home
+    /// uses" (PRD "The tab bar"), so it lives here once — Trevor chose the Trackers list's
+    /// wording over Figma 438:4075's on 2026-11-11.
+    static let noTrackersCaregiverLine = "An admin on the team can add the first one."
     static let noTrackersAdminLine = "Add a tracker to start keeping a record."
     static let noTrackersTitle = "Nothing is being tracked"
 

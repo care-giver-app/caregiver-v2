@@ -87,7 +87,7 @@ struct TrackersV1View: View {
             // A caregiver can't make one, so they're told who does (PRD "Trackers", empty).
             Text(receiver.canManage
                  ? "Create your first tracker for \(receiver.name)"
-                 : "An admin on the team can add the first one.")
+                 : HomeText.noTrackersCaregiverLine)
                 .font(.system(size: 14))
                 .foregroundStyle(Theme.Colors.textSecondary)
             if receiver.canManage {

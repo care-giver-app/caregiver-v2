@@ -991,7 +991,9 @@ Coming up is where it is shown, because the same plan in two places on one scree
 two doses. A day is empty only when nothing was logged and nothing came due, however much is planned
 for later in it, and then Home says so and offers a first log or a journal note, because the
 quiet Tuesday is the state this screen spends most of its life in and a blank space is not an
-account of it.
+account of it. A receiver with no active trackers is offered only the journal note, because there
+is nothing yet to log against, and a first log that opened onto a picker holding nothing to log
+would be an offer the screen could not keep.
 
 Entry detail is the one screen any entry is read on, whatever state it is in, because an entry that
 is scheduled this morning and logged this evening is the same entry and should not change address
@@ -1166,7 +1168,9 @@ under what is coming up rather than in the day behind it.
       to: Jump to day
       as: sheet
     - action: Log an entry
-      when: nothing was logged or came due on the day shown
+      when: >
+        nothing was logged or came due on the day shown, and the care receiver has
+        active trackers
       to: Quick log
       as: sheet
     - action: Write a note
@@ -1215,7 +1219,8 @@ under what is coming up rather than in the day behind it.
       where a warning would be
     - >
       nothing logged on the day shown and nothing came due either — Home says so,
-      and offers a first log or a journal note rather than leaving the day blank
+      and offers a first log or a journal note rather than leaving the day blank —
+      only the journal note when the care receiver has no active trackers
     - >
       the care team has no care receivers — Home says so and offers an admin the
       first one, while a caregiver is told an admin adds them
