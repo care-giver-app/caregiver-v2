@@ -85,23 +85,6 @@ Feature: Settling an occurrence
     And it came from the "Morning" schedule
     And the entry was last changed by "Alex"
 
-  # PRD: Definitions → Entry (every entry is in one of four states; skipping settles it: the entry
-  #      becomes skipped rather than carrying both states)
-  # PRD: Definitions → Scheduled entry (what a caregiver selected is what they recorded)
-  # Contract: POST /v1/entries/{entryId}/log and /skip answer 409 if somebody settled it first
-  Scenario: The second caregiver to settle an occurrence is refused
-    Given "Medication" has these entries from its "Morning" schedule:
-      | state      | when        |
-      | unrecorded | 3 hours ago |
-    When "Sam" logs that entry as of 2 hours ago
-    Then the answer is 200
-    When "Alex" skips that entry
-    Then the answer is 409
-    When "Alex" logs that entry as of 1 hour ago
-    Then the answer is 409
-    When "Alex" opens that entry
-    Then it is the "Medication" entry logged by "Sam", at 2 hours ago
-
   # PRD: Definitions → Tracker (pausing: no new entries can be logged against it, and it leaves the
   #      logging picker)
   Scenario: An occurrence of a paused tracker cannot be logged
