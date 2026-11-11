@@ -570,7 +570,12 @@ func (w *world) seedPlannedEntry(ctx context.Context, tracker, scheduleID, state
 	case "skipped":
 		e.State, e.OccurrenceAt, e.SkippedAt, e.SkippedBy = domain.EntrySkipped, &at, &at, who
 	case "unrecorded", "scheduled":
+		// What a waiting occurrence holds is what it was planned with.
 		e.State, e.OccurrenceAt, e.OpenAt = domain.EntryScheduled, &at, &at
+		e.PlannedValues = map[string]any{}
+		for k, v := range e.Values {
+			e.PlannedValues[k] = v
+		}
 	default:
 		return fmt.Errorf("unknown entry state %q", state)
 	}

@@ -57,6 +57,14 @@ func newInProcess(t *testing.T) *inProcess {
 	mux.Handle("GET /v1/receivers/{receiverId}/waiting", authn.Wrap(http.HandlerFunc(home.Waiting)))
 	mux.Handle("GET /v1/entries/{entryId}", authn.Wrap(http.HandlerFunc(home.Entry)))
 	mux.Handle("GET /v1/journal-notes/{noteId}", authn.Wrap(http.HandlerFunc(home.JournalNote)))
+	mux.Handle("POST /v1/trackers/{trackerId}/entries", authn.Wrap(http.HandlerFunc(home.AddEntry)))
+	mux.Handle("POST /v1/entries/{entryId}/log", authn.Wrap(http.HandlerFunc(home.LogEntry)))
+	mux.Handle("POST /v1/entries/{entryId}/skip", authn.Wrap(http.HandlerFunc(home.SkipEntry)))
+	mux.Handle("PUT /v1/entries/{entryId}", authn.Wrap(http.HandlerFunc(home.ChangeEntry)))
+	mux.Handle("DELETE /v1/entries/{entryId}", authn.Wrap(http.HandlerFunc(home.DeleteEntry)))
+	mux.Handle("POST /v1/receivers/{receiverId}/journal-notes", authn.Wrap(http.HandlerFunc(home.AddJournalNote)))
+	mux.Handle("PUT /v1/journal-notes/{noteId}", authn.Wrap(http.HandlerFunc(home.ChangeJournalNote)))
+	mux.Handle("DELETE /v1/journal-notes/{noteId}", authn.Wrap(http.HandlerFunc(home.DeleteJournalNote)))
 	return &inProcess{local: local, adapter: httpadapter.NewV2(mux)}
 }
 

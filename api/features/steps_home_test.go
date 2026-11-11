@@ -86,6 +86,8 @@ func (w *world) registerHome(sc *godog.ScenarioContext) {
 	sc.Step(`^"([^"]*)" opens that note$`, w.opensThatNote)
 	sc.Step(`^the note reads "([^"]*)", written by "([^"]*)" about `+when+`$`, w.noteReads)
 	sc.Step(`^the note was last changed by "([^"]*)" `+when+`$`, w.noteLastChangedBy)
+
+	w.registerHomeWrites(sc)
 }
 
 // ---- API shapes -------------------------------------------------------------
@@ -102,6 +104,7 @@ type homeEntryView struct {
 	Values       map[string]any `json:"values"`
 	ByName       string         `json:"by_name"`
 	ScheduleName string         `json:"schedule_name"`
+	Note         string         `json:"note"`
 }
 
 type attentionItemView struct {
@@ -154,9 +157,10 @@ type entryDetailView struct {
 
 // ---- seeding notes and changes ------------------------------------------------
 //
-// Nothing writes journal notes or edits entries through the API until Quick
-// log and Edit entry exist, so these go straight to the tables like the
-// trackers' history does, tracked for cleanup.
+// These set history the API cannot: a note or a change made at a given time
+// in the past (the API stamps its own now). They go straight to the tables
+// like the trackers' history does, tracked for cleanup. What a caregiver does
+// now goes through the API; see steps_home_writes_test.go.
 
 func (w *world) wroteNote(ctx context.Context, by, receiver, phrase, body string) error {
 	rc, err := w.receiver(receiver)
