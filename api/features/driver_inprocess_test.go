@@ -50,6 +50,13 @@ func newInProcess(t *testing.T) *inProcess {
 	mux.Handle("PUT /v1/schedules/{scheduleId}", authn.Wrap(http.HandlerFunc(trk.ChangeSchedule)))
 	mux.Handle("DELETE /v1/schedules/{scheduleId}", authn.Wrap(http.HandlerFunc(trk.RemoveSchedule)))
 	mux.Handle("GET /v1/tracker-templates", authn.Wrap(http.HandlerFunc(v1.NewTemplates().List)))
+	home := v1.NewHome(local.Stores)
+	mux.Handle("GET /v1/receivers/{receiverId}/attention", authn.Wrap(http.HandlerFunc(home.Attention)))
+	mux.Handle("GET /v1/receivers/{receiverId}/coming-up", authn.Wrap(http.HandlerFunc(home.ComingUp)))
+	mux.Handle("GET /v1/receivers/{receiverId}/timeline", authn.Wrap(http.HandlerFunc(home.Timeline)))
+	mux.Handle("GET /v1/receivers/{receiverId}/waiting", authn.Wrap(http.HandlerFunc(home.Waiting)))
+	mux.Handle("GET /v1/entries/{entryId}", authn.Wrap(http.HandlerFunc(home.Entry)))
+	mux.Handle("GET /v1/journal-notes/{noteId}", authn.Wrap(http.HandlerFunc(home.JournalNote)))
 	return &inProcess{local: local, adapter: httpadapter.NewV2(mux)}
 }
 

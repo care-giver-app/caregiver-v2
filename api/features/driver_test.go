@@ -107,6 +107,10 @@ func entryKey(n store.TableNames, id string) rowKey {
 	return rowKey{n.Entries, map[string]types.AttributeValue{"entry_id": s(id)}}
 }
 
+func journalNoteKey(n store.TableNames, id string) rowKey {
+	return rowKey{n.JournalNotes, map[string]types.AttributeValue{"note_id": s(id)}}
+}
+
 // stores reads the tables through the real v1 stores, for what no endpoint
 // shows yet (the occurrences still to come, which Coming up will show).
 func (t tables) stores() *store.Stores { return store.New(t.client, t.names) }

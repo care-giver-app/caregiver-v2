@@ -70,14 +70,15 @@ func StartLocal(t *testing.T) Local {
 	}
 
 	names := store.TableNames{
-		Users:       "test-v1-user",
-		Teams:       "test-v1-team",
-		Memberships: "test-v1-membership",
-		Invitations: "test-v1-invitation",
-		Receivers:   "test-v1-receiver",
-		Trackers:    "test-v1-tracker",
-		Schedules:   "test-v1-schedule",
-		Entries:     "test-v1-entry",
+		Users:        "test-v1-user",
+		Teams:        "test-v1-team",
+		Memberships:  "test-v1-membership",
+		Invitations:  "test-v1-invitation",
+		Receivers:    "test-v1-receiver",
+		Trackers:     "test-v1-tracker",
+		Schedules:    "test-v1-schedule",
+		Entries:      "test-v1-entry",
+		JournalNotes: "test-v1-journal-note",
 	}
 	createTables(t, ctx, client, names)
 	return Local{Stores: store.New(client, names), Client: client, Names: names}
@@ -184,6 +185,16 @@ func createTables(t *testing.T, ctx context.Context, c *dynamodb.Client, n store
 			{IndexName: aws.String("receiver-time"), KeySchema: []types.KeySchemaElement{hash("receiver_id"), rng("timeline_at")}, Projection: all},
 			{IndexName: aws.String("open-index"), KeySchema: []types.KeySchemaElement{hash("receiver_id"), rng("open_at")}, Projection: all},
 			{IndexName: aws.String("schedule-index"), KeySchema: []types.KeySchemaElement{hash("schedule_id"), rng("occurrence_at")}, Projection: all},
+		},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:            aws.String(n.JournalNotes),
+		BillingMode:          types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{s("note_id"), s("receiver_id"), s("at")},
+		KeySchema:            []types.KeySchemaElement{hash("note_id")},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+			{IndexName: aws.String("receiver-time"), KeySchema: []types.KeySchemaElement{hash("receiver_id"), rng("at")}, Projection: all},
 		},
 	})
 }

@@ -28,6 +28,7 @@ type world struct {
 	rows   []rowKey
 	n      int
 	care   careWorld
+	home   homeWorld
 }
 
 func newWorld(d driver, suffix string) *world {
@@ -67,6 +68,7 @@ func (w *world) register(sc *godog.ScenarioContext) {
 	sc.Step(`^"([^"]*)" has no pending invitations$`, w.hasNoPendingInvitations)
 
 	w.registerTrackers(sc)
+	w.registerHome(sc)
 
 	// Clean up whatever happened: a failed scenario still deletes what it made.
 	// A step's own failure is already recorded; this only adds a cleanup failure.

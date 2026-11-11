@@ -50,8 +50,11 @@ func newCareWorld() careWorld {
 }
 
 // when is a time phrase a feature writes: "3 hours ago", "1 day from now",
-// "noon 2 days ago" (noon in the receiver's zone).
-const when = `(\d+ (?:minutes?|hours?|days?) (?:ago|from now)|noon \d+ days? ago)`
+// "noon 2 days ago" (noon in the receiver's zone), "08:00 2 days ago" (a clock
+// time in the receiver's zone), and "early today", "earlier today" and "later
+// today", which always fall on the receiver's today, before or after now,
+// whatever the hour the suite runs at.
+const when = `(\d+ (?:minutes?|hours?|days?) (?:ago|from now)|noon \d+ days? ago|\d\d:\d\d \d+ days? ago|early today|earlier today|later today)`
 
 // quoted is a list of quoted names: "A", "B" and "C".
 const quoted = `((?:"[^"]*"(?:, | and )?)+)`
@@ -256,6 +259,16 @@ func zone() *time.Location {
 // at turns a feature's time phrase into a time, counted back from the
 // scenario's now.
 func (w *world) at(phrase string) (time.Time, error) {
+	if t, ok := w.atToday(phrase); ok {
+		return t, nil
+	}
+	if m := clockDaysAgo.FindStringSubmatch(phrase); m != nil {
+		n, _ := strconv.Atoi(m[3])
+		hh, _ := strconv.Atoi(m[1])
+		mm, _ := strconv.Atoi(m[2])
+		local := w.care.now.In(zone()).AddDate(0, 0, -n)
+		return time.Date(local.Year(), local.Month(), local.Day(), hh, mm, 0, 0, zone()).UTC(), nil
+	}
 	if m := noonDaysAgo.FindStringSubmatch(phrase); m != nil {
 		n, _ := strconv.Atoi(m[1])
 		local := w.care.now.In(zone()).AddDate(0, 0, -n)
@@ -563,6 +576,7 @@ func (w *world) seedPlannedEntry(ctx context.Context, tracker, scheduleID, state
 	}
 	db := w.d.db()
 	w.track(entryKey(db.names, e.EntryID))
+	w.home.lastEntry = e.EntryID
 	return db.put(ctx, db.names.Entries, e)
 }
 

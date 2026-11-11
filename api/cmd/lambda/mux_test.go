@@ -45,6 +45,7 @@ func setTableEnv(t *testing.T) {
 	t.Setenv("V1_TRACKERS_TABLE", "v1tr")
 	t.Setenv("V1_SCHEDULES_TABLE", "v1s")
 	t.Setenv("V1_ENTRIES_TABLE", "v1e")
+	t.Setenv("V1_JOURNAL_NOTES_TABLE", "v1jn")
 	t.Setenv("AWS_REGION", "us-east-2")
 	t.Setenv("AWS_ACCESS_KEY_ID", "x")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "x")
@@ -57,6 +58,7 @@ func TestNewMux_requiresV1TableEnv(t *testing.T) {
 	for _, k := range []string{
 		"V1_USERS_TABLE", "V1_TEAMS_TABLE", "V1_MEMBERSHIPS_TABLE", "V1_INVITATIONS_TABLE",
 		"V1_RECEIVERS_TABLE", "V1_TRACKERS_TABLE", "V1_SCHEDULES_TABLE", "V1_ENTRIES_TABLE",
+		"V1_JOURNAL_NOTES_TABLE",
 	} {
 		t.Run(k, func(t *testing.T) {
 			t.Setenv(k, "")
@@ -91,6 +93,12 @@ func TestNewMux_v1RoutesAreRegisteredBehindAuth(t *testing.T) {
 		{http.MethodGet, "/v1/trackers/tr1/entries"},
 		{http.MethodGet, "/v1/trackers/tr1/schedules"},
 		{http.MethodGet, "/v1/tracker-templates"},
+		{http.MethodGet, "/v1/receivers/r1/attention"},
+		{http.MethodGet, "/v1/receivers/r1/coming-up"},
+		{http.MethodGet, "/v1/receivers/r1/timeline"},
+		{http.MethodGet, "/v1/receivers/r1/waiting"},
+		{http.MethodGet, "/v1/entries/e1"},
+		{http.MethodGet, "/v1/journal-notes/n1"},
 	} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(rt.method, rt.path, nil))

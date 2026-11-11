@@ -45,6 +45,7 @@ export interface ApiStackProps extends cdk.StackProps {
     tracker: dynamodb.ITable;
     schedule: dynamodb.ITable;
     entry: dynamodb.ITable;
+    'journal-note': dynamodb.ITable;
   };
 }
 
@@ -126,9 +127,28 @@ export class ApiStack extends cdk.Stack {
     this.apiFunction.addEnvironment('SCHEDULED_ITEMS_TABLE', props.tables.scheduledItems.tableName);
 
     // Granted one by one: callers may pass every v1 table, and the API gets only these.
-    const { user, team, membership, invitation, receiver, tracker, schedule, entry } =
-      props.v1Tables;
-    for (const table of [user, team, membership, invitation, receiver, tracker, schedule, entry]) {
+    const {
+      user,
+      team,
+      membership,
+      invitation,
+      receiver,
+      tracker,
+      schedule,
+      entry,
+      'journal-note': journalNote,
+    } = props.v1Tables;
+    for (const table of [
+      user,
+      team,
+      membership,
+      invitation,
+      receiver,
+      tracker,
+      schedule,
+      entry,
+      journalNote,
+    ]) {
       table.grantReadWriteData(this.apiFunction);
     }
     this.apiFunction.addEnvironment('V1_USERS_TABLE', user.tableName);
@@ -139,6 +159,7 @@ export class ApiStack extends cdk.Stack {
     this.apiFunction.addEnvironment('V1_TRACKERS_TABLE', tracker.tableName);
     this.apiFunction.addEnvironment('V1_SCHEDULES_TABLE', schedule.tableName);
     this.apiFunction.addEnvironment('V1_ENTRIES_TABLE', entry.tableName);
+    this.apiFunction.addEnvironment('V1_JOURNAL_NOTES_TABLE', journalNote.tableName);
 
     // AppConfig actions: `StartConfigurationSession` is a control-plane call that
     // doesn't accept a resource ARN, and `GetLatestConfiguration` operates on
@@ -193,19 +214,27 @@ export class ApiStack extends cdk.Stack {
     httpApi.addRoutes({
       path: '/health',
       methods: [apigw.HttpMethod.GET],
-      integration: new integ.HttpLambdaIntegration('HealthIntegration', this.apiFunction),
+      integration: new integ.HttpLambdaIntegration('HealthIntegration', this.apiFunction, {
+        scopePermissionToRoute: false,
+      }),
     });
 
     httpApi.addRoutes({
       path: '/flags',
       methods: [apigw.HttpMethod.GET],
-      integration: new integ.HttpLambdaIntegration('FlagsIntegration', this.apiFunction),
+      integration: new integ.HttpLambdaIntegration('FlagsIntegration', this.apiFunction, {
+        scopePermissionToRoute: false,
+      }),
     });
 
     const authorizer = new HttpUserPoolAuthorizer('JwtAuthorizer', props.userPool, {
       userPoolClients: [props.userPoolClient],
     });
-    const lambdaIntegration = new integ.HttpLambdaIntegration('ApiIntegration', this.apiFunction);
+    // One API-wide invoke permission instead of one per route: Lambda caps a function's
+    // resource policy at 20 KB, and ~56 per-route statements went over it.
+    const lambdaIntegration = new integ.HttpLambdaIntegration('ApiIntegration', this.apiFunction, {
+      scopePermissionToRoute: false,
+    });
 
     const authedRoutes: Array<{ path: string; methods: apigw.HttpMethod[] }> = [
       { path: '/me', methods: [apigw.HttpMethod.GET] },
@@ -257,6 +286,12 @@ export class ApiStack extends cdk.Stack {
       { path: '/v1/schedules/{scheduleId}', methods: [apigw.HttpMethod.PUT] },
       { path: '/v1/schedules/{scheduleId}', methods: [apigw.HttpMethod.DELETE] },
       { path: '/v1/tracker-templates', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/receivers/{receiverId}/attention', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/receivers/{receiverId}/coming-up', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/receivers/{receiverId}/timeline', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/receivers/{receiverId}/waiting', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/entries/{entryId}', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/journal-notes/{noteId}', methods: [apigw.HttpMethod.GET] },
     ];
     for (const route of authedRoutes) {
       httpApi.addRoutes({

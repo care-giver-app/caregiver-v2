@@ -21,14 +21,15 @@ var ErrNotFound = errors.New("not found")
 
 // TableNames holds every table name the stores need.
 type TableNames struct {
-	Users       string
-	Teams       string
-	Memberships string
-	Invitations string
-	Receivers   string
-	Trackers    string
-	Schedules   string
-	Entries     string
+	Users        string
+	Teams        string
+	Memberships  string
+	Invitations  string
+	Receivers    string
+	Trackers     string
+	Schedules    string
+	Entries      string
+	JournalNotes string
 }
 
 // Stores aggregates the per-entity repositories and owns cross-table transactions.
@@ -36,14 +37,15 @@ type Stores struct {
 	client *dynamodb.Client
 	names  TableNames
 
-	Users       *UserStore
-	Teams       *TeamStore
-	Memberships *MembershipStore
-	Invitations *InvitationStore
-	Receivers   *ReceiverStore
-	Trackers    *TrackerStore
-	Schedules   *ScheduleStore
-	Entries     *EntryStore
+	Users        *UserStore
+	Teams        *TeamStore
+	Memberships  *MembershipStore
+	Invitations  *InvitationStore
+	Receivers    *ReceiverStore
+	Trackers     *TrackerStore
+	Schedules    *ScheduleStore
+	Entries      *EntryStore
+	JournalNotes *JournalNoteStore
 }
 
 const (
@@ -52,6 +54,7 @@ const (
 	receiverIndex = "receiver-index"
 	trackerIndex  = "tracker-index"
 	trackerTime   = "tracker-time"
+	receiverTime  = "receiver-time"
 	openIndex     = "open-index"
 	scheduleIndex = "schedule-index"
 )
@@ -59,16 +62,17 @@ const (
 // New builds Stores from a DynamoDB client and table names.
 func New(client *dynamodb.Client, names TableNames) *Stores {
 	return &Stores{
-		client:      client,
-		names:       names,
-		Users:       &UserStore{client: client, table: names.Users},
-		Teams:       &TeamStore{client: client, table: names.Teams},
-		Memberships: &MembershipStore{client: client, table: names.Memberships},
-		Invitations: &InvitationStore{client: client, table: names.Invitations},
-		Receivers:   &ReceiverStore{client: client, table: names.Receivers},
-		Trackers:    &TrackerStore{client: client, table: names.Trackers},
-		Schedules:   &ScheduleStore{client: client, table: names.Schedules},
-		Entries:     &EntryStore{client: client, table: names.Entries},
+		client:       client,
+		names:        names,
+		Users:        &UserStore{client: client, table: names.Users},
+		Teams:        &TeamStore{client: client, table: names.Teams},
+		Memberships:  &MembershipStore{client: client, table: names.Memberships},
+		Invitations:  &InvitationStore{client: client, table: names.Invitations},
+		Receivers:    &ReceiverStore{client: client, table: names.Receivers},
+		Trackers:     &TrackerStore{client: client, table: names.Trackers},
+		Schedules:    &ScheduleStore{client: client, table: names.Schedules},
+		Entries:      &EntryStore{client: client, table: names.Entries},
+		JournalNotes: &JournalNoteStore{client: client, table: names.JournalNotes},
 	}
 }
 

@@ -19,7 +19,8 @@ const (
 
 // Attention is one thing wrong with a tracker right now. Which fields are set
 // depends on Kind: unrecorded sets EntryID and OccurrenceAt; out_of_range sets
-// EntryID, FieldID, Value and Range; gap sets Since and GapHours.
+// EntryID, FieldID, Value, Range and OccurredAt (when the reading was taken);
+// gap sets Since and GapHours.
 type Attention struct {
 	Kind         AttentionKind
 	EntryID      string
@@ -27,6 +28,7 @@ type Attention struct {
 	FieldID      string
 	Value        float64
 	Range        Range
+	OccurredAt   time.Time
 	Since        time.Time
 	GapHours     int
 }
@@ -68,7 +70,11 @@ func EvaluateAttention(t Tracker, now time.Time, logged, open []Entry) []Attenti
 				continue
 			}
 			if !f.Range.Contains(v) {
-				out = append(out, Attention{Kind: AttentionOutOfRange, EntryID: e.EntryID, FieldID: f.FieldID, Value: v, Range: *f.Range})
+				a := Attention{Kind: AttentionOutOfRange, EntryID: e.EntryID, FieldID: f.FieldID, Value: v, Range: *f.Range}
+				if e.OccurredAt != nil {
+					a.OccurredAt = *e.OccurredAt
+				}
+				out = append(out, a)
 			}
 			break
 		}
