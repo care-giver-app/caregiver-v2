@@ -28,6 +28,17 @@ struct StrideTabBar: View {
     /// `navigationDestination` content doesn't automatically account for.
     static let reservedHeight = Metrics.barHeight
 
+    /// What a screen under the bar leaves clear at its bottom: the bar, the ⊕ button's
+    /// overhang above it, and a gap, so a button pinned to the screen's bottom ends clear
+    /// of the ⊕ as well as the bar.
+    static let clearance = Metrics.barHeight + Metrics.fabOverhang + Theme.Spacing.sm
+
+    /// The bar drawn over a tab container's content, bottom-aligned. It is an overlay
+    /// rather than a `safeAreaInset` because SwiftUI does not pass a TabView's or a
+    /// NavigationStack's bottom inset to screens pushed on the stack; each screen clears
+    /// the bar itself with `strideTabBarClearance()` instead, so every screen — root or
+    /// pushed — is measured the same way and nothing pinned to its bottom sits under it.
+
     private enum Metrics {
         static let barHeight: CGFloat = 60
         static let iconSize: CGFloat = 24
@@ -119,4 +130,16 @@ struct StrideTabBar: View {
     .padding(.vertical, Theme.Spacing.lg)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background { Theme.Colors.background.ignoresSafeArea() }
+}
+
+extension View {
+    /// Reserves the tab bar's height at the bottom of this screen's safe area, so its
+    /// scroll content and anything it pins to its bottom (`safeAreaInset`) end above the
+    /// bar. Apply to every screen shown under `StrideTabBar` — each tab's root and every
+    /// pushed destination — and never twice on one screen.
+    func strideTabBarClearance() -> some View {
+        safeAreaInset(edge: .bottom, spacing: 0) {
+            Color.clear.frame(height: StrideTabBar.clearance)
+        }
+    }
 }

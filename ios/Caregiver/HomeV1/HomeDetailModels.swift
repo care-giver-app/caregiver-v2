@@ -57,6 +57,14 @@ final class HomeReadModel<Value: Equatable & Sendable> {
         phase = .loading
         await load()
     }
+
+    /// What a write on this screen answered with — Edit entry's Save, or Delete leaving
+    /// an entry waiting again — shown as it now stands without reading it again.
+    func replace(with value: Value) {
+        now = clock()
+        phase = .loaded(value)
+        refreshFailed = false
+    }
 }
 
 extension HomeReadModel where Value == [ReceiverEntryItem] {
@@ -92,8 +100,8 @@ struct DetailRow: Equatable, Sendable {
 }
 
 /// What Entry detail offers, by the entry's state rather than by where it was opened
-/// from (PRD "Entry detail"). PR3 reads only: nothing renders these yet — PR4 adds Log
-/// it and Skip (into Quick log), Edit (Edit entry) and Delete (Delete this entry?).
+/// from (PRD "Entry detail"). Log it and Skip open Quick log; Edit raises Edit entry and
+/// Delete raises Delete this entry?, both as sheets over Entry detail.
 enum EntryOffer: Equatable, Sendable {
     case logIt, skip, edit, delete
 
