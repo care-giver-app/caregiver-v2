@@ -16,17 +16,16 @@ enum V1Route: Hashable {
     case schedules(trackerID: String, trackerName: String, receiver: TeamReceiver)
     /// Care receiver — a Team-area screen, a named placeholder on this path for now.
     case careReceiver(TeamReceiver)
-    /// Entry detail. TEMPORARY destination until Home's Entry detail is built.
+    /// Entry detail, from Home, Coming up, or Tracker detail's entries.
     case entry(id: String, receiver: TeamReceiver)
-    /// Journal note. TEMPORARY destination until Home's Journal note is built.
     case journalNote(id: String, receiver: TeamReceiver)
-    /// Coming up in full. TEMPORARY destination until Home's Coming up is built.
+    /// Coming up in full.
     case comingUp(TeamReceiver)
 }
 
 extension View {
     /// Registers every `V1Route` destination. Apply once, at the stack's root.
-    func v1Destinations(service: TrackersService) -> some View {
+    func v1Destinations(service: TrackersService, home: HomeService) -> some View {
         navigationDestination(for: V1Route.self) { route in
             switch route {
             case .trackers(let receiver, let filter):
@@ -40,14 +39,11 @@ extension View {
                 V1PushedPlaceholder(title: receiver.name, subtitle: "Care receiver",
                                     line: "Care receiver is part of Team, which isn't built on this path yet.")
             case .entry(let id, let receiver):
-                V1PushedPlaceholder(title: "Entry", subtitle: receiver.name,
-                                    line: "Entry detail isn't built on this path yet. (\(id))")
+                EntryDetailV1View(entryID: id, receiver: receiver, home: home)
             case .journalNote(let id, let receiver):
-                V1PushedPlaceholder(title: "Journal note", subtitle: receiver.name,
-                                    line: "Journal note isn't built on this path yet. (\(id))")
+                JournalNoteV1View(noteID: id, receiver: receiver, home: home)
             case .comingUp(let receiver):
-                V1PushedPlaceholder(title: "Coming up", subtitle: receiver.name,
-                                    line: "Coming up isn't built on this path yet.")
+                ComingUpV1View(receiver: receiver, home: home)
             }
         }
     }

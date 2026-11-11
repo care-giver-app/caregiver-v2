@@ -30,7 +30,7 @@ struct V1TabShell: View {
         TabView(selection: $selectedTab) {
             NavigationStack(path: $path) {
                 HomeV1View(receiver: receiver, home: home, trackers: trackers)
-                    .v1Destinations(service: trackers)
+                    .v1Destinations(service: trackers, home: home)
                     .toolbar(.hidden, for: .tabBar)
             }
             .environment(\.v1Push, V1Push { [path = $path] in path.wrappedValue.append($0) })

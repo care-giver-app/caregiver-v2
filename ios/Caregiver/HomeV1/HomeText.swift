@@ -116,6 +116,60 @@ enum HomeText {
         "Written by \(note.authorName)"
     }
 
+    // MARK: Coming up, the screen
+
+    static let comingUpEmptyTitle = "Nothing is coming up"
+    static let comingUpEmptyLine = "Everything that was scheduled has been logged or skipped."
+
+    // MARK: Entry detail and Journal note
+
+    /// Said where a pre-filled value is still to be given (Figma 445:4161).
+    static let leftForLogger = "Left for whoever logs it"
+    static let unrecordedCalloutTitle = "Needs attention"
+    static let unrecordedCalloutLine = "Nothing was recorded for this time."
+    static let outOfRangeTitle = "Out of range"
+    static let entryGone = "This entry is no longer here. Someone may have deleted it."
+    static let noteGone = "This note is no longer here. Someone may have deleted it."
+
+    /// An entry's own time: ahead of now as Coming up says it, otherwise as Tracker detail does.
+    static func entryWhen(_ date: Date, now: Date, zone: TimeZone) -> String {
+        date > now ? ahead(date, now: now, zone: zone) : TrackerText.when(date, now: now, zone: zone)
+    }
+
+    /// "Systolic is 168 mmHg. It is expected to stay between 90 and 140." (Figma 445:4287)
+    static func outOfRangeSentence(label: String, value: Double, unit: String?, range: ValueRangeInfo) -> String {
+        let reading = "\(label) is \(withUnit(TrackerText.number(value), unit))."
+        let expected: String
+        switch (range.low, range.high) {
+        case let (low?, high?):
+            expected = "It is expected to stay between \(TrackerText.number(low)) and \(TrackerText.number(high))."
+        case let (nil, high?):
+            expected = "It is expected to stay at or below \(TrackerText.number(high))."
+        case let (low?, nil):
+            expected = "It is expected to stay at or above \(TrackerText.number(low))."
+        case (nil, nil):
+            return reading
+        }
+        return "\(reading) \(expected)"
+    }
+
+    /// "Expected 90–140", under a value outside its range (Figma 445:4298).
+    static func expectedUnderValue(_ range: ValueRangeInfo) -> String {
+        let text = expected(range, unit: nil)
+        return text.prefix(1).uppercased() + text.dropFirst()
+    }
+
+    /// "Dana · 8:05 AM": who, and when — the clock alone on the day `about` falls on in
+    /// the receiver's zone, otherwise the day as well. Nil with neither.
+    static func whoAndWhen(_ name: String?, at: Date?, about: Date, now: Date, zone: TimeZone) -> String? {
+        let when = at.map { at in
+            LocalDay(at, zone: zone) == LocalDay(about, zone: zone)
+                ? clock(at, zone: zone) : TrackerText.when(at, now: now, zone: zone)
+        }
+        let parts = [name, when].compactMap { $0 }.filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     private static let utc = TimeZone(identifier: "UTC")!
 
     private static func withUnit(_ value: String, _ unit: String?) -> String {

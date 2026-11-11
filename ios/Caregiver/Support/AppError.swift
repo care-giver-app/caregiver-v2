@@ -16,4 +16,7 @@ struct AppError: Error, Equatable {
         default:  return serverMessage.map { AppError(message: $0) } ?? .unknown
         }
     }
+
+    /// The server answered 404 — what was asked for is gone, deleted elsewhere perhaps.
+    var isNotFound: Bool { self == AppError.forStatus(404, serverMessage: nil) }
 }

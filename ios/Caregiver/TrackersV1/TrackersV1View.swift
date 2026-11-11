@@ -185,7 +185,7 @@ struct StrideNavTitle: View {
 #Preview("Active") {
     NavigationStack {
         TrackersV1View(receiver: TrackersFixtures.eleanor, service: TrackersFixtures.service())
-            .v1Destinations(service: TrackersFixtures.service())
+            .v1Destinations(service: TrackersFixtures.service(), home: HomeFixtures.service())
     }
 }
 
@@ -206,7 +206,7 @@ struct StrideNavTitle: View {
     @Previewable @State var path: [V1Route] = []
     NavigationStack(path: $path) {
         TrackersV1View(receiver: TrackersFixtures.eleanor, service: TrackersFixtures.service())
-            .v1Destinations(service: TrackersFixtures.service())
+            .v1Destinations(service: TrackersFixtures.service(), home: HomeFixtures.service())
     }
     .environment(\.v1Push, V1Push { [path = $path] in path.wrappedValue.append($0) })
 }

@@ -478,7 +478,7 @@ private enum HomePreview {
         let active = ActiveReceiverModel(account: account, service: trackersService, store: .inMemory())
         return NavigationStack {
             HomeV1View(receiver: active, home: home, trackers: trackersService, model: model)
-                .v1Destinations(service: trackersService)
+                .v1Destinations(service: trackersService, home: home)
         }
     }
 }

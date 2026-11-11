@@ -210,7 +210,8 @@ enum HomeFixtures {
 
     struct Unreachable: Error {}
 
-    /// Eleanor's Home: yesterday holds the mixed timeline, every other day is empty.
+    /// Eleanor's Home: yesterday holds the mixed timeline, every other day is empty. An
+    /// entry or note it does not hold answers 404, as one deleted elsewhere would.
     static func service(attention: [AttentionItem]? = nil,
                         comingUp: [ReceiverEntryItem]? = nil,
                         timeline: (@Sendable (LocalDay) -> DayTimeline)? = nil,
@@ -232,11 +233,15 @@ enum HomeFixtures {
                 return timeline(day)
             },
             entry: { id in
-                guard !fail, let d = entryDetails.first(where: { $0.entry.id == id }) else { throw Unreachable() }
+                if fail { throw Unreachable() }
+                guard let d = entryDetails.first(where: { $0.entry.id == id }) else {
+                    throw AppError.forStatus(404, serverMessage: nil)
+                }
                 return d
             },
             journalNote: { id in
-                guard !fail, id == afternoonNote.id else { throw Unreachable() }
+                if fail { throw Unreachable() }
+                guard id == afternoonNote.id else { throw AppError.forStatus(404, serverMessage: nil) }
                 return afternoonNote
             }
         )
