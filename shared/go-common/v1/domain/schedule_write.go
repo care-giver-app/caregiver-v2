@@ -122,64 +122,69 @@ func validateRule(r Rule) error {
 	return nil
 }
 
-// validatePlannedValue checks v is of f's kind. Values arrive JSON-decoded:
-// numbers as float64, lists as []any.
+// validatePlannedValue checks v is of f's kind, naming only active options.
 func validatePlannedValue(f Field, v any) error {
-	wrong := func(kind string) error {
-		return invalidSchedule("planned value for %q must be %s", f.Label, kind)
+	if p := valueProblem(f, v, func(o ChoiceOption) bool { return o.Status == OptionActive }); p != "" {
+		return invalidSchedule("planned value for %q %s", f.Label, p)
 	}
+	return nil
+}
+
+// valueProblem says what is wrong with v as a value of f — "must be a number",
+// "takes at most one option" — or returns "" when nothing is. Values arrive
+// JSON-decoded (numbers as float64, lists as []any) or read back from a row,
+// which decodes the same way. A choice is a list of distinct option ids, each
+// one allowed accepts, at most one for a single-answer choice.
+func valueProblem(f Field, v any, allowed func(ChoiceOption) bool) string {
 	switch f.Type {
 	case FieldNumber:
-		n, ok := v.(float64)
-		if !ok || math.IsNaN(n) || math.IsInf(n, 0) {
-			return wrong("a number")
+		if n, ok := v.(float64); !ok || math.IsNaN(n) || math.IsInf(n, 0) {
+			return "must be a number"
 		}
 	case FieldText:
 		if _, ok := v.(string); !ok {
-			return wrong("text")
+			return "must be text"
 		}
 	case FieldBoolean:
 		if _, ok := v.(bool); !ok {
-			return wrong("true or false")
+			return "must be true or false"
 		}
 	case FieldDatetime:
 		s, ok := v.(string)
 		if !ok {
-			return wrong("a date and time")
+			return "must be a date and time"
 		}
 		if _, err := time.Parse(time.RFC3339, s); err != nil {
-			return wrong("a date and time")
+			return "must be a date and time"
 		}
 	case FieldChoice:
 		list, ok := v.([]any)
 		if !ok {
-			return wrong("a list of option ids")
+			return "must be a list of option ids"
 		}
 		if !f.Multiple && len(list) > 1 {
-			return invalidSchedule("planned value for %q takes at most one option", f.Label)
+			return "takes at most one option"
 		}
-		active := map[string]bool{}
+		options := make(map[string]ChoiceOption, len(f.Options))
 		for _, o := range f.Options {
-			if o.Status == OptionActive {
-				active[o.OptionID] = true
-			}
+			options[o.OptionID] = o
 		}
 		seen := map[string]bool{}
 		for _, item := range list {
 			id, ok := item.(string)
 			if !ok {
-				return wrong("a list of option ids")
+				return "must be a list of option ids"
 			}
-			if !active[id] {
-				return invalidSchedule("planned value for %q names unknown or retired option %q", f.Label, id)
+			if o, ok := options[id]; !ok || !allowed(o) {
+				return fmt.Sprintf("names unknown or retired option %q", id)
 			}
 			if seen[id] {
-				return invalidSchedule("planned value for %q names option %q twice", f.Label, id)
+				return fmt.Sprintf("names option %q twice", id)
 			}
 			seen[id] = true
 		}
 	default:
-		return wrong("a value of a known type")
+		return "must be a value of a known type"
 	}
-	return nil
+	return ""
 }
