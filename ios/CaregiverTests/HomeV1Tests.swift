@@ -169,10 +169,10 @@ final class ActiveReceiverModelTests: XCTestCase {
 
     private func model(_ byTeam: [String: [TeamReceiver]], teams: [Account.Team]? = nil,
                        store: LastReceiverStore = .inMemory(),
-                       fail: Bool = false) -> ActiveReceiverModel {
+                       fail: Bool = false, failing: Set<String> = []) -> ActiveReceiverModel {
         let service = TrackersService(
             listReceivers: { id in
-                if fail { throw URLError(.timedOut) }
+                if fail || failing.contains(id) { throw URLError(.timedOut) }
                 return byTeam[id] ?? []
             },
             listTrackers: { _ in [] },
@@ -248,10 +248,31 @@ final class ActiveReceiverModelTests: XCTestCase {
         XCTAssertEqual(m.phase, .noReceivers(team: riverside, canManage: true))
     }
 
-    func testNobodyToCareForAsACaregiver() async {
+    func testNobodyToCareForDescribesATeamTheyAdminEvenWhenItIsNotFirst() async {
         let m = model([:], teams: [johnson, riverside])
         await m.load()
+        XCTAssertEqual(m.phase, .noReceivers(team: riverside, canManage: true),
+                       "Add a care receiver is offered on a team they can add to")
+    }
+
+    func testNobodyToCareForAsACaregiver() async {
+        let other = Account.Team(teamID: "team-other", name: "Other", role: "caregiver")
+        let m = model([:], teams: [johnson, other])
+        await m.load()
         XCTAssertEqual(m.phase, .noReceivers(team: johnson, canManage: false))
+    }
+
+    func testOneTeamFailingStillChoosesFromTheTeamsThatAnswered() async {
+        let m = model([riverside.teamID: [eleanor], johnson.teamID: [anna]], failing: [johnson.teamID])
+        await m.load()
+        XCTAssertEqual(m.active?.receiver.id, eleanor.id)
+        XCTAssertEqual(m.receivers.map(\.receiver.id), [eleanor.id])
+    }
+
+    func testNobodyFoundWhileATeamFailedIsAFailureNotNoReceivers() async {
+        let m = model([:], failing: [johnson.teamID])
+        await m.load()
+        guard case .failed = m.phase else { return XCTFail("expected failed, got \(m.phase)") }
     }
 
     func testAFailedLoadSaysSo() async {

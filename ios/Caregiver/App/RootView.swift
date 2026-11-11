@@ -35,10 +35,13 @@ struct RootView: View {
             case .v1Ready(let account):
                 V1TabShell(account: account, trackers: .live(session.api), home: .live(session.api),
                            onSignOut: { v1Path = []; await session.signOut() }, path: $v1Path)
-                    // A change of teams chooses the active care receiver afresh.
-                    .id(account.teams.map(\.teamID))
+                    // A change of teams chooses the active care receiver afresh, and the
+                    // screens pushed for the old one go with it.
+                    .id(Self.v1TeamsKey(session.state))
             }
         }
+        // The path outlives the rebuilt shell, so it is emptied when the teams change.
+        .onChange(of: Self.v1TeamsKey(session.state)) { v1Path = [] }
         .task {
             auth.onSignedIn = { await session.refresh() }
             await session.refresh()
@@ -75,6 +78,12 @@ struct RootView: View {
                 faceIDEnabled = true
             }
         }
+    }
+
+    /// What rebuilds the v1 shell: the teams the caregiver is on, nil outside it.
+    static func v1TeamsKey(_ state: Session.State) -> [String]? {
+        guard case .v1Ready(let account) = state else { return nil }
+        return account.teams.map(\.teamID)
     }
 
     private func mainStack(_ me: Me) -> some View {

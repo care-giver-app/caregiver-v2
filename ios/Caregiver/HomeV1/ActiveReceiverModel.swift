@@ -46,7 +46,8 @@ final class ActiveReceiverModel {
         case loading
         case active(TeamedReceiver)
         /// Nobody on any team to care for; `team` is the one Home describes — the first
-        /// of the caregiver's teams — and `canManage` whether they are its admin.
+        /// team the caregiver is an admin of, else their first team — and `canManage`
+        /// whether they are its admin.
         case noReceivers(team: Account.Team, canManage: Bool)
         case failed(AppError)
     }
@@ -73,26 +74,43 @@ final class ActiveReceiverModel {
     /// one stable handle the app holds.
     private var accountKey: String { account.email.lowercased() }
 
+    /// Reads every team's receivers. A team that could not be read does not stop the
+    /// rest: the choice is made from the teams that answered. Only when nobody answered
+    /// with a receiver and some team failed is Home's load a failure — "no one to look
+    /// after" can't be said of a team that couldn't be read.
     func load() async {
         let teams = account.teams
         let service = service
-        do {
-            let lists = try await withThrowingTaskGroup(of: (Int, [TeamReceiver]).self) { group in
-                for (i, team) in teams.enumerated() {
-                    group.addTask { (i, try await service.listReceivers(team.teamID)) }
+        let results = await withTaskGroup(of: (Int, Result<[TeamReceiver], Error>).self) { group in
+            for (i, team) in teams.enumerated() {
+                group.addTask {
+                    do { return (i, .success(try await service.listReceivers(team.teamID))) }
+                    catch { return (i, .failure(error)) }
                 }
-                var byTeam: [Int: [TeamReceiver]] = [:]
-                for try await (i, list) in group { byTeam[i] = list }
-                return byTeam
             }
-            let all = teams.indices.flatMap { i in
-                (lists[i] ?? []).map { TeamedReceiver(receiver: $0.managed(by: teams[i]), team: teams[i]) }
-            }
-            receivers = Self.alphabetical(all)
-            settle()
-        } catch {
-            phase = .failed(AppError.from(error))
+            var byTeam: [Int: Result<[TeamReceiver], Error>] = [:]
+            for await (i, result) in group { byTeam[i] = result }
+            return byTeam
         }
+        var all: [TeamedReceiver] = []
+        var firstFailure: Error?
+        for i in teams.indices {
+            switch results[i] {
+            case .success(let list)?:
+                all += list.map { TeamedReceiver(receiver: $0.managed(by: teams[i]), team: teams[i]) }
+            case .failure(let error)?:
+                if firstFailure == nil { firstFailure = error }
+            case nil:
+                break
+            }
+        }
+        if all.isEmpty, let firstFailure {
+            receivers = []
+            phase = .failed(AppError.from(firstFailure))
+            return
+        }
+        receivers = Self.alphabetical(all)
+        settle()
     }
 
     func retry() async {
@@ -113,7 +131,9 @@ final class ActiveReceiverModel {
 
     private func settle() {
         guard let chosen = Self.choose(from: receivers, remembered: store.read(accountKey)) else {
-            if let team = account.teams.first {
+            // The first team they can add someone to, so Home offers Add a care receiver;
+            // otherwise the first team.
+            if let team = account.teams.first(where: { $0.role == "admin" }) ?? account.teams.first {
                 phase = .noReceivers(team: team, canManage: team.role == "admin")
             } else {
                 // `.v1Ready` always has a team; nothing true can be said without one.

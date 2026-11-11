@@ -42,6 +42,13 @@ private final class Calls: @unchecked Sendable {
     private var log: [String] = []
     private(set) var days: [LocalDay] = []
     private var failing = false
+    private var renaming = false
+
+    /// Medication's fields come back changed: only its first one.
+    var renamed: Bool {
+        get { lock.withLock { renaming } }
+        set { lock.withLock { renaming = newValue } }
+    }
 
     var failSummary: Bool {
         get { lock.withLock { failing } }
@@ -53,6 +60,56 @@ private final class Calls: @unchecked Sendable {
     func count(_ prefix: String) -> Int { lock.withLock { log.filter { $0.hasPrefix(prefix) }.count } }
     var all: [String] { lock.withLock { log } }
     var lastDay: LocalDay? { lock.withLock { days.last } }
+}
+
+/// Counts calls across tasks.
+private final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var n = 0
+    func next() -> Int { lock.withLock { n += 1; return n } }
+}
+
+/// Holds one call until the test opens it, and tells the test when it is held.
+private final class Gate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var waiter: CheckedContinuation<Void, Never>?
+    private var watcher: CheckedContinuation<Void, Never>?
+    private var held = false
+    private var isOpen = false
+
+    func wait() async {
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            let (resumeNow, watcher): (Bool, CheckedContinuation<Void, Never>?) = lock.withLock {
+                held = true
+                if isOpen { return (true, nil) }
+                waiter = c
+                defer { self.watcher = nil }
+                return (false, self.watcher)
+            }
+            watcher?.resume()
+            if resumeNow { c.resume() }
+        }
+    }
+
+    func arrived() async {
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            let already: Bool = lock.withLock {
+                if held { return true }
+                watcher = c
+                return false
+            }
+            if already { c.resume() }
+        }
+    }
+
+    func open() {
+        let w: CheckedContinuation<Void, Never>? = lock.withLock {
+            isOpen = true
+            defer { waiter = nil }
+            return waiter
+        }
+        w?.resume()
+    }
 }
 
 /// A clock a test can move.
@@ -101,6 +158,13 @@ final class HomeModelTests: XCTestCase {
         trackersService.trackerDetail = { id in
             calls.record("detail:\(id)")
             guard id == "medication" else { throw URLError(.badURL) }
+            if calls.renamed {
+                let m = TrackersFixtures.medication
+                return TrackerProfile(id: m.id, name: m.name, icon: m.icon, color: m.color, status: m.status,
+                                      pausedAt: m.pausedAt, fields: Array(m.fields.prefix(1)),
+                                      gapHours: m.gapHours, scheduleCount: m.scheduleCount,
+                                      lastLoggedAt: m.lastLoggedAt, attention: m.attention)
+            }
             return TrackersFixtures.medication
         }
         let clock = clock
@@ -168,6 +232,48 @@ final class HomeModelTests: XCTestCase {
         XCTAssertEqual(model.fields["medication"], TrackersFixtures.medication.fields)
         await model.stepBack()
         XCTAssertEqual(calls.count("detail:medication"), 1)
+    }
+
+    func testRefreshingReadsTheFieldsAfreshSoChangesShow() async {
+        let model = model()
+        await model.show(Fixed.eleanor)
+        calls.renamed = true
+        await model.refresh()
+        XCTAssertEqual(calls.count("detail:medication"), 2)
+        XCTAssertEqual(model.fields["medication"], Array(TrackersFixtures.medication.fields.prefix(1)))
+        await model.stepBack()
+        XCTAssertEqual(calls.count("detail:medication"), 2, "stepping days keeps this refresh's fields")
+        await model.show(Fixed.eleanor)
+        XCTAssertEqual(calls.count("detail:medication"), 3, "coming back to Home is a refresh too")
+    }
+
+    func testAnOlderRefreshLandingLateDoesNotOverwriteANewerOne() async {
+        let gate = Gate()
+        let counter = Counter()
+        let home = HomeService(
+            needsAttention: { _, _ in
+                let n = counter.next()
+                if n == 2 { await gate.wait() }
+                return n == 2 ? [Fixed.gap] : [Fixed.unrecorded]
+            },
+            comingUp: { _, _ in [] },
+            dayTimeline: { _, day in DayTimeline(day: day, items: []) },
+            entry: { _ in throw URLError(.badURL) },
+            journalNote: { _ in throw URLError(.badURL) }
+        )
+        var trackers = TrackersFixtures.service()
+        trackers.listTrackers = { _ in [Fixed.tracker("medication", .active)] }
+        let clock = clock
+        let model = HomeModel(home: home, trackers: trackers, clock: { clock.now })
+        await model.show(Fixed.eleanor)
+
+        let older = Task { await model.refresh() }
+        await gate.arrived()
+        await model.refresh()
+        XCTAssertEqual(model.attention, [Fixed.unrecorded])
+        gate.open()
+        await older.value
+        XCTAssertEqual(model.attention, [Fixed.unrecorded], "the older refresh's answer is discarded")
     }
 
     // MARK: The day

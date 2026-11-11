@@ -69,11 +69,15 @@ enum TrackerText {
                 return "\(label) was \(reading), outside its range."
             }
         case .gap(let since, let gapHours):
-            let elapsed = Int(max(0, now.timeIntervalSince(since)) / 3600)
-            // Days once it is past two of them; hours before, where days would round to nothing.
-            let gone = elapsed >= 48 ? plural(elapsed / 24, "day") : plural(elapsed, "hour")
-            return "Nothing logged in \(gone). The team allows \(duration(hours: gapHours)) without an entry."
+            return "Nothing logged in \(gapElapsed(since: since, now: now)). The team allows \(duration(hours: gapHours)) without an entry."
         }
+    }
+
+    /// How long nothing has been logged, as a gap alert says it: "3 days", "30 hours".
+    /// Days once it is past two of them; hours before, where days would round to nothing.
+    static func gapElapsed(since: Date, now: Date) -> String {
+        let elapsed = Int(max(0, now.timeIntervalSince(since)) / 3600)
+        return elapsed >= 48 ? plural(elapsed / 24, "day") : plural(elapsed, "hour")
     }
 
     /// Under "Nothing logged yet" when a gap watches it (Figma 371:3397).

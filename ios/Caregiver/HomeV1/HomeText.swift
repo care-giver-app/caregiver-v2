@@ -32,10 +32,7 @@ enum HomeText {
             // Figma 436:3265 reads the numbers bare: "Systolic 168 · expected 90–140".
             return "\(label ?? "Reading") \(TrackerText.number(value)) · \(expected(range, unit: nil))"
         case .gap(let since, _):
-            let hours = Int(max(0, now.timeIntervalSince(since)) / 3600)
-            // Days once past two of them; hours before, where days would round to nothing.
-            let gone = hours >= 48 ? TrackerText.plural(hours / 24, "day") : TrackerText.plural(hours, "hour")
-            return "Nothing logged in \(gone)"
+            return "Nothing logged in \(TrackerText.gapElapsed(since: since, now: now))"
         }
     }
 

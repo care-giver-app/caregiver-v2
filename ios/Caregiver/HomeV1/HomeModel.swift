@@ -47,8 +47,16 @@ final class HomeModel {
     private(set) var day: LocalDay
     private(set) var dayPhase: DayPhase = .loading
     /// Each timeline tracker's fields, so an entry's values can be labeled. Best effort:
-    /// a tracker whose fields could not be read shows its entries without values.
+    /// a tracker whose fields could not be read shows its entries without values. Kept
+    /// while stepping days, and read afresh on every refresh so renamed fields and
+    /// changed ranges show.
     private(set) var fields: [String: [TrackerFieldInfo]] = [:]
+    /// Set by each refresh: the next fields read replaces the cache rather than adding to it.
+    private var fieldsStale = false
+    /// Bumped by each refresh, so a slower, older one cannot land over a newer one.
+    private var summaryGeneration = 0
+    /// Bumped by each timeline read (a refresh's or a day step's), for the same reason.
+    private var dayGeneration = 0
     /// A refresh failed; what was showing stays.
     private(set) var refreshFailed = false
     /// The instant relative times are said against, taken afresh on every load.
@@ -168,6 +176,11 @@ final class HomeModel {
 
     private func loadAll() async {
         guard let receiver else { return }
+        summaryGeneration += 1
+        dayGeneration += 1
+        let summaryGen = summaryGeneration
+        let dayGen = dayGeneration
+        fieldsStale = true
         now = clock()
         let home = home
         let trackersService = trackersService
@@ -180,6 +193,15 @@ final class HomeModel {
         let (a, c, t, d) = await (attentionResult, comingUpResult, trackersResult, dayResult)
 
         guard self.receiver?.id == id else { return }
+        if summaryGen == summaryGeneration {
+            applySummary(a, c, t)
+        }
+        await apply(d, for: shown, receiverID: id, generation: dayGen)
+    }
+
+    private func applySummary(_ a: Result<[AttentionItem], Error>,
+                              _ c: Result<[ReceiverEntryItem], Error>,
+                              _ t: Result<[TrackerItem], Error>) {
         do {
             let (newAttention, newComingUp, newTrackers) = (try a.get(), try c.get(), try t.get())
             attention = newAttention
@@ -194,24 +216,27 @@ final class HomeModel {
                 phase = .failed(AppError.from(error))
             }
         }
-        await apply(d, for: shown, receiverID: id)
     }
 
     private func loadDay(_ target: LocalDay) async {
         guard let receiver else { return }
         let home = home
         let id = receiver.id
+        dayGeneration += 1
+        let gen = dayGeneration
         let result = await Self.capture { try await home.dayTimeline(id, target) }
-        await apply(result, for: target, receiverID: id)
+        await apply(result, for: target, receiverID: id, generation: gen)
     }
 
-    /// Lands a timeline only if it is still the day and receiver showing.
-    private func apply(_ result: Result<DayTimeline, Error>, for target: LocalDay, receiverID: String) async {
-        guard receiver?.id == receiverID, day == target else { return }
+    /// Lands a timeline only if it is still the day and receiver showing, and no later
+    /// read has started since.
+    private func apply(_ result: Result<DayTimeline, Error>, for target: LocalDay, receiverID: String,
+                       generation: Int) async {
+        guard receiver?.id == receiverID, day == target, generation == dayGeneration else { return }
         switch result {
         case .success(let timeline):
             dayPhase = .loaded(timeline.items)
-            await loadFields(for: timeline.items)
+            await loadFields(for: timeline.items, generation: generation)
         case .failure:
             if case .loaded = dayPhase {
                 refreshFailed = true
@@ -221,15 +246,24 @@ final class HomeModel {
         }
     }
 
-    /// Reads the fields of each tracker on the day not already known.
-    private func loadFields(for items: [DayItem]) async {
+    /// Reads the fields of each tracker on the day not already known — or, after a
+    /// refresh, of every tracker on the day, replacing what was known.
+    private func loadFields(for items: [DayItem], generation: Int) async {
+        let replacing = fieldsStale
         var missing: [String] = []
         for item in items {
-            if case .entry(let e) = item, fields[e.tracker.id] == nil, !missing.contains(e.tracker.id) {
+            if case .entry(let e) = item, replacing || fields[e.tracker.id] == nil,
+               !missing.contains(e.tracker.id) {
                 missing.append(e.tracker.id)
             }
         }
-        guard !missing.isEmpty else { return }
+        guard !missing.isEmpty else {
+            if replacing {
+                fields = [:]
+                fieldsStale = false
+            }
+            return
+        }
         let service = trackersService
         let found = await withTaskGroup(of: (String, [TrackerFieldInfo]?).self) { group in
             for id in missing {
@@ -241,7 +275,13 @@ final class HomeModel {
             }
             return found
         }
-        fields.merge(found) { _, new in new }
+        guard generation == dayGeneration else { return }
+        if replacing {
+            fields = found
+            fieldsStale = false
+        } else {
+            fields.merge(found) { _, new in new }
+        }
     }
 
     private nonisolated static func capture<T: Sendable>(
