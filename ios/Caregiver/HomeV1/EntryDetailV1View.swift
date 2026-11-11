@@ -8,16 +8,37 @@ import SwiftUI
 ///
 /// What it offers goes by state (`EntryDetailContent.offers`): a scheduled or unrecorded
 /// entry offers Log it and Skip at the bottom (Figma 445:4258), each opening Quick log on
-/// this one entry with the choice made; it reads itself again when a run saves. Edit in
-/// the nav and Delete at the bottom, for a logged or skipped entry, are still to come.
+/// this one entry with the choice made; it reads itself again when a run saves. A logged
+/// or skipped entry offers Edit in the nav and Delete at the bottom (Figma 445:4263,
+/// 445:4326), each raising its sheet over this screen. Saving an edit shows the entry as
+/// it now stands; deleting one that fulfilled a plan stays here showing it waiting again,
+/// while deleting one logged ad hoc goes back to Home. Every write is told to Home.
 struct EntryDetailV1View: View {
+    /// Edit entry or Delete this entry?, on the entry as it was when raised.
+    private enum Sheet: Identifiable {
+        case edit(EntryDetailInfo)
+        case delete(EntryDetailInfo)
+
+        var id: String {
+            switch self {
+            case .edit(let d): "edit-\(d.entry.id)"
+            case .delete(let d): "delete-\(d.entry.id)"
+            }
+        }
+    }
+
     let entryID: String
     let receiver: TeamReceiver
     let home: HomeService
 
     @State private var model: HomeReadModel<EntryDetailInfo>?
+    @State private var sheet: Sheet?
+    /// Set once the entry is gone for good; Home is gone back to as the sheet goes.
+    @State private var goHome = false
     @Environment(\.v1QuickLog) private var quickLog
     @Environment(\.v1QuickLogRuns) private var quickLogRuns
+    @Environment(\.v1HomeWrote) private var homeWrote
+    @Environment(\.v1PopToHome) private var popToHome
 
     var body: some View {
         Group {
@@ -28,6 +49,28 @@ struct EntryDetailV1View: View {
             }
         }
         .homePushedChrome()
+        .toolbar {
+            if let detail = model?.value, EntryOffer.offers(for: detail.entry.state).contains(.edit) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") { sheet = .edit(detail) }
+                        .font(.system(size: 15, weight: .medium))
+                }
+            }
+        }
+        .sheet(item: $sheet, onDismiss: {
+            guard goHome else { return }
+            goHome = false
+            popToHome()
+        }) { sheet in
+            switch sheet {
+            case .edit(let detail):
+                EditEntrySheet(model: EditEntryModel(detail, zone: receiver.timeZone, home: home),
+                               onSaved: saved, onFailed: { _ in reload() })
+            case .delete(let detail):
+                DeleteEntrySheet(model: DeleteEntryModel(detail, home: home),
+                                 onDeleted: deleted, onFailed: { _ in reload() })
+            }
+        }
         // Back from Quick log, which may have logged or skipped this entry.
         .onChange(of: quickLogRuns) { Task { await model?.load() } }
         .task {
@@ -103,10 +146,35 @@ struct EntryDetailV1View: View {
         .refreshable { await model.load() }
     }
 
+    private func reload() {
+        Task { await model?.load() }
+    }
+
+    /// Edit entry saved: shown as it now stands, and Home told — with the day it moved to,
+    /// so the timeline behind this screen follows it there.
+    private func saved(_ saved: EditEntryModel.Saved) {
+        model?.replace(with: saved.detail)
+        homeWrote(HomeWrite(receiverID: receiver.id, movedTo: saved.movedTo))
+    }
+
+    /// Delete this entry? landed: waiting again stays here, gone goes back to Home.
+    private func deleted(_ outcome: DeleteEntryModel.Outcome) {
+        homeWrote(HomeWrite(receiverID: receiver.id))
+        switch outcome {
+        case .waitingAgain(let detail): model?.replace(with: detail)
+        case .gone: goHome = true
+        }
+    }
+
     /// Figma 445:4258: Log it, then Skip, both into Quick log at this entry's step.
+    /// Figma 445:4263: Delete, for a logged or skipped entry.
     @ViewBuilder
     private func actions(_ offers: [EntryOffer], detail: EntryDetailInfo) -> some View {
-        if offers.contains(.logIt) || offers.contains(.skip) {
+        if offers.contains(.delete) {
+            StrideButton(title: "Delete", style: .destructive) { sheet = .delete(detail) }
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.vertical, Theme.Spacing.sm)
+        } else if offers.contains(.logIt) || offers.contains(.skip) {
             VStack(spacing: 10) {
                 if offers.contains(.logIt) {
                     StrideButton(title: "Log it") { quickLog(.entry(detail, choice: .logIt), receiver: receiver) }

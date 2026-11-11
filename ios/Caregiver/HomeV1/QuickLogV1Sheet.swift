@@ -454,7 +454,7 @@ private struct QuickLogCaption: View {
 }
 
 /// What stops the part going on, in the alert color.
-private struct QuickLogProblems: View {
+struct QuickLogProblems: View {
     let problems: [String]
 
     var body: some View {

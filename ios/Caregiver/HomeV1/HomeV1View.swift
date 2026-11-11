@@ -17,6 +17,7 @@ struct HomeV1View: View {
     @Environment(\.v1Push) private var push
     @Environment(\.v1QuickLog) private var quickLog
     @Environment(\.v1QuickLogRuns) private var quickLogRuns
+    @Environment(\.v1HomeWrites) private var homeWrites
 
     init(receiver: ActiveReceiverModel, home: HomeService, trackers: TrackersService,
          model: HomeModel? = nil) {
@@ -48,6 +49,12 @@ struct HomeV1View: View {
             // A Quick log run saved something: Home already reflects it on return.
             guard let outcome = runs.last else { return }
             Task { await model.reflect(outcome) }
+        }
+        .onChange(of: homeWrites) { _, writes in
+            // An entry or note was edited or deleted: Home reflects it, on the day an edited
+            // entry moved to.
+            guard let write = writes.last else { return }
+            Task { await model.reflect(write) }
         }
         .sheet(isPresented: $isAddingReceiver) { AddCareReceiverPlaceholderSheet() }
         .sheet(isPresented: $isAddingTracker, onDismiss: {

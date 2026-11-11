@@ -3,14 +3,31 @@ import SwiftUI
 /// Journal note — one note: its words, the time it is about, who wrote it, and who
 /// changed it last if anyone has (PRD "Journal note"; Figma 447:4245).
 ///
-/// Reads only for now. Edit (Edit journal note, in the nav) and Delete (Delete this
-/// note?, at the bottom) arrive with Home's write side.
+/// Edit in the nav raises Edit journal note, and Delete at the bottom raises Delete this
+/// note? (Figma 447:4245). Saving shows the note as it now stands; deleting goes back to
+/// Home. Every write is told to Home.
 struct JournalNoteV1View: View {
+    private enum Sheet: Identifiable {
+        case edit(JournalNoteInfo)
+        case delete(JournalNoteInfo)
+
+        var id: String {
+            switch self {
+            case .edit(let n): "edit-\(n.id)"
+            case .delete(let n): "delete-\(n.id)"
+            }
+        }
+    }
+
     let noteID: String
     let receiver: TeamReceiver
     let home: HomeService
 
     @State private var model: HomeReadModel<JournalNoteInfo>?
+    @State private var sheet: Sheet?
+    @State private var goHome = false
+    @Environment(\.v1HomeWrote) private var homeWrote
+    @Environment(\.v1PopToHome) private var popToHome
 
     var body: some View {
         Group {
@@ -21,6 +38,34 @@ struct JournalNoteV1View: View {
             }
         }
         .homePushedChrome()
+        .toolbar {
+            if let note = model?.value {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") { sheet = .edit(note) }
+                        .font(.system(size: 15, weight: .medium))
+                }
+            }
+        }
+        .sheet(item: $sheet, onDismiss: {
+            guard goHome else { return }
+            goHome = false
+            popToHome()
+        }) { sheet in
+            switch sheet {
+            case .edit(let note):
+                EditJournalNoteSheet(model: EditJournalNoteModel(note, zone: receiver.timeZone, home: home),
+                                     onSaved: { saved in
+                                         model?.replace(with: saved)
+                                         homeWrote(HomeWrite(receiverID: receiver.id))
+                                     },
+                                     onFailed: { _ in Task { await model?.load() } })
+            case .delete(let note):
+                DeleteJournalNoteSheet(model: DeleteJournalNoteModel(note, home: home)) {
+                    homeWrote(HomeWrite(receiverID: receiver.id))
+                    goHome = true
+                }
+            }
+        }
         .task {
             if let model {
                 await model.load()
@@ -43,6 +88,11 @@ struct JournalNoteV1View: View {
             StrideErrorState(message: "Couldn't load this note.") { Task { await model.retry() } }
         case .loaded(let note):
             loaded(JournalNoteContent(note, now: model.now, zone: receiver.timeZone), model: model)
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    StrideButton(title: "Delete", style: .destructive) { sheet = .delete(note) }
+                        .padding(.horizontal, Theme.Spacing.lg)
+                        .padding(.vertical, Theme.Spacing.sm)
+                }
         }
     }
 

@@ -70,7 +70,7 @@ awaiting approval · `approved` merged to `main`.
 | ---------- | -------------- | -------- | --------- | -------- |
 | Getting in | approved       | approved | approved  | approved |
 | Trackers   | approved       | approved | approved  | approved |
-| Home       | approved       | approved | approved  | —        |
+| Home       | approved       | approved | approved  | approved |
 | Team       | approved       | approved | —         | —        |
 | Settings   | approved       | approved | —         | —        |
 | Insights   | deferred       | deferred | deferred  | —        |

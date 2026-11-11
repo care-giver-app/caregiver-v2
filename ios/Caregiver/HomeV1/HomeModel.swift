@@ -148,6 +148,20 @@ final class HomeModel {
         await loadAll()
     }
 
+    /// Back from an edit or delete on Entry detail or Journal note (PRD "Edit entry",
+    /// "Delete this entry?", "Delete this note?"): the whole screen is read again. An edit
+    /// that moved an entry to another day takes the timeline with it — the day shown
+    /// becomes the one the entry now belongs to — so it does not seem to vanish the moment
+    /// it is corrected. A write about someone Home is not showing reads nothing.
+    func reflect(_ write: HomeWrite) async {
+        guard let receiver, write.receiverID == receiver.id else { return }
+        if let moved = write.movedTo, moved != day, moved <= today {
+            day = moved
+            dayPhase = .loading
+        }
+        await loadAll()
+    }
+
     func retry() async {
         phase = .loading
         dayPhase = .loading

@@ -22,6 +22,7 @@ struct TrackerDetailV1View: View {
     @Environment(\.v1PopToTrackers) private var popToTrackers
     @Environment(\.v1QuickLog) private var quickLog
     @Environment(\.v1QuickLogRuns) private var quickLogRuns
+    @Environment(\.v1HomeWrites) private var homeWrites
 
     private var zone: TimeZone { receiver.timeZone }
 
@@ -61,6 +62,8 @@ struct TrackerDetailV1View: View {
         .tint(Theme.Colors.accent)
         // Back from Quick log, with what was logged in the list.
         .onChange(of: quickLogRuns) { Task { await model?.load() } }
+        // An entry of this tracker may have been edited or deleted on Entry detail.
+        .onChange(of: homeWrites) { Task { await model?.load() } }
         .task {
             if let model {
                 // Back from Schedules, where Edit tracker may have changed it.

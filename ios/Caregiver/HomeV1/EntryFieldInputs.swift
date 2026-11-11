@@ -11,6 +11,9 @@ struct EntryFieldInputs: View {
     @Binding var values: EntryValuesDraft
     /// The receiver's, which a date and time field is entered in.
     let zone: TimeZone
+    /// A line under a field's input, by field id — Edit entry's "Expected 90–140" under a
+    /// value that was logged outside its range (Figma 445:4389).
+    var hints: [String: String] = [:]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -18,12 +21,12 @@ struct EntryFieldInputs: View {
                 if row.count == 2 {
                     HStack(alignment: .top, spacing: 12) {
                         ForEach(row, id: \.id) { field in
-                            labeled(field.label) { input(for: field) }
+                            labeled(field) { input(for: field) }
                                 .frame(maxWidth: .infinity)
                         }
                     }
                 } else if let field = row.first {
-                    labeled(field.label) { input(for: field) }
+                    labeled(field) { input(for: field) }
                 }
             }
         }
@@ -42,10 +45,16 @@ struct EntryFieldInputs: View {
         return out
     }
 
-    private func labeled<Content: View>(_ label: String, @ViewBuilder _ content: () -> Content) -> some View {
+    private func labeled<Content: View>(_ field: TrackerFieldInfo,
+                                        @ViewBuilder _ content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            QuickLogFieldLabel(text: label)
+            QuickLogFieldLabel(text: field.label)
             content()
+            if let hint = hints[field.id] {
+                Text(hint)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.Colors.textTertiary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

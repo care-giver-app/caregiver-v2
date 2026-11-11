@@ -90,6 +90,14 @@ struct EntryValuesDraft: Equatable, Sendable {
     /// logging care: every required active field must be answered. Planning and skipping
     /// require nothing.
     func problems(for fields: [TrackerFieldInfo], requireAll: Bool) -> [String] {
+        problems(for: fields) { _ in requireAll }
+    }
+
+    /// What stops these values being sent, with `requiring` saying which required active
+    /// fields must be answered — Edit entry's own rule — and `prior` the entry's values
+    /// before this edit, whose retired options still count as answers.
+    func problems(for fields: [TrackerFieldInfo], keeping prior: [String: EntryValue] = [:],
+                  requiring: (TrackerFieldInfo) -> Bool) -> [String] {
         var out: [String] = []
         for field in fields where !field.paused {
             let typed = numberText(for: field.id).trimmingCharacters(in: .whitespaces)
@@ -101,7 +109,7 @@ struct EntryValuesDraft: Equatable, Sendable {
                 out.append("\(field.label): keep it to \(Self.maxText) characters or fewer.")
                 continue
             }
-            if requireAll, field.required, sent(for: [field])[field.id] == nil {
+            if field.required, requiring(field), sent(for: [field], keeping: prior)[field.id] == nil {
                 out.append("\(field.label) is required.")
             }
         }
@@ -112,9 +120,18 @@ struct EntryValuesDraft: Equatable, Sendable {
     /// field's kind, text trimmed, blanks left out, and a choice kept to active options
     /// (one, unless the field takes several). A pre-filled value for a field paused or an
     /// option retired since is dropped, as the server would refuse it.
-    func sent(for fields: [TrackerFieldInfo]) -> [String: EntryValue] {
+    ///
+    /// `prior` is an edited entry's values before the edit: what it already holds for a
+    /// field paused since is kept as it was, and options retired since that it already
+    /// chose stay chosen, as the server allows — an edit corrects what it touches and
+    /// leaves the rest alone.
+    func sent(for fields: [TrackerFieldInfo], keeping prior: [String: EntryValue] = [:]) -> [String: EntryValue] {
         var out: [String: EntryValue] = [:]
-        for field in fields where !field.paused {
+        for field in fields {
+            if field.paused {
+                if let held = prior[field.id] { out[field.id] = held }
+                continue
+            }
             guard let value = values[field.id] else { continue }
             switch (field.kind, value) {
             case (.number, .number(let n)) where n.isFinite:
@@ -127,7 +144,8 @@ struct EntryValuesDraft: Equatable, Sendable {
             case (.datetime, .string(let s)):
                 if Self.parseISO(s) != nil { out[field.id] = value }
             case (.choice, .list(let ids)):
-                let active = Set(field.options.filter { !$0.retired }.map(\.id))
+                var active = Set(field.options.filter { !$0.retired }.map(\.id))
+                if case .list(let held) = prior[field.id] { active.formUnion(held) }
                 var seen = Set<String>()
                 var kept = ids.filter { active.contains($0) && seen.insert($0).inserted }
                 if !field.multiple { kept = Array(kept.prefix(1)) }

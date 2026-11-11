@@ -5,7 +5,9 @@ import SwiftUI
 /// are named placeholders until their areas are built on this path. Every way into Quick
 /// log — ⊕, Home's empty day, Entry detail, Tracker detail — goes through one presenter
 /// (`V1QuickLog` into `QuickLogPresenter`), which also tells the screens beneath when a
-/// run has saved something (`v1QuickLogRuns`).
+/// run has saved something (`v1QuickLogRuns`). Edits and deletes on Entry detail and
+/// Journal note are counted the same way (`v1HomeWrote` into `v1HomeWrites`), and the
+/// ones that leave nothing to show go back to Home (`v1PopToHome`).
 struct V1TabShell: View {
     let account: Account
     let trackers: TrackersService
@@ -15,6 +17,8 @@ struct V1TabShell: View {
 
     @State private var selectedTab: StrideTab = .home
     @State private var quickLog = QuickLogPresenter()
+    /// Edits and deletes on Entry detail and Journal note, which Home reflects.
+    @State private var homeWrites = HomeWriteLog()
     @State private var receiver: ActiveReceiverModel
 
     init(account: Account, trackers: TrackersService, home: HomeService,
@@ -43,6 +47,11 @@ struct V1TabShell: View {
                 quickLog.wrappedValue.open(start, receiver: r ?? receiver.active?.receiver)
             })
             .environment(\.v1QuickLogRuns, quickLog.runs)
+            .environment(\.v1HomeWrote, V1HomeWrote { [homeWrites = $homeWrites] write in
+                homeWrites.wrappedValue.record(write)
+            })
+            .environment(\.v1HomeWrites, homeWrites)
+            .environment(\.v1PopToHome, V1PopToHome { [path = $path] in path.wrappedValue = [] })
             .tag(StrideTab.home)
 
             NavigationStack {
