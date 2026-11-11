@@ -21,6 +21,14 @@ describe('ApiStack', () => {
       v1Tables: shared.v1Tables,
     });
     const template = Template.fromStack(stack);
+    // Every route invokes the `live` alias through one API-wide statement on the alias's own
+    // policy, keeping the function's 20 KB resource policy clear.
+    template.hasResourceProperties('AWS::Lambda::Alias', { Name: 'live' });
+    const invokes = template.findResources('AWS::Lambda::Permission', {
+      Properties: { Principal: 'apigateway.amazonaws.com' },
+    });
+    expect(Object.values(invokes)).toHaveLength(1);
+    expect(Object.values(invokes)[0].Properties.FunctionName.Ref).toMatch(/^ApiLive/);
     template.hasResourceProperties('AWS::Lambda::Function', {
       Runtime: 'provided.al2023',
       Architectures: ['arm64'],

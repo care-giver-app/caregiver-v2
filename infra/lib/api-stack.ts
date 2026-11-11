@@ -211,10 +211,19 @@ export class ApiStack extends cdk.Stack {
       ),
     });
 
+    // API Gateway invokes the `live` alias, not the function. A Lambda's resource policy is
+    // capped at 20 KB, and one statement per route outgrew it; an alias has a policy of its
+    // own, so its single API-wide statement could be created while the old per-route ones
+    // were still on the function (CloudFormation creates before it deletes).
+    const liveAlias = new lambda.Alias(this, 'ApiLive', {
+      aliasName: 'live',
+      version: this.apiFunction.currentVersion,
+    });
+
     httpApi.addRoutes({
       path: '/health',
       methods: [apigw.HttpMethod.GET],
-      integration: new integ.HttpLambdaIntegration('HealthIntegration', this.apiFunction, {
+      integration: new integ.HttpLambdaIntegration('HealthIntegration', liveAlias, {
         scopePermissionToRoute: false,
       }),
     });
@@ -222,7 +231,7 @@ export class ApiStack extends cdk.Stack {
     httpApi.addRoutes({
       path: '/flags',
       methods: [apigw.HttpMethod.GET],
-      integration: new integ.HttpLambdaIntegration('FlagsIntegration', this.apiFunction, {
+      integration: new integ.HttpLambdaIntegration('FlagsIntegration', liveAlias, {
         scopePermissionToRoute: false,
       }),
     });
@@ -230,9 +239,7 @@ export class ApiStack extends cdk.Stack {
     const authorizer = new HttpUserPoolAuthorizer('JwtAuthorizer', props.userPool, {
       userPoolClients: [props.userPoolClient],
     });
-    // One API-wide invoke permission instead of one per route: Lambda caps a function's
-    // resource policy at 20 KB, and ~56 per-route statements went over it.
-    const lambdaIntegration = new integ.HttpLambdaIntegration('ApiIntegration', this.apiFunction, {
+    const lambdaIntegration = new integ.HttpLambdaIntegration('ApiIntegration', liveAlias, {
       scopePermissionToRoute: false,
     });
 
