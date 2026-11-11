@@ -44,10 +44,10 @@ extension HomeService {
         s.waiting = { receiverID in
             switch try await client.listWaitingEntries(path: .init(receiverId: receiverID)) {
             case .ok(let ok): return try ok.body.json.map(ReceiverEntryItem.init)
-            case .unauthorized: throw AppError.forStatus(401, serverMessage: nil)
-            case .forbidden: throw AppError.forStatus(403, serverMessage: nil)
-            case .notFound: throw AppError.forStatus(404, serverMessage: nil)
-            case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
+            case .unauthorized: throw refusal(401)
+            case .forbidden: throw refusal(403)
+            case .notFound: throw refusal(404)
+            case .undocumented(let status, _): throw refusal(status)
             }
         }
         s.addEntry = { trackerID, write in
@@ -55,24 +55,24 @@ extension HomeService {
                                                    body: .json(try write.generated))
             switch output {
             case .created(let created): return EntryDetailInfo(try created.body.json)
-            case .badRequest(let bad): throw AppError.forStatus(400, serverMessage: try? bad.body.json.message)
-            case .unauthorized: throw AppError.forStatus(401, serverMessage: nil)
-            case .forbidden: throw AppError.forStatus(403, serverMessage: nil)
-            case .notFound: throw AppError.forStatus(404, serverMessage: nil)
-            case .conflict(let c): throw EntryNotInState(message: try? c.body.json.message)
-            case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
+            case .badRequest(let bad): throw refusal(400, try? bad.body.json.message)
+            case .unauthorized: throw refusal(401)
+            case .forbidden: throw refusal(403)
+            case .notFound: throw refusal(404)
+            case .conflict(let c): throw refusal(409, try? c.body.json.message)
+            case .undocumented(let status, _): throw refusal(status)
             }
         }
         s.logEntry = { entryID, care in
             let output = try await client.logEntry(path: .init(entryId: entryID), body: .json(try care.generated))
             switch output {
             case .ok(let ok): return EntryDetailInfo(try ok.body.json)
-            case .badRequest(let bad): throw AppError.forStatus(400, serverMessage: try? bad.body.json.message)
-            case .unauthorized: throw AppError.forStatus(401, serverMessage: nil)
-            case .forbidden: throw AppError.forStatus(403, serverMessage: nil)
-            case .notFound: throw AppError.forStatus(404, serverMessage: nil)
-            case .conflict(let c): throw EntryNotInState(message: try? c.body.json.message)
-            case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
+            case .badRequest(let bad): throw refusal(400, try? bad.body.json.message)
+            case .unauthorized: throw refusal(401)
+            case .forbidden: throw refusal(403)
+            case .notFound: throw refusal(404)
+            case .conflict(let c): throw refusal(409, try? c.body.json.message)
+            case .undocumented(let status, _): throw refusal(status)
             }
         }
         s.skipEntry = { entryID, note in
@@ -80,35 +80,35 @@ extension HomeService {
                                                     body: .json(.init(note: note.nonBlank)))
             switch output {
             case .ok(let ok): return EntryDetailInfo(try ok.body.json)
-            case .badRequest(let bad): throw AppError.forStatus(400, serverMessage: try? bad.body.json.message)
-            case .unauthorized: throw AppError.forStatus(401, serverMessage: nil)
-            case .forbidden: throw AppError.forStatus(403, serverMessage: nil)
-            case .notFound: throw AppError.forStatus(404, serverMessage: nil)
-            case .conflict(let c): throw EntryNotInState(message: try? c.body.json.message)
-            case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
+            case .badRequest(let bad): throw refusal(400, try? bad.body.json.message)
+            case .unauthorized: throw refusal(401)
+            case .forbidden: throw refusal(403)
+            case .notFound: throw refusal(404)
+            case .conflict(let c): throw refusal(409, try? c.body.json.message)
+            case .undocumented(let status, _): throw refusal(status)
             }
         }
         s.changeEntry = { entryID, care in
             let output = try await client.changeEntry(path: .init(entryId: entryID), body: .json(try care.generated))
             switch output {
             case .ok(let ok): return EntryDetailInfo(try ok.body.json)
-            case .badRequest(let bad): throw AppError.forStatus(400, serverMessage: try? bad.body.json.message)
-            case .unauthorized: throw AppError.forStatus(401, serverMessage: nil)
-            case .forbidden: throw AppError.forStatus(403, serverMessage: nil)
-            case .notFound: throw AppError.forStatus(404, serverMessage: nil)
-            case .conflict(let c): throw EntryNotInState(message: try? c.body.json.message)
-            case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
+            case .badRequest(let bad): throw refusal(400, try? bad.body.json.message)
+            case .unauthorized: throw refusal(401)
+            case .forbidden: throw refusal(403)
+            case .notFound: throw refusal(404)
+            case .conflict(let c): throw refusal(409, try? c.body.json.message)
+            case .undocumented(let status, _): throw refusal(status)
             }
         }
         s.deleteEntry = { entryID in
             switch try await client.deleteEntry(path: .init(entryId: entryID)) {
             case .ok(let ok): return EntryDetailInfo(try ok.body.json)
             case .noContent: return nil
-            case .unauthorized: throw AppError.forStatus(401, serverMessage: nil)
-            case .forbidden: throw AppError.forStatus(403, serverMessage: nil)
-            case .notFound: throw AppError.forStatus(404, serverMessage: nil)
-            case .conflict(let c): throw EntryNotInState(message: try? c.body.json.message)
-            case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
+            case .unauthorized: throw refusal(401)
+            case .forbidden: throw refusal(403)
+            case .notFound: throw refusal(404)
+            case .conflict(let c): throw refusal(409, try? c.body.json.message)
+            case .undocumented(let status, _): throw refusal(status)
             }
         }
         s.addJournalNote = { receiverID, note in
@@ -116,35 +116,41 @@ extension HomeService {
                                                          body: .json(note.generated))
             switch output {
             case .created(let created): return JournalNoteInfo(try created.body.json)
-            case .badRequest(let bad): throw AppError.forStatus(400, serverMessage: try? bad.body.json.message)
-            case .unauthorized: throw AppError.forStatus(401, serverMessage: nil)
-            case .forbidden: throw AppError.forStatus(403, serverMessage: nil)
-            case .notFound: throw AppError.forStatus(404, serverMessage: nil)
-            case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
+            case .badRequest(let bad): throw refusal(400, try? bad.body.json.message)
+            case .unauthorized: throw refusal(401)
+            case .forbidden: throw refusal(403)
+            case .notFound: throw refusal(404)
+            case .undocumented(let status, _): throw refusal(status)
             }
         }
         s.changeJournalNote = { noteID, note in
             let output = try await client.changeJournalNote(path: .init(noteId: noteID), body: .json(note.generated))
             switch output {
             case .ok(let ok): return JournalNoteInfo(try ok.body.json)
-            case .badRequest(let bad): throw AppError.forStatus(400, serverMessage: try? bad.body.json.message)
-            case .unauthorized: throw AppError.forStatus(401, serverMessage: nil)
-            case .forbidden: throw AppError.forStatus(403, serverMessage: nil)
-            case .notFound: throw AppError.forStatus(404, serverMessage: nil)
-            case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
+            case .badRequest(let bad): throw refusal(400, try? bad.body.json.message)
+            case .unauthorized: throw refusal(401)
+            case .forbidden: throw refusal(403)
+            case .notFound: throw refusal(404)
+            case .undocumented(let status, _): throw refusal(status)
             }
         }
         s.deleteJournalNote = { noteID in
             switch try await client.deleteJournalNote(path: .init(noteId: noteID)) {
             case .noContent: return
-            case .unauthorized: throw AppError.forStatus(401, serverMessage: nil)
-            case .forbidden: throw AppError.forStatus(403, serverMessage: nil)
-            case .notFound: throw AppError.forStatus(404, serverMessage: nil)
-            case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
+            case .unauthorized: throw refusal(401)
+            case .forbidden: throw refusal(403)
+            case .notFound: throw refusal(404)
+            case .undocumented(let status, _): throw refusal(status)
             }
         }
         return s
     }
+}
+
+/// The error for any answer but the one asked for, by status: a 409 is `EntryNotInState`,
+/// anything else an `AppError` carrying the server's message when it gave one.
+private func refusal(_ status: Int, _ message: String? = nil) -> Error {
+    status == 409 ? EntryNotInState(message: message) : AppError.forStatus(status, serverMessage: message)
 }
 
 // MARK: - Mapping to the generated types

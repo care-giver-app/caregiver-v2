@@ -138,10 +138,13 @@ final class HomeModel {
     /// Back from a Quick log run that saved something (PRD "Quick log" exits): the whole
     /// screen is read again, so a planning run's entries show under Coming up and a
     /// logging run's in the day — on the day they were logged, if Home was showing
-    /// another, since a run's one time is today at the latest.
+    /// another, since a run's one time is today at the latest. A run for someone Home is
+    /// not showing (raised on another receiver's screen) is only a plain refresh: its day
+    /// says nothing about this receiver's timeline.
     func reflect(_ outcome: QuickLogModel.Outcome) async {
-        guard outcome.savedAny, receiver != nil else { return }
-        if !outcome.planning, let logged = outcome.latestDay, logged != day, logged <= today {
+        guard outcome.savedAny, let receiver else { return }
+        if outcome.receiverID == receiver.id, !outcome.planning, let logged = outcome.latestDay,
+           logged != day, logged <= today {
             day = logged
             dayPhase = .loading
         }

@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// Edit in the nav raises Edit journal note, and Delete at the bottom raises Delete this
 /// note? (Figma 447:4245). Saving shows the note as it now stands; deleting goes back to
-/// Home. Every write is told to Home.
+/// Home, as does an edit that finds the note deleted elsewhere. Every write is told to Home.
 struct JournalNoteV1View: View {
     private enum Sheet: Identifiable {
         case edit(JournalNoteInfo)
@@ -58,7 +58,15 @@ struct JournalNoteV1View: View {
                                          model?.replace(with: saved)
                                          homeWrote(HomeWrite(receiverID: receiver.id))
                                      },
-                                     onFailed: { _ in Task { await model?.load() } })
+                                     onFailed: { failure in
+                                         // Deleted elsewhere: back to Home as the sheet goes, as a delete would.
+                                         if failure.sendsHome {
+                                             homeWrote(HomeWrite(receiverID: receiver.id))
+                                             goHome = true
+                                         } else {
+                                             Task { await model?.load() }
+                                         }
+                                     })
             case .delete(let note):
                 DeleteJournalNoteSheet(model: DeleteJournalNoteModel(note, home: home)) {
                     homeWrote(HomeWrite(receiverID: receiver.id))

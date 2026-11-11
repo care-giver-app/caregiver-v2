@@ -169,6 +169,20 @@ final class EditEntryModelTests: XCTestCase {
         _ = await m.save()
         XCTAssertEqual(m.failure, .gone)
         XCTAssertFalse(m.canSave)
+        XCTAssertEqual(m.failure?.sendsHome, true, "as a delete would, Entry detail goes back to Home")
+    }
+
+    func testOnlyDeletedElsewhereSendsAnEditHome() {
+        XCTAssertTrue(HomeEditFailure.gone.sendsHome)
+        XCTAssertFalse(HomeEditFailure.notInState.sendsHome)
+        XCTAssertFalse(HomeEditFailure.other(.transport).sendsHome)
+    }
+
+    func testTheEditsDefaultClockIsTheServers() {
+        // Constructed without a clock: `latest` follows ServerClock.shared, not the phone.
+        let m = EditEntryModel(Fixed.logged(), zone: Fixed.chicago, home: Fixed.home())
+        let expected = ServerClock.shared.now()
+        XCTAssertEqual(m.latest.timeIntervalSince(expected), 0, accuracy: 1)
     }
 
     func testAnyOtherFailureMayBeTriedAgain() async {
@@ -260,6 +274,7 @@ final class JournalNoteEditModelTests: XCTestCase {
         _ = await m.save()
         XCTAssertEqual(m.failureLine, HomeEditText.noteGoneSince)
         XCTAssertFalse(m.canSave)
+        XCTAssertEqual(m.failure?.sendsHome, true, "as a delete would, Journal note goes back to Home")
     }
 
     func testDeletingIsDoneOnceGoneHereOrElsewhere() async {
@@ -327,6 +342,16 @@ final class HomeReflectsWritesTests: XCTestCase {
         await model.reflect(HomeWrite(receiverID: "walter", movedTo: Fixed.nov6))
         XCTAssertEqual(model.day, Fixed.nov7)
         XCTAssertEqual(days.all, [Fixed.nov7])
+    }
+
+    func testAQuickLogRunForSomeoneElseIsOnlyAPlainRefresh() async {
+        let model = home()
+        await model.show(Fixed.eleanor)
+        await model.stepBack()
+        await model.reflect(QuickLogModel.Outcome(receiverID: "walter", planning: false, latestDay: Fixed.nov7,
+                                                  savedAny: true))
+        XCTAssertEqual(model.day, Fixed.nov6, "Walter's day says nothing about Eleanor's timeline")
+        XCTAssertEqual(days.all, [Fixed.nov7, Fixed.nov6, Fixed.nov6])
     }
 
     func testTheLogCountsEachWrite() {

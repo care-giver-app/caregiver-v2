@@ -65,7 +65,7 @@ struct EntryDetailV1View: View {
             switch sheet {
             case .edit(let detail):
                 EditEntrySheet(model: EditEntryModel(detail, zone: receiver.timeZone, home: home),
-                               onSaved: saved, onFailed: { _ in reload() })
+                               onSaved: saved, onFailed: editFailed)
             case .delete(let detail):
                 DeleteEntrySheet(model: DeleteEntryModel(detail, home: home),
                                  onDeleted: deleted, onFailed: { _ in reload() })
@@ -155,6 +155,14 @@ struct EntryDetailV1View: View {
     private func saved(_ saved: EditEntryModel.Saved) {
         model?.replace(with: saved.detail)
         homeWrote(HomeWrite(receiverID: receiver.id, movedTo: saved.movedTo))
+    }
+
+    /// Edit entry could not land. Deleted elsewhere goes back to Home as the sheet goes,
+    /// as a delete would; changed first reads this screen again behind it.
+    private func editFailed(_ failure: HomeEditFailure) {
+        guard failure.sendsHome else { return reload() }
+        homeWrote(HomeWrite(receiverID: receiver.id))
+        goHome = true
     }
 
     /// Delete this entry? landed: waiting again stays here, gone goes back to Home.

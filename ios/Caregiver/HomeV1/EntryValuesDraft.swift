@@ -13,11 +13,15 @@ struct EntryValuesDraft: Equatable, Sendable {
     private(set) var values: [String: EntryValue]
     /// Number fields' text as typed, by field id; parsed into `values`.
     private(set) var numberText: [String: String] = [:]
+    /// The decimal separator `.decimalPad` types in this locale — "," in much of Europe.
+    /// Typed numbers take it or "."; numbers shown back use it.
+    private let decimalSeparator: String
 
-    init(_ values: [String: EntryValue] = [:]) {
+    init(_ values: [String: EntryValue] = [:], locale: Locale = .current) {
         self.values = values
+        decimalSeparator = locale.decimalSeparator ?? "."
         for (id, value) in values {
-            if case .number(let n) = value { numberText[id] = TrackerText.number(n) }
+            if case .number(let n) = value { numberText[id] = Self.shown(n, separator: decimalSeparator) }
         }
     }
 
@@ -27,7 +31,8 @@ struct EntryValuesDraft: Equatable, Sendable {
 
     mutating func setNumberText(_ text: String, for fieldID: String) {
         numberText[fieldID] = text
-        values[fieldID] = Self.number(text.trimmingCharacters(in: .whitespaces)).map(EntryValue.number)
+        values[fieldID] = Self.number(text.trimmingCharacters(in: .whitespaces), separator: decimalSeparator)
+            .map(EntryValue.number)
     }
 
     func text(for fieldID: String) -> String {
@@ -78,10 +83,7 @@ struct EntryValuesDraft: Equatable, Sendable {
             values[fieldID] = nil
             return
         }
-        let f = ISO8601DateFormatter()
-        f.timeZone = zone
-        f.formatOptions = [.withInternetDateTime]
-        values[fieldID] = .string(f.string(from: date))
+        values[fieldID] = .string(Self.iso(date, zone: zone))
     }
 
     // MARK: Checking and sending
@@ -101,7 +103,7 @@ struct EntryValuesDraft: Equatable, Sendable {
         var out: [String] = []
         for field in fields where !field.paused {
             let typed = numberText(for: field.id).trimmingCharacters(in: .whitespaces)
-            if field.kind == .number, !typed.isEmpty, Self.number(typed) == nil {
+            if field.kind == .number, !typed.isEmpty, Self.number(typed, separator: decimalSeparator) == nil {
                 out.append("\(field.label): enter a number.")
                 continue
             }
@@ -158,15 +160,39 @@ struct EntryValuesDraft: Equatable, Sendable {
     }
 
     /// A typed number, or nil when it isn't one: "inf", "nan" and "1e999" are refused.
-    static func number(_ text: String) -> Double? {
-        guard let n = Double(text), n.isFinite else { return nil }
+    /// "." is always a decimal point; so is `separator`, the locale's own.
+    static func number(_ text: String, separator: String = ".") -> Double? {
+        var t = text
+        if separator != ".", !separator.isEmpty, t.contains(separator) {
+            guard !t.contains(".") else { return nil }
+            t = t.replacingOccurrences(of: separator, with: ".")
+        }
+        guard let n = Double(t), n.isFinite else { return nil }
         return n
     }
 
-    static func parseISO(_ s: String) -> Date? {
+    /// A number as it is shown back for editing, with the locale's decimal separator.
+    private static func shown(_ n: Double, separator: String) -> String {
+        let s = TrackerText.number(n)
+        return separator == "." ? s : s.replacingOccurrences(of: ".", with: separator)
+    }
+
+    // Read on every render, so made once. ISO8601DateFormatter is safe to share for parsing.
+    nonisolated(unsafe) private static let isoPlain = ISO8601DateFormatter()
+    nonisolated(unsafe) private static let isoFractional: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
-        if let d = f.date(from: s) { return d }
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f.date(from: s)
+        return f
+    }()
+
+    static func parseISO(_ s: String) -> Date? {
+        isoPlain.date(from: s) ?? isoFractional.date(from: s)
+    }
+
+    private static func iso(_ date: Date, zone: TimeZone) -> String {
+        let f = ISO8601DateFormatter()
+        f.timeZone = zone
+        f.formatOptions = [.withInternetDateTime]
+        return f.string(from: date)
     }
 }

@@ -362,7 +362,7 @@ final class HomeModelTests: XCTestCase {
         let model = model()
         await model.show(Fixed.eleanor)
         await model.stepBack()
-        await model.reflect(QuickLogModel.Outcome(planning: false, latestDay: Fixed.nov7, savedAny: true))
+        await model.reflect(QuickLogModel.Outcome(receiverID: "eleanor", planning: false, latestDay: Fixed.nov7, savedAny: true))
         XCTAssertEqual(model.day, Fixed.nov7)
         XCTAssertEqual(calls.lastDay, Fixed.nov7)
         XCTAssertEqual(calls.count("attention:eleanor"), 2)
@@ -374,7 +374,7 @@ final class HomeModelTests: XCTestCase {
         await model.show(Fixed.eleanor)
         await model.stepBack()
         let nov6 = LocalDay(year: 2026, month: 11, day: 6)
-        await model.reflect(QuickLogModel.Outcome(planning: true, latestDay: LocalDay(year: 2026, month: 11, day: 9),
+        await model.reflect(QuickLogModel.Outcome(receiverID: "eleanor", planning: true, latestDay: LocalDay(year: 2026, month: 11, day: 9),
                                                   savedAny: true))
         XCTAssertEqual(model.day, nov6)
         XCTAssertEqual(calls.count("comingUp:eleanor"), 2)
@@ -384,7 +384,7 @@ final class HomeModelTests: XCTestCase {
     func testARunThatSavedNothingReadsNothing() async {
         let model = model()
         await model.show(Fixed.eleanor)
-        await model.reflect(QuickLogModel.Outcome(planning: false, latestDay: nil, savedAny: false))
+        await model.reflect(QuickLogModel.Outcome(receiverID: "eleanor", planning: false, latestDay: nil, savedAny: false))
         XCTAssertEqual(calls.count("attention:eleanor"), 1)
     }
 

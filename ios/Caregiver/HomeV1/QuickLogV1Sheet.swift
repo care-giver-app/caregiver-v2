@@ -45,7 +45,9 @@ struct QuickLogV1Sheet: View {
                 .toolbar { toolbar }
         }
         .tint(Theme.Colors.accent)
-        .interactiveDismissDisabled(model.part == .submitting)
+        // Nothing goes until every save in flight is answered, so the outcome read as the
+        // sheet goes is the run's last word.
+        .interactiveDismissDisabled(model.isSaving)
         .task { if model.part == .loading { await model.load() } }
         .onChange(of: model.wantsAddTracker) { _, wants in if wants { onAddTracker() } }
         .onDisappear { onEnd(model.outcome) }
@@ -57,6 +59,7 @@ struct QuickLogV1Sheet: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
                     .fontWeight(.semibold)
+                    .disabled(model.isSaving)
             }
         } else if model.canGoBack {
             ToolbarItem(placement: .topBarLeading) {
@@ -83,6 +86,8 @@ struct QuickLogV1Sheet: View {
             StrideLoadingView()
         case .loadFailed:
             StrideErrorState(message: QuickLogText.loadFailed) { Task { await model.load() } }
+        case .nothingToLog(let line):
+            StrideEmptyState(message: line)
         case .pick:
             pick
         case .when:

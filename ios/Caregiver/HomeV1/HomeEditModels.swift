@@ -51,6 +51,11 @@ enum HomeEditFailure: Equatable {
     /// Whether trying the same write again could help.
     var isFinal: Bool { self == .notInState || self == .gone }
 
+    /// An edit that found its entry or note deleted elsewhere: as for a delete, Home is
+    /// told and gone back to once the sheet is down, as there is nothing left to show.
+    /// Anything else final reads the screen behind the sheet again.
+    var sendsHome: Bool { self == .gone }
+
     static func from(_ error: Error) -> HomeEditFailure {
         if error is EntryNotInState { return .notInState }
         let e = AppError.from(error)
@@ -85,15 +90,19 @@ final class EditEntryModel {
     private(set) var isSaving = false
     private(set) var failure: HomeEditFailure?
 
+    /// The fields the entry already answers, which an edit must keep answered.
+    private let priorAnswered: Set<String>
     private let change: @Sendable (_ entryID: String, _ care: EntryCareWrite) async throws -> EntryDetailInfo
     private let clock: @MainActor () -> Date
 
     init(_ detail: EntryDetailInfo, zone: TimeZone, home: HomeService,
-         clock: @escaping @MainActor () -> Date = Date.init) {
+         clock: @escaping @MainActor () -> Date = { ServerClock.shared.now() }) {
         original = detail
         self.zone = zone
         change = home.changeEntry
         self.clock = clock
+        let prior = detail.entry.values
+        priorAnswered = Set(EntryValuesDraft(prior).sent(for: detail.fields, keeping: prior).keys)
         values = EntryValuesDraft(detail.entry.values)
         // A skip ahead of its time cannot be logged then: it starts at now instead.
         occurredAt = min(detail.entry.at, clock())
@@ -116,10 +125,10 @@ final class EditEntryModel {
     var latest: Date { clock() }
 
     var problems: [String] {
-        let prior = original.entry.values
         let logs = logsTheCare
-        var out = values.problems(for: original.fields, keeping: prior) { field in
-            logs || EntryValuesDraft(prior).sent(for: [field], keeping: prior)[field.id] != nil
+        let answered = priorAnswered
+        var out = values.problems(for: original.fields, keeping: original.entry.values) { field in
+            logs || answered.contains(field.id)
         }
         if occurredAt > clock() { out.append(HomeEditText.futureTime) }
         if note.trimmingCharacters(in: .whitespacesAndNewlines).count > EntryValuesDraft.maxNote {
@@ -237,7 +246,7 @@ final class EditJournalNoteModel {
     private let clock: @MainActor () -> Date
 
     init(_ note: JournalNoteInfo, zone: TimeZone, home: HomeService,
-         clock: @escaping @MainActor () -> Date = Date.init) {
+         clock: @escaping @MainActor () -> Date = { ServerClock.shared.now() }) {
         original = note
         self.zone = zone
         change = home.changeJournalNote

@@ -1,4 +1,5 @@
 import Foundation
+import OpenAPIRuntime
 
 /// Every sentence Quick log's run says, as constants and pure functions.
 enum QuickLogText {
@@ -9,6 +10,13 @@ enum QuickLogText {
     static let noteRequired = "Write the note."
     static let notInState = "Someone settled this first, or its tracker was paused. Nothing was saved for it."
     static let trackerPaused = "This tracker was paused, so nothing was saved for it."
+    /// A new entry or note whose request went out but whose answer never came back: it
+    /// may have saved, and sending it again could record it twice.
+    static let outcomeUnknown = "Couldn't tell whether this saved. Check Home before logging it again."
+    /// Raised from Tracker detail on a tracker paused since.
+    static let scopedTrackerPaused = "This tracker is paused, so there's nothing to log on it."
+    /// Raised from Tracker detail on a tracker deleted since.
+    static let scopedTrackerGone = "This tracker is no longer here, so there's nothing to log on it."
 
     static func noteTooLong(_ max: Int) -> String { "Keep the note to \(max) characters or fewer." }
 
@@ -96,6 +104,8 @@ final class QuickLogModel {
     enum Part: Equatable {
         case loading
         case loadFailed(AppError)
+        /// Raised from Tracker detail on a tracker no longer active: this line, and Cancel.
+        case nothingToLog(String)
         /// What to record.
         case pick
         /// When it happened, asked once for the whole run.
@@ -146,8 +156,12 @@ final class QuickLogModel {
         /// Nil for a journal note.
         let tracker: TrackerBadgeInfo?
         let status: Status
-        /// A failure worth trying again: not one the server refused for the entry's state.
+        /// A failure worth trying again: not one the server refused for the entry's state,
+        /// nor a new entry or note that may have saved already.
         var retryable = false
+        /// A failure that may have saved all the same: a create whose answer was lost, or a
+        /// log or skip refused on a retry because the first attempt landed.
+        var mightHaveSaved = false
 
         var id: Item { item }
 
@@ -159,11 +173,13 @@ final class QuickLogModel {
 
     /// What the run's caller needs once it is done.
     struct Outcome: Equatable, Sendable {
+        /// Whose run it was.
+        let receiverID: String
         /// A planning run's entries sit under Coming up; a logging run's in the day behind it.
         let planning: Bool
         /// The latest day, in the receiver's zone, anything saved belongs to; nil if nothing saved.
         let latestDay: LocalDay?
-        /// Whether anything saved, so Home, Entry detail or Tracker detail refreshes.
+        /// Whether anything saved, or may have, so Home, Entry detail or Tracker detail refreshes.
         let savedAny: Bool
     }
 
@@ -215,8 +231,10 @@ final class QuickLogModel {
     private let trackers: TrackersService
     private let clock: @MainActor () -> Date
 
+    /// `clock` is the server's, as near as the phone can tell (`ServerClock`): the server
+    /// refuses a time more than a minute ahead of its own.
     init(start: QuickLogStart, receiver: TeamReceiver, home: HomeService, trackers: TrackersService,
-         clock: @escaping @MainActor () -> Date = Date.init) {
+         clock: @escaping @MainActor () -> Date = { ServerClock.shared.now() }) {
         self.start = start
         self.receiver = receiver
         self.home = home
@@ -257,10 +275,17 @@ final class QuickLogModel {
             let (allWaiting, allTrackers) = try await (waitingRead, trackersRead)
             let active = allTrackers.filter { $0.status == .active }
             if case .tracker(let id) = start {
-                waiting = allWaiting.filter { $0.tracker.id == id }
                 activeTrackers = active.filter { $0.id == id }
+                // Paused or deleted since Tracker detail was read: nothing here can be saved.
+                guard !activeTrackers.isEmpty else {
+                    let paused = allTrackers.contains { $0.id == id }
+                    hasPickingPart = false
+                    part = .nothingToLog(paused ? QuickLogText.scopedTrackerPaused : QuickLogText.scopedTrackerGone)
+                    return
+                }
+                waiting = allWaiting.filter { $0.tracker.id == id }
                 // Nothing waiting to pick between: straight to when, with the tracker picked.
-                if waiting.isEmpty, !activeTrackers.isEmpty {
+                if waiting.isEmpty {
                     picked = [.tracker(id: id)]
                     hasPickingPart = false
                     part = .when
@@ -501,8 +526,9 @@ final class QuickLogModel {
         }
         let now = clock()
         // A future time that has come while the steps were filled in would log rather
-        // than plan: back to when, which now says so.
-        if isPlanning, futureTime <= now.addingTimeInterval(Self.futureMargin) {
+        // than plan, and an earlier time is no longer today once midnight has passed in
+        // the receiver's zone: back to when, which now says so.
+        if when != .now, !whenProblems.isEmpty {
             part = .when
             return
         }
@@ -515,13 +541,10 @@ final class QuickLogModel {
         part = .result
     }
 
-    private func save(_ item: Item, now: Date) async -> Result {
+    /// `retried`: a log or skip being sent again after a failure that may have landed.
+    private func save(_ item: Item, now: Date, retried: Bool = false) async -> Result {
         let d = draft(for: item)
-        let at: Date = switch when {
-        case .now: now
-        case .earlierToday: earlierTime
-        case .future: futureTime
-        }
+        let at = runTime(now: now)
         switch item {
         case .journalNote:
             do {
@@ -529,8 +552,7 @@ final class QuickLogModel {
                     receiver.id, NoteWrite(at: at, body: d.note.trimmingCharacters(in: .whitespacesAndNewlines)))
                 return Result(item: item, title: QuickLogText.journalNote, tracker: nil, status: .savedNote(note))
             } catch {
-                return Result(item: item, title: QuickLogText.journalNote, tracker: nil,
-                              status: .failed(AppError.from(error).message), retryable: true)
+                return Self.createFailure(item, title: QuickLogText.journalNote, badge: nil, error)
             }
         case .tracker(let id):
             let tracker = activeTrackers.first { $0.id == id }
@@ -539,7 +561,8 @@ final class QuickLogModel {
             // log into a plan.
             let write = NewEntryWrite(at: when == .now ? nil : at, values: d.values.sent(for: activeFields(id)),
                                       note: d.note, unrecordedAlert: isPlanning && alertIfUnrecorded)
-            return await entryResult(item, title: tracker?.name ?? "", badge: badge, paused: QuickLogText.trackerPaused) {
+            return await entryResult(item, title: tracker?.name ?? "", badge: badge, paused: QuickLogText.trackerPaused,
+                                     creates: true) {
                 try await self.home.addEntry(id, write)
             }
         case .occurrence(let id):
@@ -548,26 +571,68 @@ final class QuickLogModel {
             }
             if d.choice == .skip {
                 let note = d.note
-                return await entryResult(item, title: o.tracker.name, badge: o.tracker, paused: QuickLogText.notInState) {
+                return await entryResult(item, title: o.tracker.name, badge: o.tracker, paused: QuickLogText.notInState,
+                                         retried: retried) {
                     try await self.home.skipEntry(id, note)
                 }
             }
             let care = EntryCareWrite(occurredAt: at, values: d.values.sent(for: activeFields(o.tracker.id)), note: d.note)
-            return await entryResult(item, title: o.tracker.name, badge: o.tracker, paused: QuickLogText.notInState) {
+            return await entryResult(item, title: o.tracker.name, badge: o.tracker, paused: QuickLogText.notInState,
+                                     retried: retried) {
                 try await self.home.logEntry(id, care)
             }
         }
     }
 
+    /// `creates`: a new entry, which sending twice would record twice. Logging or
+    /// skipping a waiting one is safe to send again: a second attempt after the first
+    /// landed is refused with a 409. That 409 on a `retried` write is kept as it reads —
+    /// nothing was saved by it — but the line may have saved the first time.
     private func entryResult(_ item: Item, title: String, badge: TrackerBadgeInfo?, paused: String,
+                             creates: Bool = false, retried: Bool = false,
                              _ write: () async throws -> EntryDetailInfo) async -> Result {
         do {
             return Result(item: item, title: title, tracker: badge, status: .savedEntry(try await write()))
         } catch is EntryNotInState {
-            return Result(item: item, title: title, tracker: badge, status: .failed(paused))
+            return Result(item: item, title: title, tracker: badge, status: .failed(paused), mightHaveSaved: retried)
         } catch {
+            if creates { return Self.createFailure(item, title: title, badge: badge, error) }
             return Result(item: item, title: title, tracker: badge, status: .failed(AppError.from(error).message),
                           retryable: true)
+        }
+    }
+
+    /// A new entry or journal note that failed. One sent whose answer never came back may
+    /// have saved: it is said so, and not offered again.
+    private static func createFailure(_ item: Item, title: String, badge: TrackerBadgeInfo?, _ error: Error) -> Result {
+        if mayHaveLanded(error) {
+            return Result(item: item, title: title, tracker: badge, status: .failed(QuickLogText.outcomeUnknown),
+                          mightHaveSaved: true)
+        }
+        return Result(item: item, title: title, tracker: badge, status: .failed(AppError.from(error).message),
+                      retryable: true)
+    }
+
+    /// Whether a failed request may have reached the server and been carried out: it went
+    /// out but no answer came back (a timeout, a dropped connection), or an answer came
+    /// that could not be read. A refusal with a status, or a failure to connect at all,
+    /// saved nothing.
+    nonisolated static func mayHaveLanded(_ error: Error) -> Bool {
+        if error is AppError || error is EntryNotInState || error is CancellationError { return false }
+        if let client = error as? ClientError {
+            if client.response != nil { return true }
+            return mayHaveLanded(client.underlyingError)
+        }
+        guard let url = error as? URLError else { return false }
+        switch url.code {
+        case .notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed,
+             .internationalRoamingOff, .dataNotAllowed, .badURL, .unsupportedURL,
+             .secureConnectionFailed, .serverCertificateUntrusted, .serverCertificateHasBadDate,
+             .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot, .clientCertificateRejected,
+             .clientCertificateRequired, .appTransportSecurityRequiresSecureConnection:
+            return false
+        default:
+            return true
         }
     }
 
@@ -576,16 +641,16 @@ final class QuickLogModel {
     func retry(_ item: Item) async {
         guard part == .result, let i = results.firstIndex(where: { $0.item == item }),
               results[i].retryable, !retrying.contains(item) else { return }
+        let earlier = results[i]
         retrying.insert(item)
         defer { retrying.remove(item) }
         let now = clock()
         let result: Result
         if isPlanning, futureTime <= now.addingTimeInterval(Self.futureMargin) {
-            let r = results[i]
-            result = Result(item: r.item, title: r.title, tracker: r.tracker,
+            result = Result(item: earlier.item, title: earlier.title, tracker: earlier.tracker,
                             status: .failed(QuickLogText.futureProblem))
         } else {
-            result = await save(item, now: now)
+            result = await save(item, now: now, retried: true)
         }
         if let j = results.firstIndex(where: { $0.item == item }) { results[j] = result }
     }
@@ -599,6 +664,10 @@ final class QuickLogModel {
         }
     }
 
+    /// Saving the run, or a line of its result again: the sheet stays up until it is done,
+    /// so how the run ended is read once nothing more can land.
+    var isSaving: Bool { part == .submitting || !retrying.isEmpty }
+
     /// Set once the run has ended on its result.
     var outcome: Outcome? {
         guard part == .result else { return nil }
@@ -609,7 +678,8 @@ final class QuickLogModel {
             case .failed: nil
             }
         }
-        return Outcome(planning: isPlanning, latestDay: days.max(), savedAny: !days.isEmpty)
+        return Outcome(receiverID: receiver.id, planning: isPlanning, latestDay: days.max(),
+                       savedAny: !days.isEmpty || results.contains(where: \.mightHaveSaved))
     }
 
     // MARK: - Lookups

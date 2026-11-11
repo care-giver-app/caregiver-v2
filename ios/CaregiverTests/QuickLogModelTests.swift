@@ -87,6 +87,8 @@ private final class Writes: @unchecked Sendable {
     var failures: [String: any Error] = [:]
     var failLoad = false
     var failFields = false
+    /// Awaited inside a journal note's write before it answers, to hold one in flight.
+    var holdNote: (@Sendable () async -> Void)?
 }
 
 @MainActor
@@ -127,6 +129,7 @@ final class QuickLogModelTests: XCTestCase {
         }
         home.addJournalNote = { id, note in
             w.record(.note(receiverID: id, note))
+            if let hold = w.holdNote { await hold() }
             if let e = w.failures["note"] { throw e }
             return JournalNoteInfo(id: "n1", receiverID: id, at: note.at, body: note.body, authorName: "Trevor",
                                    createdAt: Q.now, updatedByName: nil, updatedAt: nil)
@@ -486,7 +489,7 @@ final class QuickLogModelTests: XCTestCase {
         XCTAssertEqual(m.results.map(\.saved), [true, true, true, true])
         XCTAssertEqual(m.results.map(\.title), ["Medication", "Blood pressure", "Blood pressure",
                                                 QuickLogText.journalNote])
-        XCTAssertEqual(m.outcome, QuickLogModel.Outcome(planning: false, latestDay: Q.today, savedAny: true))
+        XCTAssertEqual(m.outcome, QuickLogModel.Outcome(receiverID: "r1", planning: false, latestDay: Q.today, savedAny: true))
     }
 
     func testAnEarlierTimeIsSentForEveryItem() async {
@@ -529,7 +532,7 @@ final class QuickLogModelTests: XCTestCase {
                                                         note: "", unrecordedAlert: true)),
             .add(trackerID: "bp", NewEntryWrite(at: tuesday, values: [:], note: "", unrecordedAlert: true)),
         ])
-        XCTAssertEqual(m.outcome, QuickLogModel.Outcome(planning: true, latestDay: LocalDay(year: 2026, month: 11, day: 10),
+        XCTAssertEqual(m.outcome, QuickLogModel.Outcome(receiverID: "r1", planning: true, latestDay: LocalDay(year: 2026, month: 11, day: 10),
                                                         savedAny: true))
     }
 
@@ -577,7 +580,7 @@ final class QuickLogModelTests: XCTestCase {
         bpReading(m)
         await m.advance()
         XCTAssertEqual(m.results.map(\.status), [.failed(QuickLogText.trackerPaused)])
-        XCTAssertEqual(m.outcome, QuickLogModel.Outcome(planning: false, latestDay: nil, savedAny: false))
+        XCTAssertEqual(m.outcome, QuickLogModel.Outcome(receiverID: "r1", planning: false, latestDay: nil, savedAny: false))
     }
 
     func testATransportFailureIsAFailureLine() async {
@@ -638,7 +641,7 @@ final class QuickLogModelTests: XCTestCase {
     }
 
     func testRetryingAPlanWhoseTimeHasComeSaysSoAndSendsNothing() async {
-        writes.failures = ["bp": URLError(.timedOut)]
+        writes.failures = ["bp": AppError.forStatus(503, serverMessage: nil)]
         let m = await loaded()
         m.toggle(.tracker(id: "bp"))
         m.continueFromPick()
@@ -654,6 +657,162 @@ final class QuickLogModelTests: XCTestCase {
         XCTAssertEqual(m.results[0].status, .failed(QuickLogText.futureProblem))
         XCTAssertFalse(m.results[0].retryable)
         XCTAssertEqual(writes.writes.count, 1)
+    }
+
+    // MARK: Review fixes
+
+    func testAnEarlierTimeThatIsNoLongerTodaySendsTheRunBackToWhen() async {
+        let m = await loaded()
+        m.toggle(.tracker(id: "bp"))
+        m.continueFromPick()
+        m.when = .earlierToday
+        m.earlierTime = Q.at("2026-11-07T20:15:00Z") // 2:15 PM Saturday
+        await m.continueFromWhen()
+        bpReading(m)
+        clock.now = Q.at("2026-11-08T06:30:00Z") // 12:30 AM Sunday in Chicago
+        await m.advance()
+        XCTAssertEqual(m.part, .when)
+        XCTAssertEqual(m.whenProblems, [QuickLogText.earlierTodayProblem])
+        XCTAssertEqual(writes.writes, [])
+    }
+
+    func testATrackerPausedSinceTrackerDetailSaysSoAndOffersOnlyCancel() async {
+        let m = await loaded(.tracker(id: "walk"))
+        XCTAssertEqual(m.part, .nothingToLog(QuickLogText.scopedTrackerPaused))
+        XCTAssertFalse(m.canGoBack)
+        XCTAssertFalse(m.hasPickingPart)
+        XCTAssertNil(m.outcome)
+
+        let gone = await loaded(.tracker(id: "deleted"))
+        XCTAssertEqual(gone.part, .nothingToLog(QuickLogText.scopedTrackerGone))
+    }
+
+    func testANewEntryWhoseAnswerWasLostIsNotRetriedButHomeRefreshes() async {
+        writes.failures = ["bp": URLError(.timedOut)]
+        let m = await loaded()
+        await intoSteps(m, [.tracker(id: "bp")])
+        bpReading(m)
+        await m.advance()
+        XCTAssertEqual(m.results.map(\.status), [.failed(QuickLogText.outcomeUnknown)])
+        XCTAssertFalse(m.results[0].retryable)
+        XCTAssertTrue(m.results[0].mightHaveSaved)
+        XCTAssertEqual(m.outcome?.savedAny, true, "it may have saved, so the screens beneath read again")
+        await m.retry(.tracker(id: "bp"))
+        XCTAssertEqual(writes.writes.count, 1)
+    }
+
+    func testAJournalNoteWhoseAnswerWasLostIsNotRetried() async {
+        writes.failures = ["note": URLError(.networkConnectionLost)]
+        let m = await loaded(.journalNote)
+        m.continueFromPick()
+        await m.continueFromWhen()
+        m.updateDraft(.journalNote) { $0.note = "Fine." }
+        await m.advance()
+        XCTAssertEqual(m.results.map(\.status), [.failed(QuickLogText.outcomeUnknown)])
+        XCTAssertFalse(m.results[0].retryable)
+    }
+
+    func testANewEntryRefusedByTheServerOrNeverSentCanBeRetried() async {
+        writes.failures = ["bp": AppError.forStatus(502, serverMessage: nil),
+                           "medication": URLError(.notConnectedToInternet)]
+        let m = await loaded()
+        await intoSteps(m, [.tracker(id: "bp"), .tracker(id: "medication")])
+        bpReading(m)
+        await m.advance()
+        m.updateDraft(.tracker(id: "medication")) { $0.values.setBool(true, for: "given") }
+        await m.advance()
+        XCTAssertEqual(m.results.map(\.retryable), [true, true])
+        XCTAssertEqual(m.results.map(\.mightHaveSaved), [false, false])
+        XCTAssertEqual(m.outcome?.savedAny, false)
+    }
+
+    func testALogWhoseAnswerWasLostIsRetriedAndA409ThenMayBeItsOwnFirstAttempt() async {
+        writes.failures = ["dose-last-night": URLError(.timedOut)]
+        let m = await loaded()
+        await intoSteps(m, [.occurrence(entryID: "dose-last-night")])
+        m.updateDraft(.occurrence(entryID: "dose-last-night")) { $0.values.setBool(true, for: "given") }
+        await m.advance()
+        XCTAssertTrue(m.results[0].retryable, "a second log of the same entry is refused, not doubled")
+        XCTAssertEqual(m.outcome?.savedAny, false)
+
+        writes.failures = ["dose-last-night": EntryNotInState(message: "the entry is not in a state this allows")]
+        await m.retry(.occurrence(entryID: "dose-last-night"))
+        XCTAssertEqual(m.results[0].status, .failed(QuickLogText.notInState))
+        XCTAssertFalse(m.results[0].retryable)
+        XCTAssertTrue(m.results[0].mightHaveSaved)
+        XCTAssertEqual(m.outcome?.savedAny, true)
+    }
+
+    func testAFirst409IsNotTakenForASave() async {
+        writes.failures = ["dose-last-night": EntryNotInState(message: nil)]
+        let m = await loaded()
+        await intoSteps(m, [.occurrence(entryID: "dose-last-night")])
+        m.updateDraft(.occurrence(entryID: "dose-last-night")) { $0.values.setBool(true, for: "given") }
+        await m.advance()
+        XCTAssertFalse(m.results[0].mightHaveSaved)
+        XCTAssertEqual(m.outcome?.savedAny, false)
+    }
+
+    func testWhatMayHaveLanded() {
+        XCTAssertTrue(QuickLogModel.mayHaveLanded(URLError(.timedOut)))
+        XCTAssertTrue(QuickLogModel.mayHaveLanded(URLError(.networkConnectionLost)))
+        XCTAssertFalse(QuickLogModel.mayHaveLanded(URLError(.notConnectedToInternet)))
+        XCTAssertFalse(QuickLogModel.mayHaveLanded(URLError(.cannotConnectToHost)))
+        XCTAssertFalse(QuickLogModel.mayHaveLanded(AppError.forStatus(500, serverMessage: nil)))
+        XCTAssertFalse(QuickLogModel.mayHaveLanded(EntryNotInState(message: nil)))
+    }
+
+    func testTheOutcomeNamesWhoseRunItWas() async {
+        let m = await loaded(.journalNote)
+        m.continueFromPick()
+        await m.continueFromWhen()
+        m.updateDraft(.journalNote) { $0.note = "Fine." }
+        await m.advance()
+        XCTAssertEqual(m.outcome?.receiverID, "r1")
+    }
+
+    func testTheRunIsSavingUntilARetryInFlightIsAnswered() async {
+        writes.failures = ["note": AppError.forStatus(503, serverMessage: nil)]
+        let m = await loaded(.journalNote)
+        m.continueFromPick()
+        await m.continueFromWhen()
+        m.updateDraft(.journalNote) { $0.note = "Fine." }
+        await m.advance()
+        XCTAssertFalse(m.isSaving)
+
+        writes.failures = [:]
+        let started = AsyncStream<Void>.makeStream()
+        let release = AsyncStream<Void>.makeStream()
+        writes.holdNote = {
+            started.continuation.yield()
+            for await _ in release.stream { break }
+        }
+        let retry = Task { await m.retry(.journalNote) }
+        for await _ in started.stream { break }
+        XCTAssertTrue(m.isSaving, "Done waits for it")
+        XCTAssertEqual(m.outcome?.savedAny, false)
+        release.continuation.yield()
+        await retry.value
+        XCTAssertFalse(m.isSaving)
+        XCTAssertEqual(m.outcome?.savedAny, true)
+    }
+
+    func testNowIsTheInjectedClocksForALogAndANote() async {
+        clock.now = Q.now.addingTimeInterval(-300) // the server's clock, five minutes behind the phone
+        let m = await loaded()
+        await intoSteps(m, [.occurrence(entryID: "dose-last-night"), .journalNote])
+        m.updateDraft(.occurrence(entryID: "dose-last-night")) { $0.values.setBool(true, for: "given") }
+        await m.advance()
+        m.updateDraft(.journalNote) { $0.note = "Fine." }
+        await m.advance()
+        let at = Q.now.addingTimeInterval(-300)
+        XCTAssertEqual(writes.writes.compactMap { call -> Date? in
+            switch call {
+            case .log(_, let care): care.occurredAt
+            case .note(_, let note): note.at
+            default: nil
+            }
+        }, [at, at])
     }
 
     // MARK: What the sheet says
@@ -732,7 +891,7 @@ final class EntryValuesDraftTests: XCTestCase {
 
     func testNumbersAreParsedAndRefusedWhenNotNumbers() {
         let n = TrackerFieldInfo(id: "n", label: "N", kind: .number, unit: nil, required: true, options: [])
-        var d = EntryValuesDraft(["n": .number(98.6)])
+        var d = EntryValuesDraft(["n": .number(98.6)], locale: Locale(identifier: "en_US"))
         XCTAssertEqual(d.numberText(for: "n"), "98.6")
         d.setNumberText("inf", for: "n")
         XCTAssertEqual(d.problems(for: [n], requireAll: false), ["N: enter a number."])
@@ -757,6 +916,36 @@ final class EntryValuesDraftTests: XCTestCase {
         XCTAssertEqual(d.bool(for: "b"), true)
         d.setBool(true, for: "b")
         XCTAssertNil(d.bool(for: "b"))
+    }
+
+    func testACommaDecimalIsAcceptedWhereTheLocaleTypesOne() {
+        let n = TrackerFieldInfo(id: "n", label: "N", kind: .number, unit: nil, options: [])
+        var d = EntryValuesDraft(["n": .number(98.6)], locale: Locale(identifier: "de_DE"))
+        XCTAssertEqual(d.numberText(for: "n"), "98,6", "shown back as the locale writes it")
+        XCTAssertEqual(d.sent(for: [n]), ["n": .number(98.6)])
+        d.setNumberText("37,5", for: "n")
+        XCTAssertEqual(d.sent(for: [n]), ["n": .number(37.5)])
+        XCTAssertEqual(d.problems(for: [n], requireAll: true), [])
+        d.setNumberText("37.5", for: "n")
+        XCTAssertEqual(d.sent(for: [n]), ["n": .number(37.5)], "a point is still a decimal point")
+        d.setNumberText("1.000,5", for: "n")
+        XCTAssertEqual(d.problems(for: [n], requireAll: false), ["N: enter a number."])
+    }
+
+    func testACommaIsNotADecimalWhereTheLocaleDoesNotTypeOne() {
+        let n = TrackerFieldInfo(id: "n", label: "N", kind: .number, unit: nil, options: [])
+        var d = EntryValuesDraft([:], locale: Locale(identifier: "en_US"))
+        d.setNumberText("37,5", for: "n")
+        XCTAssertEqual(d.problems(for: [n], requireAll: false), ["N: enter a number."])
+        XCTAssertEqual(EntryValuesDraft.number("37,5", separator: ","), 37.5)
+        XCTAssertNil(EntryValuesDraft.number("37,5"))
+    }
+
+    func testISOTimesParseWithAndWithoutFractionalSeconds() {
+        let at = ISO8601DateFormatter().date(from: "2026-11-08T00:00:00Z")!
+        XCTAssertEqual(EntryValuesDraft.parseISO("2026-11-07T18:00:00-06:00"), at)
+        XCTAssertEqual(EntryValuesDraft.parseISO("2026-11-08T00:00:00.000Z"), at)
+        XCTAssertNil(EntryValuesDraft.parseISO("yesterday"))
     }
 
     func testADateIsSentInTheReceiversOffset() {

@@ -8,7 +8,7 @@ final class QuickLogPresenterTests: XCTestCase {
     private let harold = TeamReceiver(id: "harold", name: "Harold",
                                       timeZone: TimeZone(identifier: "America/Chicago")!)
 
-    private let logged = QuickLogModel.Outcome(planning: false, latestDay: LocalDay(year: 2026, month: 11, day: 7),
+    private let logged = QuickLogModel.Outcome(receiverID: "eleanor", planning: false, latestDay: LocalDay(year: 2026, month: 11, day: 7),
                                                savedAny: true)
 
     func testEachWayInOpensQuickLogForItsReceiver() {
@@ -46,7 +46,7 @@ final class QuickLogPresenterTests: XCTestCase {
         var p = QuickLogPresenter()
         p.quickLogEnded(logged)
         XCTAssertEqual(p.runs, QuickLogRuns(count: 1, last: logged))
-        let planned = QuickLogModel.Outcome(planning: true, latestDay: LocalDay(year: 2026, month: 11, day: 9),
+        let planned = QuickLogModel.Outcome(receiverID: "eleanor", planning: true, latestDay: LocalDay(year: 2026, month: 11, day: 9),
                                             savedAny: true)
         p.quickLogEnded(planned)
         XCTAssertEqual(p.runs, QuickLogRuns(count: 2, last: planned))
@@ -55,7 +55,7 @@ final class QuickLogPresenterTests: XCTestCase {
     func testCancelOrARunThatSavedNothingChangesNothingBeneath() {
         var p = QuickLogPresenter()
         p.quickLogEnded(nil)
-        p.quickLogEnded(QuickLogModel.Outcome(planning: false, latestDay: nil, savedAny: false))
+        p.quickLogEnded(QuickLogModel.Outcome(receiverID: "eleanor", planning: false, latestDay: nil, savedAny: false))
         XCTAssertEqual(p.runs, QuickLogRuns())
     }
 
