@@ -32,11 +32,7 @@ struct V1TabShell: View {
         _receiver = State(initialValue: ActiveReceiverModel(account: account, service: trackers, store: store))
     }
 
-    /// The tab bar, inset at the bottom of EACH tab's stack rather than once around the
-    /// TabView: a TabView does not pass an outer inset down to its tabs, so every pushed
-    /// screen would lay out under the bar and anything pinned to its bottom — Delete,
-    /// Log it, Log an entry — would sit beneath it. Inset per stack, every screen pushed
-    /// on it ends above the bar.
+    /// The tab bar. See `StrideTabBar.reservedHeight` for why it is an overlay.
     private var tabBar: some View {
         StrideTabBar(selection: $selectedTab) { quickLog.open(.pick, receiver: receiver.active?.receiver) }
     }
@@ -46,6 +42,7 @@ struct V1TabShell: View {
             NavigationStack(path: $path) {
                 HomeV1View(receiver: receiver, home: home, trackers: trackers)
                     .v1Destinations(service: trackers, home: home)
+                    .strideTabBarClearance()
                     .toolbar(.hidden, for: .tabBar)
             }
             .environment(\.v1Push, V1Push { [path = $path] in path.wrappedValue.append($0) })
@@ -61,32 +58,34 @@ struct V1TabShell: View {
             })
             .environment(\.v1HomeWrites, homeWrites)
             .environment(\.v1PopToHome, V1PopToHome { [path = $path] in path.wrappedValue = [] })
-            .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
             .tag(StrideTab.home)
 
             NavigationStack {
                 V1Placeholder(title: "Insights", line: "Insights is deferred.")
+                    .strideTabBarClearance()
                     .toolbar(.hidden, for: .tabBar)
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
             .tag(StrideTab.insights)
 
             NavigationStack {
                 V1Placeholder(title: "Team", line: "Team isn't built on this path yet.")
+                    .strideTabBarClearance()
                     .toolbar(.hidden, for: .tabBar)
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
             .tag(StrideTab.team)
 
             NavigationStack {
                 V1Placeholder(title: "Settings", line: "Settings isn't built on this path yet.") {
                     SignOutButton(onSignOut: onSignOut)
                 }
+                .strideTabBarClearance()
                 .toolbar(.hidden, for: .tabBar)
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
             .tag(StrideTab.settings)
         }
+        // Drawn over the tabs, not inset: pushed screens never see a container's inset,
+        // so every screen clears the bar itself (`strideTabBarClearance`).
+        .overlay(alignment: .bottom) { tabBar.ignoresSafeArea(.keyboard) }
         .sheet(item: $quickLog.sheet, onDismiss: {
             // Add tracker in Quick log's place made one: push it on Home's stack now the sheet is down.
             guard let created = quickLog.takeCreated() else { return }
