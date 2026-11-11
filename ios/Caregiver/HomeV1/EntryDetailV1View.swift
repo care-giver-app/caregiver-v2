@@ -273,6 +273,7 @@ extension View {
 
 #if DEBUG
 private enum EntryDetailPreview {
+    @MainActor
     static func view(_ id: String, home: HomeService = HomeFixtures.service()) -> some View {
         NavigationStack {
             EntryDetailV1View(entryID: id, receiver: HomeFixtures.eleanor, home: home)
