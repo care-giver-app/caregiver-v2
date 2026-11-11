@@ -32,6 +32,15 @@ struct V1TabShell: View {
         _receiver = State(initialValue: ActiveReceiverModel(account: account, service: trackers, store: store))
     }
 
+    /// The tab bar, inset at the bottom of EACH tab's stack rather than once around the
+    /// TabView: a TabView does not pass an outer inset down to its tabs, so every pushed
+    /// screen would lay out under the bar and anything pinned to its bottom — Delete,
+    /// Log it, Log an entry — would sit beneath it. Inset per stack, every screen pushed
+    /// on it ends above the bar.
+    private var tabBar: some View {
+        StrideTabBar(selection: $selectedTab) { quickLog.open(.pick, receiver: receiver.active?.receiver) }
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack(path: $path) {
@@ -52,18 +61,21 @@ struct V1TabShell: View {
             })
             .environment(\.v1HomeWrites, homeWrites)
             .environment(\.v1PopToHome, V1PopToHome { [path = $path] in path.wrappedValue = [] })
+            .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
             .tag(StrideTab.home)
 
             NavigationStack {
                 V1Placeholder(title: "Insights", line: "Insights is deferred.")
                     .toolbar(.hidden, for: .tabBar)
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
             .tag(StrideTab.insights)
 
             NavigationStack {
                 V1Placeholder(title: "Team", line: "Team isn't built on this path yet.")
                     .toolbar(.hidden, for: .tabBar)
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
             .tag(StrideTab.team)
 
             NavigationStack {
@@ -72,10 +84,8 @@ struct V1TabShell: View {
                 }
                 .toolbar(.hidden, for: .tabBar)
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
             .tag(StrideTab.settings)
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            StrideTabBar(selection: $selectedTab) { quickLog.open(.pick, receiver: receiver.active?.receiver) }
         }
         .sheet(item: $quickLog.sheet, onDismiss: {
             // Add tracker in Quick log's place made one: push it on Home's stack now the sheet is down.
