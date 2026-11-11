@@ -115,10 +115,27 @@ func (s *EntryStore) Reopen(ctx context.Context, e domain.Entry, by string, now 
 // on it still being in that state and having no plan, so a planned entry is
 // never removed this way.
 func (s *EntryStore) DeleteAdHoc(ctx context.Context, entryID string, from domain.EntryState) error {
+	return s.deleteSettled(ctx, entryID, from, "attribute_not_exists(occurrence_at)")
+}
+
+// DeletePlanned removes a planned entry read in state from (logged or
+// skipped) whose plan no longer stands — its tracker paused or its schedule
+// removed since — so undoing its log or skip leaves nothing waiting.
+// Conditional on it still being in that state and planned.
+func (s *EntryStore) DeletePlanned(ctx context.Context, entryID string, from domain.EntryState) error {
+	if from != domain.EntryLogged && from != domain.EntrySkipped {
+		return ErrEntryNotInState
+	}
+	return s.deleteSettled(ctx, entryID, from, "attribute_exists(occurrence_at)")
+}
+
+// deleteSettled removes an entry on condition it is still in state from and
+// meets plan, a condition on occurrence_at.
+func (s *EntryStore) deleteSettled(ctx context.Context, entryID string, from domain.EntryState, plan string) error {
 	_, err := s.client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
 		TableName:                           aws.String(s.table),
 		Key:                                 entryKey(entryID),
-		ConditionExpression:                 aws.String("#s = :from AND attribute_not_exists(occurrence_at)"),
+		ConditionExpression:                 aws.String("#s = :from AND " + plan),
 		ExpressionAttributeNames:            map[string]string{"#s": "state"},
 		ExpressionAttributeValues:           map[string]types.AttributeValue{":from": str(string(from))},
 		ReturnValuesOnConditionCheckFailure: types.ReturnValuesOnConditionCheckFailureAllOld,

@@ -54,6 +54,8 @@ func TestValidateEntryValues(t *testing.T) {
 		{"two answers to one", full(map[string]any{"mood": []any{"ok", "ok"}}), nil, RequireAll, "at most one option"},
 		{"option twice", full(map[string]any{"syms": []any{"a", "a"}}), nil, RequireAll, `option "a" twice`},
 		{"number as text", map[string]any{"sys": "120", "txt": "x"}, nil, RequireAll, "must be a number"},
+		{"text at the limit", full(map[string]any{"txt": strings.Repeat("é", MaxTextValueLength)}), nil, RequireAll, ""},
+		{"text too long", full(map[string]any{"txt": strings.Repeat("a", MaxTextValueLength+1)}), nil, RequireAll, "at most 2000 characters"},
 		{"null", full(map[string]any{"ok": nil}), nil, RequireAll, "must be true or false"},
 		{"bad datetime", full(map[string]any{"when": "tomorrow"}), nil, RequireAll, "date and time"},
 		{"choice not a list", full(map[string]any{"mood": "ok"}), nil, RequireAll, "list of option ids"},

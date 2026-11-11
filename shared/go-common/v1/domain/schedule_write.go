@@ -142,8 +142,12 @@ func valueProblem(f Field, v any, allowed func(ChoiceOption) bool) string {
 			return "must be a number"
 		}
 	case FieldText:
-		if _, ok := v.(string); !ok {
+		s, ok := v.(string)
+		if !ok {
 			return "must be text"
+		}
+		if utf8.RuneCountInString(s) > MaxTextValueLength {
+			return fmt.Sprintf("must be at most %d characters", MaxTextValueLength)
 		}
 	case FieldBoolean:
 		if _, ok := v.(bool); !ok {

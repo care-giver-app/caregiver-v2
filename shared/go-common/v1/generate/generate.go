@@ -178,8 +178,8 @@ func Entries(sc domain.Schedule, t domain.Tracker, occs []Occurrence, now time.T
 		out = append(out, domain.Entry{
 			EntryID: EntryID(sc.ScheduleID, o.Local), TrackerID: sc.TrackerID, ReceiverID: sc.ReceiverID, TeamID: sc.TeamID,
 			ScheduleID: sc.ScheduleID, OccurrenceLocal: o.Local, OccurrenceAt: &at,
-			PlannedValues: copyValues(plan), UnrecordedAlert: sc.UnrecordedAlert, GraceMinutes: sc.GraceMinutes,
-			State: domain.EntryScheduled, Values: copyValues(plan),
+			PlannedValues: domain.CopyValues(plan), UnrecordedAlert: sc.UnrecordedAlert, GraceMinutes: sc.GraceMinutes,
+			State: domain.EntryScheduled, Values: domain.CopyValues(plan),
 			CreatedBy: sc.CreatedBy, CreatedAt: now, TimelineAt: at, OpenAt: &at,
 		})
 	}
@@ -244,14 +244,6 @@ func activeOptions(f domain.Field, v any) (any, bool) {
 		}
 	}
 	return kept, len(kept) > 0
-}
-
-func copyValues(m map[string]any) map[string]any {
-	out := make(map[string]any, len(m))
-	for k, v := range m {
-		out[k] = v
-	}
-	return out
 }
 
 // Result is what one Generate call did.

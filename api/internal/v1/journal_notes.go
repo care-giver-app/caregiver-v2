@@ -44,8 +44,8 @@ func (h *Home) AddJournalNote(w http.ResponseWriter, r *http.Request) {
 	if c == nil {
 		return
 	}
-	rc, _, ok := h.receiver(w, r)
-	if !ok {
+	rc, ok := loadReceiver(w, r, h.stores, r.PathValue("receiverId"))
+	if !ok || !requireTeamRole(w, r, h.stores, c, rc.TeamID, false) {
 		return
 	}
 	now := h.now().UTC()
@@ -64,10 +64,10 @@ func (h *Home) AddJournalNote(w http.ResponseWriter, r *http.Request) {
 	h.writeNote(w, r, http.StatusCreated, n)
 }
 
-// noteForWrite loads the note a /v1/journal-notes/{noteId} write is about and
-// checks the caller is on its receiver's team: any member may edit or delete
-// any note. A note about an archived receiver is not found.
-func (h *Home) noteForWrite(w http.ResponseWriter, r *http.Request) (*caller, domain.JournalNote, bool) {
+// noteForCaller loads the note a /v1/journal-notes/{noteId} request is about
+// and checks the caller is on its receiver's team: any member may see, edit
+// or delete any note. A note about an archived receiver is not found.
+func (h *Home) noteForCaller(w http.ResponseWriter, r *http.Request) (*caller, domain.JournalNote, bool) {
 	c := requireCaller(w, r)
 	if c == nil {
 		return nil, domain.JournalNote{}, false
@@ -90,7 +90,7 @@ func (h *Home) noteForWrite(w http.ResponseWriter, r *http.Request) (*caller, do
 // ChangeJournalNote serves PUT /v1/journal-notes/{noteId}: Edit journal
 // note's Save. The author stays; the caller is recorded as who changed it.
 func (h *Home) ChangeJournalNote(w http.ResponseWriter, r *http.Request) {
-	c, n, ok := h.noteForWrite(w, r)
+	c, n, ok := h.noteForCaller(w, r)
 	if !ok {
 		return
 	}
@@ -112,7 +112,7 @@ func (h *Home) ChangeJournalNote(w http.ResponseWriter, r *http.Request) {
 
 // DeleteJournalNote serves DELETE /v1/journal-notes/{noteId}. It is gone.
 func (h *Home) DeleteJournalNote(w http.ResponseWriter, r *http.Request) {
-	_, n, ok := h.noteForWrite(w, r)
+	_, n, ok := h.noteForCaller(w, r)
 	if !ok {
 		return
 	}

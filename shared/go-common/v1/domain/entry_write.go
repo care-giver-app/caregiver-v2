@@ -26,6 +26,8 @@ func invalidNote(format string, args ...any) error {
 const (
 	// MaxEntryNoteLength bounds an entry's note, in characters.
 	MaxEntryNoteLength = 2000
+	// MaxTextValueLength bounds a text field's value, in characters.
+	MaxTextValueLength = 2000
 	// MaxJournalNoteLength bounds a journal note's body, in characters.
 	MaxJournalNoteLength = 5000
 	// ClockSkew is how far ahead of the server's clock a time that may not be
@@ -207,13 +209,13 @@ func NewEntry(in NewEntryInput, t Tracker, loc *time.Location, entryID, by strin
 	}
 	e := Entry{
 		EntryID: entryID, TrackerID: t.TrackerID, ReceiverID: t.ReceiverID, TeamID: t.TeamID,
-		Values: copyMap(in.Values), Note: in.Note, CreatedBy: by, CreatedAt: now,
+		Values: CopyValues(in.Values), Note: in.Note, CreatedBy: by, CreatedAt: now,
 	}
 	if planning {
 		e.State = EntryScheduled
 		e.OccurrenceLocal = at.In(loc).Format("2006-01-02T15:04")
 		e.OccurrenceAt, e.OpenAt = &at, &at
-		e.PlannedValues = copyMap(in.Values)
+		e.PlannedValues = CopyValues(in.Values)
 		e.UnrecordedAlert = in.UnrecordedAlert
 		e.TimelineAt = at
 		return e, nil
@@ -227,7 +229,9 @@ func NewEntry(in NewEntryInput, t Tracker, loc *time.Location, entryID, by strin
 	return e, nil
 }
 
-func copyMap(m map[string]any) map[string]any {
+// CopyValues is a shallow copy of a values map, so an entry's values and
+// planned values never share one.
+func CopyValues(m map[string]any) map[string]any {
 	out := make(map[string]any, len(m))
 	for k, v := range m {
 		out[k] = v

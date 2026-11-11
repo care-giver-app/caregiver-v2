@@ -208,4 +208,29 @@ func TestEntry_ReopenAndDeleteAdHoc(t *testing.T) {
 	if err := l.Stores.Entries.DeleteAdHoc(ctx, "ad", domain.EntryLogged); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("delete twice: %v", err)
 	}
+
+	// A planned entry whose plan no longer stands can be removed, but only
+	// once settled, and never an ad hoc one.
+	seed(t, l, l.Names.Entries, loggedEntry("ad2", "tr1", now.Add(-2*time.Hour), nil))
+	if err := l.Stores.Entries.DeletePlanned(ctx, "ad2", domain.EntryLogged); !errors.Is(err, store.ErrEntryNotInState) {
+		t.Fatalf("delete ad hoc as planned: %v", err)
+	}
+	if err := l.Stores.Entries.DeletePlanned(ctx, "p", domain.EntryScheduled); !errors.Is(err, store.ErrEntryNotInState) {
+		t.Fatalf("delete waiting planned: %v", err)
+	}
+	if _, err := l.Stores.Entries.Skip(ctx, "p", "", "u2", now); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Stores.Entries.DeletePlanned(ctx, "p", domain.EntryLogged); !errors.Is(err, store.ErrEntryNotInState) {
+		t.Fatalf("delete planned from a stale state: %v", err)
+	}
+	if err := l.Stores.Entries.DeletePlanned(ctx, "p", domain.EntrySkipped); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := l.Stores.Entries.Get(ctx, "p"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("planned after delete: %v", err)
+	}
+	if err := l.Stores.Entries.DeletePlanned(ctx, "p", domain.EntrySkipped); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("delete planned twice: %v", err)
+	}
 }

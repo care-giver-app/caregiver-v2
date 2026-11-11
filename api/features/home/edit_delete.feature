@@ -105,3 +105,23 @@ Feature: Editing and deleting an entry
     Then the occurrences waiting are, unrecorded first:
       | tracker    | state      | when        | schedule |
       | Medication | unrecorded | 3 hours ago | Morning  |
+
+  # PRD: Definitions → Tracker (pausing stops the future without touching the past: its schedules
+  #      stop generating, and no new entries can be logged against it)
+  # PRD: Definitions → Entry (deleting an entry that fulfilled a scheduled one undoes the log and no
+  #      more — and a plan paused since no longer holds care still to come)
+  Scenario: Deleting a log of care still to come on a paused tracker leaves nothing waiting
+    Given "Grandma" has a tracker "Medication"
+    And "Medication" has a number field "Dose"
+    And "Medication" has a schedule labelled "Evening" every day at 20:00
+    And "Medication" has these entries from its "Evening" schedule:
+      | state     | when             | values |
+      | scheduled | 5 hours from now | Dose 5 |
+    And "Sam" logs that entry as of 1 hour ago with "Dose" at 5
+    And "Alex" pauses "Medication"
+    When "Sam" deletes that entry
+    Then the answer is 204
+    When "Alex" opens that entry
+    Then the answer is 404
+    When "Alex" opens Coming up for "Grandma"
+    Then nothing is coming up

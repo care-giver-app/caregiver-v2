@@ -273,8 +273,16 @@ func TestChangeEntry(t *testing.T) {
 	old := logged("old", "tr1", "admin", occ, map[string]any{"dose": 5.0, "old-field": "kept", "pills": []any{"old"}})
 	w := weightTracker("tr-w", "Weight")
 	w.Fields = append(w.Fields, domain.Field{FieldID: "bmi", Label: "BMI", Type: domain.FieldNumber, Required: true, Status: domain.FieldActive})
+	// Skipped entries holding a value for a field paused since, one on a
+	// tracker since paused, and one missing a required answer.
+	skHeld := settledPlanned("sk-held", "tr1", "s1", occ, domain.EntrySkipped)
+	skHeld.Values["old-field"] = "kept"
+	skPaused := settledPlanned("sk-paused", "tr-paused", "s1", occ, domain.EntrySkipped)
+	skPaused.Values = map[string]any{"w": 150.0}
+	skW := settledPlanned("sk-w", "tr-w", "s1", occ, domain.EntrySkipped)
+	skW.Values = map[string]any{"w": 150.0}
 	f.seed(t, []domain.Tracker{medTracker("tr1"), w, paused(weightTracker("tr-paused", "Paused"))}, []domain.Entry{
-		sk, old, planned("open", "tr1", occ),
+		sk, old, planned("open", "tr1", occ), skHeld, skPaused, skW,
 		logged("w1", "tr-w", "admin", occ, map[string]any{"w": 150.0}),
 		logged("pz", "tr-paused", "admin", occ, map[string]any{"w": 150.0}),
 	})
@@ -306,9 +314,20 @@ func TestChangeEntry(t *testing.T) {
 	if rec := f.do("cg", http.MethodPut, "/v1/entries/w1", careBody(occ, `{"w":151}`, "")); rec.Code != http.StatusOK {
 		t.Fatalf("edit without the new required field: code=%d body=%s", rec.Code, rec.Body.String())
 	}
-	// An entry on a paused tracker can still be corrected.
+	// An entry on a paused tracker can still be corrected, but a skipped one
+	// there cannot be logged by editing it, as it could not be logged at all.
 	if rec := f.do("cg", http.MethodPut, "/v1/entries/pz", careBody(occ, `{"w":152}`, "")); rec.Code != http.StatusOK {
 		t.Fatalf("edit on paused tracker: code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	rec = f.do("cg", http.MethodPut, "/v1/entries/sk-paused", careBody(occ, `{"w":152}`, ""))
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), msgTrackerPaused) {
+		t.Fatalf("skipped → logged on paused tracker: code=%d body=%s", rec.Code, rec.Body.String())
+	}
+	// A skipped entry may keep a value it already holds for a field paused
+	// since, as a logged one may.
+	rec = f.do("cg", http.MethodPut, "/v1/entries/sk-held", careBody(occ, `{"dose":5,"old-field":"kept"}`, ""))
+	if rec.Code != http.StatusOK || decode[entryDetail](t, rec).Entry.Values["old-field"] != "kept" {
+		t.Fatalf("skipped keeping a paused field: code=%d body=%s", rec.Code, rec.Body.String())
 	}
 	for name, tc := range map[string]struct {
 		entry, body string
@@ -319,6 +338,7 @@ func TestChangeEntry(t *testing.T) {
 		"an unknown field":            {"w1", careBody(occ, `{"w":1,"zzz":1}`, ""), http.StatusBadRequest},
 		"future":                      {"w1", careBody(trackerNow.Add(time.Hour), `{"w":1}`, ""), http.StatusBadRequest},
 		"a paused field it never had": {"sk", careBody(occ, `{"old-field":"x"}`, ""), http.StatusBadRequest},
+		"logging a skip unanswered":   {"sk-w", careBody(occ, `{"w":150}`, ""), http.StatusBadRequest},
 	} {
 		if rec := f.do("cg", http.MethodPut, "/v1/entries/"+tc.entry, tc.body); rec.Code != tc.code {
 			t.Errorf("%s: code=%d body=%s", name, rec.Code, rec.Body.String())
@@ -334,6 +354,7 @@ func TestChangeEntry(t *testing.T) {
 func TestDeleteEntry(t *testing.T) {
 	f := newWriteFixture(t)
 	occ := trackerNow.Add(-2 * time.Hour)
+	f.put(t, f.l.Names.Schedules, liveSchedule("s1", "tr1"))
 	f.seed(t, []domain.Tracker{medTracker("tr1")}, []domain.Entry{
 		planned("p", "tr1", occ), planned("ahead", "tr1", trackerNow.Add(time.Hour)),
 		logged("ad", "tr1", "admin", occ, nil), planned("open", "tr1", occ.Add(time.Minute)),
@@ -381,6 +402,71 @@ func TestDeleteEntry(t *testing.T) {
 	// Waiting care cannot be deleted.
 	if rec := f.do("cg", http.MethodDelete, "/v1/entries/open", ""); rec.Code != http.StatusConflict {
 		t.Fatalf("delete waiting: %d", rec.Code)
+	}
+}
+
+// settledPlanned is planned, already logged or skipped by admin.
+func settledPlanned(id, tracker, schedule string, at time.Time, state domain.EntryState) domain.Entry {
+	e := planned(id, tracker, at)
+	e.ScheduleID, e.State, e.OpenAt = schedule, state, nil
+	settled := at.Add(-time.Hour)
+	if state == domain.EntryLogged {
+		e.OccurredAt, e.LoggedBy, e.LoggedAt = &settled, "admin", &settled
+		e.TimelineAt = settled
+	} else {
+		e.SkippedBy, e.SkippedAt = "admin", &settled
+	}
+	return e
+}
+
+func liveSchedule(id, tracker string) domain.Schedule {
+	return domain.Schedule{ScheduleID: id, TrackerID: tracker, ReceiverID: "r1", TeamID: "t1",
+		Rule: domain.Rule{Freq: "weekly", Interval: 1, ByDay: []string{"MO"}}, Time: "08:00", StartsOn: "2026-11-01",
+		CreatedBy: "admin", CreatedAt: trackerNow.Add(-48 * time.Hour), UpdatedAt: trackerNow.Add(-48 * time.Hour)}
+}
+
+// Deleting the log or skip of a planned entry leaves it waiting only if its
+// plan still stands: a time still to come on a tracker since paused, or of a
+// schedule since removed, leaves nothing; a time passed is unrecorded again.
+func TestDeleteEntry_planGone(t *testing.T) {
+	f := newWriteFixture(t)
+	ahead, past := trackerNow.Add(3*time.Hour), trackerNow.Add(-3*time.Hour)
+	removedAt := trackerNow.Add(-time.Hour)
+	gone := liveSchedule("s-gone", "tr1")
+	gone.RemovedAt = &removedAt
+	f.put(t, f.l.Names.Schedules, liveSchedule("s1", "tr1"))
+	f.put(t, f.l.Names.Schedules, gone)
+	f.put(t, f.l.Names.Schedules, liveSchedule("s-p", "tr-p"))
+	f.seed(t, []domain.Tracker{medTracker("tr1"), paused(medTracker("tr-p"))}, []domain.Entry{
+		settledPlanned("paused-ahead", "tr-p", "s-p", ahead, domain.EntryLogged),
+		settledPlanned("paused-past", "tr-p", "s-p", past, domain.EntryLogged),
+		settledPlanned("removed-ahead", "tr1", "s-gone", ahead, domain.EntrySkipped),
+		settledPlanned("removed-past", "tr1", "s-gone", past, domain.EntryLogged),
+		settledPlanned("live-ahead", "tr1", "s1", ahead, domain.EntryLogged),
+		settledPlanned("by-hand-ahead", "tr1", "", ahead, domain.EntrySkipped),
+	})
+	for id, want := range map[string]string{
+		"paused-ahead": "", "paused-past": "unrecorded",
+		"removed-ahead": "", "removed-past": "unrecorded",
+		"live-ahead": "scheduled", "by-hand-ahead": "scheduled",
+	} {
+		rec := f.do("cg", http.MethodDelete, "/v1/entries/"+id, "")
+		if want == "" {
+			if rec.Code != http.StatusNoContent {
+				t.Errorf("%s: code=%d body=%s, want 204", id, rec.Code, rec.Body.String())
+			}
+			if rec := f.do("cg", http.MethodGet, "/v1/entries/"+id, ""); rec.Code != http.StatusNotFound {
+				t.Errorf("%s after delete: code=%d, want 404", id, rec.Code)
+			}
+			continue
+		}
+		if rec.Code != http.StatusOK {
+			t.Errorf("%s: code=%d body=%s, want 200", id, rec.Code, rec.Body.String())
+			continue
+		}
+		if d := decode[entryDetail](t, rec); d.Entry.State != want {
+			t.Errorf("%s: state %s, want %s", id, d.Entry.State, want)
+		}
 	}
 }
 
