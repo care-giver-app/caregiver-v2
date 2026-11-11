@@ -1491,6 +1491,11 @@ rather than in the day behind it.
   appointment two weeks out, appears nowhere as an upcoming entry until it is the next one. A
   tracker's Schedules screen says when its doses repeat, but a one-off planned entry sitting behind
   another has no place to be seen in advance.
+- **A journal note moved to another day leaves the timeline where it was.** An edited entry takes
+  the timeline with it to its new day, so the correction does not appear to vanish, but nothing says
+  the same of a note whose time is changed to Monday from a Tuesday timeline. The app stays on the
+  day it was showing, where the note is now missing. Whether a note should follow its entry's rule
+  is open.
 - **A point on a chart does not open its entry.** The timeline, needs attention, Coming up, and a
   tracker's own list all lead to Entry detail, but a reading a caregiver has picked out of an insight
   is an entry they are looking at with no way to open it. Insights is deferred, so this waits with
