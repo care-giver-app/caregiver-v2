@@ -299,6 +299,14 @@ export class ApiStack extends cdk.Stack {
       { path: '/v1/receivers/{receiverId}/waiting', methods: [apigw.HttpMethod.GET] },
       { path: '/v1/entries/{entryId}', methods: [apigw.HttpMethod.GET] },
       { path: '/v1/journal-notes/{noteId}', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/trackers/{trackerId}/entries', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/entries/{entryId}/log', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/entries/{entryId}/skip', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/entries/{entryId}', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/entries/{entryId}', methods: [apigw.HttpMethod.DELETE] },
+      { path: '/v1/receivers/{receiverId}/journal-notes', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/journal-notes/{noteId}', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/journal-notes/{noteId}', methods: [apigw.HttpMethod.DELETE] },
     ];
     for (const route of authedRoutes) {
       httpApi.addRoutes({

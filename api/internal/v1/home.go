@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/care-giver-app/caregiver-v2/api/internal/httpx"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/logger"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/domain"
@@ -21,15 +23,16 @@ const (
 	maxComingUpLimit      = 100
 )
 
-// Home serves the /v1 reads Home is built from: needs attention, coming up,
+// Home serves the /v1 routes Home is built from: needs attention, coming up,
 // the daily timeline, Quick log's waiting occurrences, Entry detail and
-// Journal note.
+// Journal note, and the writes Quick log, Entry detail and the journal make.
 type Home struct {
 	stores *store.Stores
 	now    func() time.Time
+	newID  func() string
 }
 
-func NewHome(s *store.Stores) *Home { return &Home{stores: s, now: time.Now} }
+func NewHome(s *store.Stores) *Home { return &Home{stores: s, now: time.Now, newID: uuid.NewString} }
 
 // trackerBadge is the TrackerBadge schema.
 type trackerBadge struct {

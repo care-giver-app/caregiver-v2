@@ -99,6 +99,14 @@ func TestNewMux_v1RoutesAreRegisteredBehindAuth(t *testing.T) {
 		{http.MethodGet, "/v1/receivers/r1/waiting"},
 		{http.MethodGet, "/v1/entries/e1"},
 		{http.MethodGet, "/v1/journal-notes/n1"},
+		{http.MethodPost, "/v1/trackers/tr1/entries"},
+		{http.MethodPost, "/v1/entries/e1/log"},
+		{http.MethodPost, "/v1/entries/e1/skip"},
+		{http.MethodPut, "/v1/entries/e1"},
+		{http.MethodDelete, "/v1/entries/e1"},
+		{http.MethodPost, "/v1/receivers/r1/journal-notes"},
+		{http.MethodPut, "/v1/journal-notes/n1"},
+		{http.MethodDelete, "/v1/journal-notes/n1"},
 	} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(rt.method, rt.path, nil))
