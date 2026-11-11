@@ -206,6 +206,40 @@ enum HomeFixtures {
         [scheduledDetail, unrecordedDetail, loggedFromScheduleDetail, loggedOutOfRangeDetail, skippedDetail]
     }
 
+    // MARK: Waiting — what Quick log's picker leads with, in the API's order
+
+    /// Tonight's blood pressure check, still ahead (or due, late in the day).
+    static var eveningCheckScheduled: TrackerEntry {
+        TrackerEntry(id: "bp-evening-today", state: .scheduled, at: time(today, 19), values: [:],
+                     note: nil, byName: nil, scheduleName: "Evening check")
+    }
+
+    /// Yesterday's evening dose unrecorded, then tonight's check.
+    static var waiting: [ReceiverEntryItem] {
+        [
+            ReceiverEntryItem(tracker: medication, entry: eveningDoseUnrecorded),
+            ReceiverEntryItem(tracker: bloodPressure, entry: eveningCheckScheduled),
+        ]
+    }
+
+    static var badges: [TrackerBadgeInfo] {
+        [bloodPressure, medication, meals, physicalTherapy, cardiology, dental]
+    }
+
+    /// A settled entry, as the server answers a write: `at` is the care's time.
+    static func settled(_ id: String, _ state: EntryState, tracker: TrackerBadgeInfo, at: Date,
+                        values: [String: EntryValue], note: String?, planned: Bool,
+                        occurrenceAt: Date? = nil, scheduleName: String? = nil) -> EntryDetailInfo {
+        EntryDetailInfo(
+            entry: TrackerEntry(id: id, state: state, at: at, values: values, note: note,
+                                byName: state == .logged || state == .skipped ? "Trevor" : nil,
+                                scheduleName: scheduleName),
+            tracker: tracker, fields: tracker.id == bloodPressure.id ? bloodPressureFields : TrackersFixtures.medicationFields,
+            planned: planned, occurrenceAt: occurrenceAt, unrecordedAlert: planned ? false : nil,
+            settledAt: state == .logged || state == .skipped ? Date() : nil,
+            updatedByName: nil, updatedAt: nil, outOfRange: [])
+    }
+
     // MARK: The service
 
     struct Unreachable: Error {}
@@ -219,7 +253,7 @@ enum HomeFixtures {
         let attention = attention ?? Self.attention
         let comingUp = comingUp ?? Self.comingUp
         let timeline = timeline ?? { day in day == yesterday ? yesterdayTimeline : emptyDay(day) }
-        return HomeService(
+        var service = HomeService(
             needsAttention: { _, limit in
                 if fail { throw Unreachable() }
                 return Array(attention.prefix(limit ?? attention.count))
@@ -245,6 +279,95 @@ enum HomeFixtures {
                 return afternoonNote
             }
         )
+        service.addWriteStubs(fail: fail)
+        return service
+    }
+}
+
+extension HomeService {
+    /// Writes that answer as the server would: a log or skip settles what is waiting and
+    /// refuses (409) what is already settled; deleting a planned entry leaves it waiting
+    /// again, an ad hoc one is gone; a future `at` plans rather than logs.
+    mutating func addWriteStubs(fail: Bool = false) {
+        typealias F = HomeFixtures
+        let waitingIDs = Set(F.waiting.map(\.entry.id) + [F.morningDoseScheduled.id])
+        let all = F.entryDetails + F.waiting.map {
+            F.settled($0.entry.id, $0.entry.state, tracker: $0.tracker, at: $0.entry.at, values: $0.entry.values,
+                      note: nil, planned: true, occurrenceAt: $0.entry.at, scheduleName: $0.entry.scheduleName)
+        }
+        waiting = { _ in
+            if fail { throw F.Unreachable() }
+            return F.waiting
+        }
+        addEntry = { trackerID, write in
+            if fail { throw F.Unreachable() }
+            guard let badge = F.badges.first(where: { $0.id == trackerID }) else {
+                throw AppError.forStatus(404, serverMessage: nil)
+            }
+            let at = write.at ?? Date()
+            let planning = at > Date().addingTimeInterval(60)
+            return F.settled("new-\(UUID().uuidString)", planning ? .scheduled : .logged, tracker: badge, at: at,
+                             values: write.values, note: write.note, planned: planning,
+                             occurrenceAt: planning ? at : nil)
+        }
+        logEntry = { entryID, care in
+            if fail { throw F.Unreachable() }
+            guard let d = all.first(where: { $0.entry.id == entryID }) else {
+                throw AppError.forStatus(404, serverMessage: nil)
+            }
+            guard waitingIDs.contains(entryID) else { throw EntryNotInState(message: nil) }
+            return F.settled(entryID, .logged, tracker: d.tracker, at: care.occurredAt, values: care.values,
+                             note: care.note, planned: true, occurrenceAt: d.occurrenceAt,
+                             scheduleName: d.entry.scheduleName)
+        }
+        skipEntry = { entryID, note in
+            if fail { throw F.Unreachable() }
+            guard let d = all.first(where: { $0.entry.id == entryID }) else {
+                throw AppError.forStatus(404, serverMessage: nil)
+            }
+            guard waitingIDs.contains(entryID) else { throw EntryNotInState(message: nil) }
+            return F.settled(entryID, .skipped, tracker: d.tracker, at: d.entry.at, values: [:], note: note,
+                             planned: true, occurrenceAt: d.occurrenceAt, scheduleName: d.entry.scheduleName)
+        }
+        changeEntry = { entryID, care in
+            if fail { throw F.Unreachable() }
+            guard let d = all.first(where: { $0.entry.id == entryID }) else {
+                throw AppError.forStatus(404, serverMessage: nil)
+            }
+            guard !waitingIDs.contains(entryID) else { throw EntryNotInState(message: nil) }
+            return F.settled(entryID, .logged, tracker: d.tracker, at: care.occurredAt, values: care.values,
+                             note: care.note, planned: d.planned, occurrenceAt: d.occurrenceAt,
+                             scheduleName: d.entry.scheduleName)
+        }
+        deleteEntry = { entryID in
+            if fail { throw F.Unreachable() }
+            guard let d = all.first(where: { $0.entry.id == entryID }) else {
+                throw AppError.forStatus(404, serverMessage: nil)
+            }
+            guard !waitingIDs.contains(entryID) else { throw EntryNotInState(message: nil) }
+            guard d.planned, let due = d.occurrenceAt else { return nil }
+            return F.settled(entryID, due < Date() ? .unrecorded : .scheduled, tracker: d.tracker, at: due,
+                             values: [:], note: nil, planned: true, occurrenceAt: due,
+                             scheduleName: d.entry.scheduleName)
+        }
+        addJournalNote = { receiverID, note in
+            if fail { throw F.Unreachable() }
+            return JournalNoteInfo(id: "note-\(UUID().uuidString)", receiverID: receiverID, at: note.at,
+                                   body: note.body, authorName: "Trevor", createdAt: Date(),
+                                   updatedByName: nil, updatedAt: nil)
+        }
+        changeJournalNote = { noteID, note in
+            if fail { throw F.Unreachable() }
+            guard noteID == F.afternoonNote.id else { throw AppError.forStatus(404, serverMessage: nil) }
+            let n = F.afternoonNote
+            return JournalNoteInfo(id: n.id, receiverID: n.receiverID, at: note.at, body: note.body,
+                                   authorName: n.authorName, createdAt: n.createdAt,
+                                   updatedByName: "Trevor", updatedAt: Date())
+        }
+        deleteJournalNote = { noteID in
+            if fail { throw F.Unreachable() }
+            guard noteID == F.afternoonNote.id else { throw AppError.forStatus(404, serverMessage: nil) }
+        }
     }
 }
 #endif

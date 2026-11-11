@@ -117,13 +117,32 @@ private struct SignOutButton: View {
     }
 }
 
-/// How Quick log opens: at the picker, or with a journal note already picked — Home's
-/// Write a note (PRD "Home" exits).
-enum QuickLogStart: String, Identifiable, Sendable {
-    case pick
-    case journalNote
+/// Log it or Skip, on a picked occurrence's step.
+enum OccurrenceChoice: Equatable, Sendable {
+    case logIt, skip
+}
 
-    var id: String { rawValue }
+/// How Quick log opens (PRD "Quick log").
+enum QuickLogStart: Equatable, Identifiable, Sendable {
+    /// At the picker: ⊕, and Home's empty-day Log an entry.
+    case pick
+    /// At the picker with a journal note already picked: Home's Write a note.
+    case journalNote
+    /// Entry detail's Log it or Skip: holding that one entry, past the picking part, at
+    /// its step with the choice made.
+    case entry(EntryDetailInfo, choice: OccurrenceChoice)
+    /// Tracker detail's Log an entry: scoped to that tracker, past the picking part
+    /// unless it has occurrences waiting to pick between.
+    case tracker(id: String)
+
+    var id: String {
+        switch self {
+        case .pick: "pick"
+        case .journalNote: "journalNote"
+        case .entry(let d, let choice): "entry-\(d.entry.id)-\(choice == .logIt ? "log" : "skip")"
+        case .tracker(let id): "tracker-\(id)"
+        }
+    }
 }
 
 /// Opens Quick log. Every way in — ⊕, and Home's empty-day Log an entry and Write a
