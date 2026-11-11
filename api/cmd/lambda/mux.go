@@ -114,6 +114,14 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	mux.Handle("GET /v1/receivers/{receiverId}/waiting", v1authn.Wrap(http.HandlerFunc(v1home.Waiting)))
 	mux.Handle("GET /v1/entries/{entryId}", v1authn.Wrap(http.HandlerFunc(v1home.Entry)))
 	mux.Handle("GET /v1/journal-notes/{noteId}", v1authn.Wrap(http.HandlerFunc(v1home.JournalNote)))
+	mux.Handle("POST /v1/trackers/{trackerId}/entries", v1authn.Wrap(http.HandlerFunc(v1home.AddEntry)))
+	mux.Handle("POST /v1/entries/{entryId}/log", v1authn.Wrap(http.HandlerFunc(v1home.LogEntry)))
+	mux.Handle("POST /v1/entries/{entryId}/skip", v1authn.Wrap(http.HandlerFunc(v1home.SkipEntry)))
+	mux.Handle("PUT /v1/entries/{entryId}", v1authn.Wrap(http.HandlerFunc(v1home.ChangeEntry)))
+	mux.Handle("DELETE /v1/entries/{entryId}", v1authn.Wrap(http.HandlerFunc(v1home.DeleteEntry)))
+	mux.Handle("POST /v1/receivers/{receiverId}/journal-notes", v1authn.Wrap(http.HandlerFunc(v1home.AddJournalNote)))
+	mux.Handle("PUT /v1/journal-notes/{noteId}", v1authn.Wrap(http.HandlerFunc(v1home.ChangeJournalNote)))
+	mux.Handle("DELETE /v1/journal-notes/{noteId}", v1authn.Wrap(http.HandlerFunc(v1home.DeleteJournalNote)))
 
 	return middleware.RequestLogger(log)(mux), nil
 }

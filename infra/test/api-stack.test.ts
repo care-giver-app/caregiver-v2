@@ -140,7 +140,7 @@ describe('ApiStack', () => {
     const t = Template.fromStack(apiStack);
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
-    t.resourceCountIs('AWS::ApiGatewayV2::Route', 54);
+    t.resourceCountIs('AWS::ApiGatewayV2::Route', 62);
 
     for (const routeKey of [
       'GET /me',
@@ -182,6 +182,14 @@ describe('ApiStack', () => {
       'GET /v1/receivers/{receiverId}/waiting',
       'GET /v1/entries/{entryId}',
       'GET /v1/journal-notes/{noteId}',
+      'POST /v1/trackers/{trackerId}/entries',
+      'POST /v1/entries/{entryId}/log',
+      'POST /v1/entries/{entryId}/skip',
+      'PUT /v1/entries/{entryId}',
+      'DELETE /v1/entries/{entryId}',
+      'POST /v1/receivers/{receiverId}/journal-notes',
+      'PUT /v1/journal-notes/{noteId}',
+      'DELETE /v1/journal-notes/{noteId}',
     ]) {
       t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
         RouteKey: routeKey,

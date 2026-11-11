@@ -2,12 +2,13 @@ package v1
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/care-giver-app/caregiver-v2/api/internal/httpx"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/logger"
@@ -21,15 +22,16 @@ const (
 	maxComingUpLimit      = 100
 )
 
-// Home serves the /v1 reads Home is built from: needs attention, coming up,
+// Home serves the /v1 routes Home is built from: needs attention, coming up,
 // the daily timeline, Quick log's waiting occurrences, Entry detail and
-// Journal note.
+// Journal note, and the writes Quick log, Entry detail and the journal make.
 type Home struct {
 	stores *store.Stores
 	now    func() time.Time
+	newID  func() string
 }
 
-func NewHome(s *store.Stores) *Home { return &Home{stores: s, now: time.Now} }
+func NewHome(s *store.Stores) *Home { return &Home{stores: s, now: time.Now, newID: uuid.NewString} }
 
 // trackerBadge is the TrackerBadge schema.
 type trackerBadge struct {
@@ -413,29 +415,11 @@ func noteView(n domain.JournalNote, users map[string]domain.User) journalNoteVie
 // Entry serves GET /v1/entries/{entryId}: Entry detail, in whatever state the
 // entry is in.
 func (h *Home) Entry(w http.ResponseWriter, r *http.Request) {
-	c := requireCaller(w, r)
-	if c == nil {
+	_, e, t, ok := h.entryForCaller(w, r)
+	if !ok {
 		return
 	}
-	ctx := r.Context()
-	e, err := h.stores.Entries.Get(ctx, r.PathValue("entryId"))
-	if errors.Is(err, store.ErrNotFound) {
-		httpx.WriteError(w, http.StatusNotFound, "not found")
-		return
-	} else if err != nil {
-		httpx.ServerError(w, r, err, "entry load failed")
-		return
-	}
-	t, _, ok := loadTracker(w, r, h.stores, e.TrackerID)
-	if !ok || !requireTeamRole(w, r, h.stores, c, t.TeamID, false) {
-		return
-	}
-	d, err := h.entryDetail(ctx, e, t, h.now().UTC())
-	if err != nil {
-		httpx.ServerError(w, r, err, "entry names load failed")
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, d)
+	h.writeEntryDetail(w, r, http.StatusOK, e, t, h.now().UTC())
 }
 
 // entryDetail builds the EntryDetail of e, on tracker t, as it reads at now.
@@ -475,27 +459,9 @@ func (h *Home) entryDetail(ctx context.Context, e domain.Entry, t domain.Tracker
 
 // JournalNote serves GET /v1/journal-notes/{noteId}.
 func (h *Home) JournalNote(w http.ResponseWriter, r *http.Request) {
-	c := requireCaller(w, r)
-	if c == nil {
+	_, n, ok := h.noteForCaller(w, r)
+	if !ok {
 		return
 	}
-	ctx := r.Context()
-	n, err := h.stores.JournalNotes.Get(ctx, r.PathValue("noteId"))
-	if errors.Is(err, store.ErrNotFound) {
-		httpx.WriteError(w, http.StatusNotFound, "not found")
-		return
-	} else if err != nil {
-		httpx.ServerError(w, r, err, "journal note load failed")
-		return
-	}
-	rc, ok := loadReceiver(w, r, h.stores, n.ReceiverID)
-	if !ok || !requireTeamRole(w, r, h.stores, c, rc.TeamID, false) {
-		return
-	}
-	names, err := loadEntryNames(ctx, h.stores, nil, n.Author, n.UpdatedBy)
-	if err != nil {
-		httpx.ServerError(w, r, err, "caregiver load failed")
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, noteView(n, names.users))
+	h.writeNote(w, r, http.StatusOK, n)
 }
