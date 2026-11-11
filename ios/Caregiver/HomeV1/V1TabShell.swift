@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The signed-in `/v1` app: four tabs and the ⊕ button, driven by `StrideTabBar` (PRD
 /// "The tab bar"). Home holds the one `/v1` navigation stack; Insights, Team and Settings
-/// are named placeholders until their areas are built on this path, and ⊕ raises a
-/// placeholder for Quick log.
+/// are named placeholders until their areas are built on this path. ⊕ and Home's empty
+/// day both open Quick log through one presenter (`V1QuickLog`), a placeholder for now.
 struct V1TabShell: View {
     let account: Account
     let trackers: TrackersService
@@ -12,7 +12,7 @@ struct V1TabShell: View {
     @Binding var path: [V1Route]
 
     @State private var selectedTab: StrideTab = .home
-    @State private var showQuickLog = false
+    @State private var quickLog: QuickLogStart?
     @State private var receiver: ActiveReceiverModel
 
     init(account: Account, trackers: TrackersService, home: HomeService,
@@ -29,7 +29,7 @@ struct V1TabShell: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack(path: $path) {
-                HomeV1View(receiver: receiver, service: home)
+                HomeV1View(receiver: receiver, home: home, trackers: trackers)
                     .v1Destinations(service: trackers)
                     .toolbar(.hidden, for: .tabBar)
             }
@@ -37,6 +37,7 @@ struct V1TabShell: View {
             .environment(\.v1PopToTrackers, V1PopToTrackers { [path = $path] in
                 path.wrappedValue = V1Route.poppedToTrackers(path.wrappedValue)
             })
+            .environment(\.v1QuickLog, V1QuickLog { [quickLog = $quickLog] in quickLog.wrappedValue = $0 })
             .tag(StrideTab.home)
 
             NavigationStack {
@@ -60,10 +61,10 @@ struct V1TabShell: View {
             .tag(StrideTab.settings)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            StrideTabBar(selection: $selectedTab) { showQuickLog = true }
+            StrideTabBar(selection: $selectedTab) { quickLog = .pick }
         }
-        .sheet(isPresented: $showQuickLog) {
-            QuickLogPlaceholderSheet()
+        .sheet(item: $quickLog) { start in
+            QuickLogPlaceholderSheet(start: start)
         }
         .tint(Theme.Colors.accent)
     }
@@ -116,13 +117,75 @@ private struct SignOutButton: View {
     }
 }
 
+/// How Quick log opens: at the picker, or with a journal note already picked — Home's
+/// Write a note (PRD "Home" exits).
+enum QuickLogStart: String, Identifiable, Sendable {
+    case pick
+    case journalNote
+
+    var id: String { rawValue }
+}
+
+/// Opens Quick log. Every way in — ⊕, and Home's empty-day Log an entry and Write a
+/// note — goes through this one presenter, so Quick log replaces the placeholder in one
+/// place. V1TabShell supplies it; elsewhere it does nothing.
+struct V1QuickLog: Sendable {
+    let open: @MainActor @Sendable (QuickLogStart) -> Void
+
+    @MainActor func callAsFunction(_ start: QuickLogStart = .pick) { open(start) }
+}
+
+private struct V1QuickLogKey: EnvironmentKey {
+    static let defaultValue = V1QuickLog { _ in }
+}
+
+extension EnvironmentValues {
+    var v1QuickLog: V1QuickLog {
+        get { self[V1QuickLogKey.self] }
+        set { self[V1QuickLogKey.self] = newValue }
+    }
+}
+
 /// Stands in for Quick log, which is still to be built on this path.
 struct QuickLogPlaceholderSheet: View {
+    var start: QuickLogStart = .pick
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        V1Placeholder(title: "Quick log", line: "Quick log isn't built on this path yet.") {
+        V1Placeholder(title: "Quick log",
+                      line: start == .journalNote
+                          ? "Quick log, with a journal note already picked, isn't built on this path yet."
+                          : "Quick log isn't built on this path yet.") {
             StrideButton(title: "Close", style: .secondary) { dismiss() }
+        }
+    }
+}
+
+/// A named stand-in for a pushed screen not yet built on the `/v1` path, with the
+/// stack's ‹ Back.
+struct V1PushedPlaceholder: View {
+    let title: String
+    let subtitle: String?
+    let line: String
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(line)
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Spacer()
+        }
+        .padding(Theme.Spacing.lg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .strideBackground()
+        .toolbar(.visible, for: .navigationBar)
+        .strideBackButton()
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                StrideNavTitle(title: title, subtitle: subtitle)
+            }
         }
     }
 }
@@ -136,5 +199,9 @@ struct QuickLogPlaceholderSheet: View {
 
 #Preview("Quick log placeholder") {
     QuickLogPlaceholderSheet()
+}
+
+#Preview("Quick log placeholder, note picked") {
+    QuickLogPlaceholderSheet(start: .journalNote)
 }
 #endif

@@ -272,7 +272,7 @@ enum TrackerText {
         return "\(value) \(unit)"
     }
 
-    private static func plural(_ n: Int, _ word: String) -> String {
+    static func plural(_ n: Int, _ word: String) -> String {
         "\(n) \(word)\(n == 1 ? "" : "s")"
     }
 
@@ -289,7 +289,8 @@ enum TrackerText {
         return calendar
     }
 
-    private static func format(_ date: Date, _ pattern: String, _ zone: TimeZone) -> String {
+    /// `date` in `zone` by a fixed `en_US_POSIX` pattern, from the shared formatter cache.
+    static func format(_ date: Date, _ pattern: String, _ zone: TimeZone) -> String {
         Formatters.shared.format(date, pattern, zone)
     }
 

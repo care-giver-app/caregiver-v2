@@ -7,6 +7,8 @@ import SwiftUI
 struct TrackersV1View: View {
     let receiver: TeamReceiver
     let service: TrackersService
+    /// The filter it opens on; Home's needs-attention See all chooses that one.
+    var initialFilter: TrackerListFilter = .active
 
     @State private var model: TrackersListModel?
     @State private var isAdding = false
@@ -53,7 +55,7 @@ struct TrackersV1View: View {
                 // Back from a tracker: refresh in place, with fresh relative times.
                 await model.load()
             } else {
-                let model = TrackersListModel(receiver: receiver, service: service)
+                let model = TrackersListModel(receiver: receiver, service: service, filter: initialFilter)
                 self.model = model
                 await model.load()
             }

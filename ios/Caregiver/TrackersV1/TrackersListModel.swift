@@ -2,7 +2,7 @@ import Foundation
 
 /// The three views of the Trackers list (PRD "Trackers"). All three are drawn from
 /// one response, so their counts agree with what each shows.
-enum TrackerListFilter: CaseIterable, Equatable, Sendable {
+enum TrackerListFilter: CaseIterable, Hashable, Sendable {
     case active, needsAttention, paused
 
     var title: String {
@@ -47,15 +47,18 @@ final class TrackersListModel {
     private(set) var refreshFailed = false
     /// The instant row recency is said against, taken afresh on every load.
     private(set) var now: Date
-    /// Opens on active every time: a new model per visit, never remembered (PRD).
-    var filter: TrackerListFilter = .active
+    /// Opens on active every time — a new model per visit, never remembered — unless
+    /// whoever opened it chose another, as Home's needs-attention See all does (PRD).
+    var filter: TrackerListFilter
 
     let receiver: TeamReceiver
     private let service: TrackersService
     private let clock: @MainActor () -> Date
 
-    init(receiver: TeamReceiver, service: TrackersService, clock: @escaping @MainActor () -> Date = Date.init) {
+    init(receiver: TeamReceiver, service: TrackersService, filter: TrackerListFilter = .active,
+         clock: @escaping @MainActor () -> Date = Date.init) {
         self.receiver = receiver
+        self.filter = filter
         self.service = service
         self.clock = clock
         self.now = clock()

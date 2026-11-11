@@ -1,0 +1,135 @@
+import Foundation
+
+/// Every sentence Home prints, as pure functions of their inputs. Times are read in the
+/// care receiver's zone, never the device's, and `now` is passed in.
+enum HomeText {
+    /// What a caregiver who is not an admin is told when the receiver has no active
+    /// trackers (Figma 438:4075). Quick log says the same thing "in the same words Home
+    /// uses" (PRD "The tab bar"), so it lives here once.
+    static let noTrackersCaregiverLine = "Waiting on an admin to set up a tracker."
+    static let noTrackersAdminLine = "Add a tracker to start keeping a record."
+    static let noTrackersTitle = "Nothing is being tracked"
+
+    static let noReceiversTitle = "No one to look after yet"
+    static let noReceiversAdminLine = "Add the person this team cares for to start keeping their record."
+    static let noReceiversCaregiverLine = "Waiting on an admin to add a care receiver."
+
+    static let allClearTitle = "Nothing needs attention"
+    static let allClearLine = "Every tracker is in range and up to date."
+
+    static let emptyDayTitle = "Nothing on this day"
+    static let emptyDayLine = "Nothing was logged and nothing was expected."
+
+    // MARK: Needs attention
+
+    /// The cause under the tracker's name (Figma 436:3226).
+    static func attention(_ attention: NeedsAttention, now: Date, zone: TimeZone) -> String {
+        switch attention {
+        case .unrecorded(_, let at):
+            return "Unrecorded · \(TrackerText.when(at, now: now, zone: zone))"
+        case .outOfRange(_, _, let label, _, let value, let range):
+            // Figma 436:3265 reads the numbers bare: "Systolic 168 · expected 90–140".
+            return "\(label ?? "Reading") \(TrackerText.number(value)) · \(expected(range, unit: nil))"
+        case .gap(let since, _):
+            let hours = Int(max(0, now.timeIntervalSince(since)) / 3600)
+            // Days once past two of them; hours before, where days would round to nothing.
+            let gone = hours >= 48 ? TrackerText.plural(hours / 24, "day") : TrackerText.plural(hours, "hour")
+            return "Nothing logged in \(gone)"
+        }
+    }
+
+    /// "expected 90–140", "expected at most 140", "expected at least 90".
+    static func expected(_ range: ValueRangeInfo, unit: String?) -> String {
+        switch (range.low, range.high) {
+        case let (low?, high?):
+            "expected \(TrackerText.number(low))–\(withUnit(TrackerText.number(high), unit))"
+        case let (nil, high?):
+            "expected at most \(withUnit(TrackerText.number(high), unit))"
+        case let (low?, nil):
+            "expected at least \(withUnit(TrackerText.number(low), unit))"
+        case (nil, nil):
+            "outside its range"
+        }
+    }
+
+    /// Whether an entry's value for `field` lies outside the field's range.
+    static func isOutOfRange(_ entry: TrackerEntry, field: TrackerFieldInfo) -> Bool {
+        guard entry.state == .logged, let range = field.range,
+              case .number(let n)? = entry.values[field.id] else { return false }
+        if let low = range.low, n < low { return true }
+        if let high = range.high, n > high { return true }
+        return false
+    }
+
+    // MARK: Coming up
+
+    /// "Evening · Today at 8:00 PM", "Tomorrow at 2:00 PM", "Wednesday at 10:00 AM",
+    /// "Nov 20 at 9:00 AM" (Figma 436:3290).
+    static func comingUp(_ entry: TrackerEntry, now: Date, zone: TimeZone) -> String {
+        let when = ahead(entry.at, now: now, zone: zone)
+        guard let schedule = entry.scheduleName, !schedule.isEmpty else { return when }
+        return "\(schedule) · \(when)"
+    }
+
+    static func ahead(_ date: Date, now: Date, zone: TimeZone) -> String {
+        let days = LocalDay.daysBetween(LocalDay(now, zone: zone), LocalDay(date, zone: zone))
+        let time = clock(date, zone: zone)
+        let day: String
+        switch days {
+        case ...0: day = "Today"
+        case 1: day = "Tomorrow"
+        case 2...6: day = TrackerText.format(date, "EEEE", zone)
+        default:
+            let sameYear = LocalDay(date, zone: zone).year == LocalDay(now, zone: zone).year
+            day = TrackerText.format(date, sameYear ? "MMM d" : "MMM d, yyyy", zone)
+        }
+        return "\(day) at \(time)"
+    }
+
+    // MARK: The timeline
+
+    /// "Today" with "Sun, Oct 25"; any other day by its weekday, "Friday" with "Oct 23"
+    /// (Figma 436:3307, 437:4143). The year joins outside today's.
+    static func dayTitle(_ day: LocalDay, today: LocalDay) -> (title: String, detail: String) {
+        let start = day.start(in: utc)
+        let year = day.year == today.year ? "" : ", \(day.year)"
+        if day == today {
+            return ("Today", TrackerText.format(start, "EEE, MMM d", utc) + year)
+        }
+        return (TrackerText.format(start, "EEEE", utc), TrackerText.format(start, "MMM d", utc) + year)
+    }
+
+    /// "8:00 AM".
+    static func clock(_ date: Date, zone: TimeZone) -> String {
+        TrackerText.format(date, "h:mm a", zone)
+    }
+
+    /// "Morning · 8:00 AM", or "8:04 AM" when it came from no schedule.
+    static func itemTime(_ entry: TrackerEntry, zone: TimeZone) -> String {
+        let time = clock(entry.at, zone: zone)
+        guard let schedule = entry.scheduleName, !schedule.isEmpty else { return time }
+        return "\(schedule) · \(time)"
+    }
+
+    /// "Written by Dana".
+    static func noteByline(_ note: JournalNoteInfo) -> String {
+        "Written by \(note.authorName)"
+    }
+
+    private static let utc = TimeZone(identifier: "UTC")!
+
+    private static func withUnit(_ value: String, _ unit: String?) -> String {
+        guard let unit, !unit.isEmpty else { return value }
+        return "\(value) \(unit)"
+    }
+}
+
+extension LocalDay {
+    /// Whole days from `a` to `b`; negative when `b` is earlier.
+    static func daysBetween(_ a: LocalDay, _ b: LocalDay) -> Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let utc = TimeZone(identifier: "UTC")!
+        return calendar.dateComponents([.day], from: a.start(in: utc), to: b.start(in: utc)).day ?? 0
+    }
+}
