@@ -535,38 +535,6 @@ final class EntriesPagerTests: XCTestCase {
     }
 }
 
-// MARK: - Temporary entry
-
-@MainActor
-final class AllTrackersEntryModelTests: XCTestCase {
-    private let team = Account.Team(teamID: "team-riverside", name: "The Riverside Group", role: "admin")
-
-    func testOpensTheFirstReceiver() async {
-        let eleanor = TeamReceiver(id: "r1", name: "Eleanor", timeZone: Fixed.chicago)
-        let harold = TeamReceiver(id: "r2", name: "Harold", timeZone: Fixed.chicago)
-        let model = AllTrackersEntryModel(team: team, service: service(receivers: { _ in [eleanor, harold] }))
-        await model.open()
-        XCTAssertEqual(model.receiver?.id, eleanor.id)
-        XCTAssertEqual(model.receiver?.canManage, true, "an admin of the team manages its trackers")
-        XCTAssertEqual(model.outcome, .idle)
-    }
-
-    func testACaregiverReachesTheReceiverWithoutManaging() async {
-        let caregiver = Account.Team(teamID: "team-riverside", name: "The Riverside Group", role: "caregiver")
-        let eleanor = TeamReceiver(id: "r1", name: "Eleanor", timeZone: Fixed.chicago)
-        let model = AllTrackersEntryModel(team: caregiver, service: service(receivers: { _ in [eleanor] }))
-        await model.open()
-        XCTAssertEqual(model.receiver?.canManage, false)
-    }
-
-    func testATeamWithNoReceiversSaysSo() async {
-        let model = AllTrackersEntryModel(team: team, service: service(receivers: { _ in [] }))
-        await model.open()
-        XCTAssertNil(model.receiver)
-        XCTAssertEqual(model.outcome, .noReceivers(teamName: "The Riverside Group"))
-    }
-}
-
 // MARK: - Helpers
 
 /// Answers every call with the value given, except the numbered calls (1-based), which fail.

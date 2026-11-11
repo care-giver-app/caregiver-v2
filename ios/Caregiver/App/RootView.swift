@@ -33,17 +33,10 @@ struct RootView: View {
                 }
                 .tint(Theme.Colors.accent)
             case .v1Ready(let account):
-                NavigationStack(path: $v1Path) {
-                    V1PlaceholderView(account: account,
-                                      onSignOut: { v1Path = []; await session.signOut() },
-                                      trackers: .live(session.api), path: $v1Path)
-                        .v1Destinations(service: .live(session.api))
-                }
-                .environment(\.v1Push, V1Push { [path = $v1Path] in path.wrappedValue.append($0) })
-                .environment(\.v1PopToTrackers, V1PopToTrackers { [path = $v1Path] in
-                    path.wrappedValue = V1Route.poppedToTrackers(path.wrappedValue)
-                })
-                .tint(Theme.Colors.accent)
+                V1TabShell(account: account, trackers: .live(session.api), home: .live(session.api),
+                           onSignOut: { v1Path = []; await session.signOut() }, path: $v1Path)
+                    // A change of teams chooses the active care receiver afresh.
+                    .id(account.teams.map(\.teamID))
             }
         }
         .task {
@@ -63,7 +56,7 @@ struct RootView: View {
                         if granted { await auth.signInWithBiometrics() }
                     }
                 }
-            // `.v1Ready` stands in for Home while flag `v1_api` is on.
+            // `.v1Ready` lands on Home while flag `v1_api` is on.
             case .ready, .v1Ready:
                 if AuthModel.shouldOfferFaceID(biometryAvailable: BiometricAuth.isAvailable,
                                                enabled: faceIDEnabled,

@@ -129,6 +129,8 @@ struct TrackerEntry: Equatable, Identifiable, Sendable {
     let note: String?
     /// Who logged or skipped it; nil while unrecorded.
     let byName: String?
+    /// The schedule it came from, when it came from one.
+    var scheduleName: String? = nil
 }
 
 struct EntriesPage: Equatable, Sendable {
@@ -471,18 +473,22 @@ extension TrackerProfile {
         self.init(
             id: d.trackerId, name: d.name, icon: d.icon, color: d.color,
             status: TrackerStatus(d.status), pausedAt: d.pausedAt,
-            fields: d.fields.map { f in
-                TrackerFieldInfo(
-                    id: f.fieldId, label: f.label, kind: FieldKind(f._type), unit: f.unit,
-                    required: f.required, paused: f.status == .paused,
-                    range: f.range.map { ValueRangeInfo($0) }, multiple: f.multiple ?? false,
-                    options: (f.options ?? []).map {
-                        ChoiceOptionInfo(id: $0.optionId, label: $0.label, retired: $0.status == .retired)
-                    }
-                )
-            },
+            fields: d.fields.map(TrackerFieldInfo.init),
             gapHours: d.gapHours, scheduleCount: d.scheduleCount, lastLoggedAt: d.lastLoggedAt,
             attention: d.attention.compactMap(TrackerAttentionItem.init)
+        )
+    }
+}
+
+extension TrackerFieldInfo {
+    init(_ f: Components.Schemas.TrackerField) {
+        self.init(
+            id: f.fieldId, label: f.label, kind: FieldKind(f._type), unit: f.unit,
+            required: f.required, paused: f.status == .paused,
+            range: f.range.map { ValueRangeInfo($0) }, multiple: f.multiple ?? false,
+            options: (f.options ?? []).map {
+                ChoiceOptionInfo(id: $0.optionId, label: $0.label, retired: $0.status == .retired)
+            }
         )
     }
 }
@@ -525,7 +531,7 @@ extension TrackerEntry {
         case .skipped: .skipped
         }
         self.init(id: e.entryId, state: state, at: e.at, values: EntryValue.map(e.values.additionalProperties),
-                  note: e.note, byName: e.byName)
+                  note: e.note, byName: e.byName, scheduleName: e.scheduleName)
     }
 }
 
