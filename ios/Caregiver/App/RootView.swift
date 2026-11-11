@@ -33,19 +33,15 @@ struct RootView: View {
                 }
                 .tint(Theme.Colors.accent)
             case .v1Ready(let account):
-                NavigationStack(path: $v1Path) {
-                    V1PlaceholderView(account: account,
-                                      onSignOut: { v1Path = []; await session.signOut() },
-                                      trackers: .live(session.api), path: $v1Path)
-                        .v1Destinations(service: .live(session.api))
-                }
-                .environment(\.v1Push, V1Push { [path = $v1Path] in path.wrappedValue.append($0) })
-                .environment(\.v1PopToTrackers, V1PopToTrackers { [path = $v1Path] in
-                    path.wrappedValue = V1Route.poppedToTrackers(path.wrappedValue)
-                })
-                .tint(Theme.Colors.accent)
+                V1TabShell(account: account, trackers: .live(session.api), home: .live(session.api),
+                           onSignOut: { v1Path = []; await session.signOut() }, path: $v1Path)
+                    // A change of teams chooses the active care receiver afresh, and the
+                    // screens pushed for the old one go with it.
+                    .id(Self.v1TeamsKey(session.state))
             }
         }
+        // The path outlives the rebuilt shell, so it is emptied when the teams change.
+        .onChange(of: Self.v1TeamsKey(session.state)) { v1Path = [] }
         .task {
             auth.onSignedIn = { await session.refresh() }
             await session.refresh()
@@ -63,7 +59,7 @@ struct RootView: View {
                         if granted { await auth.signInWithBiometrics() }
                     }
                 }
-            // `.v1Ready` stands in for Home while flag `v1_api` is on.
+            // `.v1Ready` lands on Home while flag `v1_api` is on.
             case .ready, .v1Ready:
                 if AuthModel.shouldOfferFaceID(biometryAvailable: BiometricAuth.isAvailable,
                                                enabled: faceIDEnabled,
@@ -82,6 +78,12 @@ struct RootView: View {
                 faceIDEnabled = true
             }
         }
+    }
+
+    /// What rebuilds the v1 shell: the teams the caregiver is on, nil outside it.
+    static func v1TeamsKey(_ state: Session.State) -> [String]? {
+        guard case .v1Ready(let account) = state else { return nil }
+        return account.teams.map(\.teamID)
     }
 
     private func mainStack(_ me: Me) -> some View {

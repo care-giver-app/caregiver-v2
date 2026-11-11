@@ -12,6 +12,9 @@ struct StrideTrackerRow: View {
     var icon: String? = nil
     /// A paused tracker: its name and subtitle read muted; its color stays its own.
     var isMuted: Bool = false
+    /// A subtitle that names a cause reads Medium in this status color — Home's needs
+    /// attention: color/alert for out of range, color/warning otherwise (Figma 436:3226).
+    var subtitleColor: Color? = nil
 
     private enum Metrics {
         static let railSize = CGSize(width: 4, height: 40)
@@ -50,8 +53,8 @@ struct StrideTrackerRow: View {
                     .foregroundStyle(isMuted ? Theme.Colors.textTertiary : Theme.Colors.textPrimary)
                 if let subtitle {
                     Text(subtitle)
-                        .font(Theme.Typography.subhead)
-                        .foregroundStyle(isMuted ? Theme.Colors.muted : Theme.Colors.textTertiary)
+                        .font(subtitleColor == nil ? Theme.Typography.subhead : .system(size: 13, weight: .medium))
+                        .foregroundStyle(subtitleColor ?? (isMuted ? Theme.Colors.muted : Theme.Colors.textTertiary))
                 }
             }
             Spacer()

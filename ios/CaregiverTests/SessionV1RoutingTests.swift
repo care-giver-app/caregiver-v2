@@ -109,4 +109,19 @@ final class SessionV1RoutingTests: XCTestCase {
         await s.refresh()
         XCTAssertEqual(s.state, .ready(oldMe))
     }
+
+    func testTheV1ShellIsKeyedByTheTeamsSoItsPathResetsWhenTheyChange() {
+        let promoted = Account(name: "Trevor", email: onTeam.email, teams: [
+            .init(teamID: "t1", name: "Renamed", role: "caregiver"),
+        ])
+        let joined = Account(name: "Trevor", email: onTeam.email, teams: onTeam.teams + [
+            .init(teamID: "t2", name: "Johnson Family", role: "caregiver"),
+        ])
+        XCTAssertEqual(RootView.v1TeamsKey(.v1Ready(onTeam)), ["t1"])
+        XCTAssertEqual(RootView.v1TeamsKey(.v1Ready(promoted)), RootView.v1TeamsKey(.v1Ready(onTeam)),
+                       "the same teams keep the path")
+        XCTAssertNotEqual(RootView.v1TeamsKey(.v1Ready(joined)), RootView.v1TeamsKey(.v1Ready(onTeam)),
+                          "joining a team starts the shell, and its path, afresh")
+        XCTAssertNil(RootView.v1TeamsKey(.signedOut))
+    }
 }

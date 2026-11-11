@@ -7,6 +7,8 @@ import SwiftUI
 struct TrackersV1View: View {
     let receiver: TeamReceiver
     let service: TrackersService
+    /// The filter it opens on; Home's needs-attention See all chooses that one.
+    var initialFilter: TrackerListFilter = .active
 
     @State private var model: TrackersListModel?
     @State private var isAdding = false
@@ -53,7 +55,7 @@ struct TrackersV1View: View {
                 // Back from a tracker: refresh in place, with fresh relative times.
                 await model.load()
             } else {
-                let model = TrackersListModel(receiver: receiver, service: service)
+                let model = TrackersListModel(receiver: receiver, service: service, filter: initialFilter)
                 self.model = model
                 await model.load()
             }
@@ -85,7 +87,7 @@ struct TrackersV1View: View {
             // A caregiver can't make one, so they're told who does (PRD "Trackers", empty).
             Text(receiver.canManage
                  ? "Create your first tracker for \(receiver.name)"
-                 : "An admin on the team can add the first one.")
+                 : HomeText.noTrackersCaregiverLine)
                 .font(.system(size: 14))
                 .foregroundStyle(Theme.Colors.textSecondary)
             if receiver.canManage {
@@ -183,7 +185,7 @@ struct StrideNavTitle: View {
 #Preview("Active") {
     NavigationStack {
         TrackersV1View(receiver: TrackersFixtures.eleanor, service: TrackersFixtures.service())
-            .v1Destinations(service: TrackersFixtures.service())
+            .v1Destinations(service: TrackersFixtures.service(), home: HomeFixtures.service())
     }
 }
 
@@ -204,7 +206,7 @@ struct StrideNavTitle: View {
     @Previewable @State var path: [V1Route] = []
     NavigationStack(path: $path) {
         TrackersV1View(receiver: TrackersFixtures.eleanor, service: TrackersFixtures.service())
-            .v1Destinations(service: TrackersFixtures.service())
+            .v1Destinations(service: TrackersFixtures.service(), home: HomeFixtures.service())
     }
     .environment(\.v1Push, V1Push { [path = $path] in path.wrappedValue.append($0) })
 }

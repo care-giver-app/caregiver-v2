@@ -1,10 +1,8 @@
 import SwiftUI
 
 /// One entry on Tracker detail (Figma Stride/Entry Tile 432:3260): when, its state,
-/// every field value it carries, its note, and who logged or skipped it.
-///
-/// TODO(Home build): the whole tile opens Entry detail, which Home's build brings.
-/// Until then it is not tappable and carries no chevron, so it does not promise a tap.
+/// every field value it carries, its note, and who logged or skipped it. Tracker detail
+/// makes the whole tile open Entry detail, so it carries the chevron that says so.
 struct EntryTileV1: View {
     let entry: TrackerEntry
     let fields: [TrackerFieldInfo]
@@ -19,6 +17,9 @@ struct EntryTileV1: View {
                     .foregroundStyle(Theme.Colors.textPrimary)
                 Spacer(minLength: 1)
                 badge
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.textTertiary)
             }
 
             let rows = TrackerText.valueRows(entry, fields: fields, now: now, zone: zone)
@@ -58,6 +59,7 @@ struct EntryTileV1: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background { RoundedRectangle(cornerRadius: 16).fill(Theme.Colors.surface) }
         .overlay { RoundedRectangle(cornerRadius: 16).stroke(Theme.Colors.border, lineWidth: 1) }
+        .contentShape(RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .combine)
     }
 

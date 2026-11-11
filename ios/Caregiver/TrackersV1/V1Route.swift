@@ -9,23 +9,41 @@ import SwiftUI
 /// Whether the caller may manage trackers rides on each route's `TeamReceiver`
 /// (`canManage`), so every pushed screen knows without reaching for the account.
 enum V1Route: Hashable {
-    case trackers(TeamReceiver)
+    /// The Trackers list, opening on `filter` — Home's needs-attention See all chooses
+    /// that filter for it (PRD "Home"); everywhere else it opens on Active.
+    case trackers(TeamReceiver, filter: TrackerListFilter = .active)
     case tracker(id: String, receiver: TeamReceiver)
     case schedules(trackerID: String, trackerName: String, receiver: TeamReceiver)
+    /// Care receiver — a Team-area screen, a named placeholder on this path for now.
+    case careReceiver(TeamReceiver)
+    /// Entry detail, from Home, Coming up, or Tracker detail's entries.
+    case entry(id: String, receiver: TeamReceiver)
+    case journalNote(id: String, receiver: TeamReceiver)
+    /// Coming up in full.
+    case comingUp(TeamReceiver)
 }
 
 extension View {
     /// Registers every `V1Route` destination. Apply once, at the stack's root.
-    func v1Destinations(service: TrackersService) -> some View {
+    func v1Destinations(service: TrackersService, home: HomeService) -> some View {
         navigationDestination(for: V1Route.self) { route in
             switch route {
-            case .trackers(let receiver):
-                TrackersV1View(receiver: receiver, service: service)
+            case .trackers(let receiver, let filter):
+                TrackersV1View(receiver: receiver, service: service, initialFilter: filter)
             case .tracker(let id, let receiver):
                 TrackerDetailV1View(trackerID: id, receiver: receiver, service: service)
             case .schedules(let trackerID, let trackerName, let receiver):
                 SchedulesV1View(trackerID: trackerID, trackerName: trackerName, receiver: receiver,
                                 service: service)
+            case .careReceiver(let receiver):
+                V1PushedPlaceholder(title: receiver.name, subtitle: "Care receiver",
+                                    line: "Care receiver is part of Team, which isn't built on this path yet.")
+            case .entry(let id, let receiver):
+                EntryDetailV1View(entryID: id, receiver: receiver, home: home)
+            case .journalNote(let id, let receiver):
+                JournalNoteV1View(noteID: id, receiver: receiver, home: home)
+            case .comingUp(let receiver):
+                ComingUpV1View(receiver: receiver, home: home)
             }
         }
     }

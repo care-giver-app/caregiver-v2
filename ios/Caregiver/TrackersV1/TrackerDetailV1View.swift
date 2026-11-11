@@ -292,9 +292,13 @@ struct TrackerDetailV1View: View {
             }
         case .loaded:
             ForEach(entries.entries) { entry in
-                EntryTileV1(entry: entry, fields: profile.fields, zone: zone, now: now)
-                    .padding(.bottom, 10)
-                    .task { await entries.entryAppeared(entry) }
+                // Every entry opens Entry detail, whatever its state (PRD "Tracker detail").
+                NavigationLink(value: V1Route.entry(id: entry.id, receiver: receiver)) {
+                    EntryTileV1(entry: entry, fields: profile.fields, zone: zone, now: now)
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, 10)
+                .task { await entries.entryAppeared(entry) }
             }
             if entries.isLoadingMore {
                 ProgressView()
@@ -363,7 +367,7 @@ private extension View {
     NavigationStack {
         TrackerDetailV1View(trackerID: "medication", receiver: TrackersFixtures.eleanor,
                             service: TrackersFixtures.service())
-            .v1Destinations(service: TrackersFixtures.service())
+            .v1Destinations(service: TrackersFixtures.service(), home: HomeFixtures.service())
     }
 }
 

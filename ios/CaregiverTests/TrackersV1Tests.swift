@@ -268,6 +268,19 @@ final class TrackerAttentionTextTests: XCTestCase {
                        "Nothing logged in 2 days. The team allows 1 day without an entry.")
     }
 
+    func testGapElapsedIsHoursUntilTwoDaysThenDays() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        func elapsed(_ hours: Double) -> String {
+            TrackerText.gapElapsed(since: now.addingTimeInterval(-hours * 3600), now: now)
+        }
+        XCTAssertEqual(elapsed(1), "1 hour")
+        XCTAssertEqual(elapsed(47.9), "47 hours")
+        XCTAssertEqual(elapsed(48), "2 days")
+        XCTAssertEqual(elapsed(24 * 4 + 5), "4 days")
+        XCTAssertEqual(TrackerText.gapElapsed(since: now.addingTimeInterval(3600), now: now), "0 hours",
+                       "a gap that starts ahead of now counts as none")
+    }
+
     func testDetailLines() {
         XCTAssertEqual(TrackerText.gapLine(hours: 72), "Alerts after 3 days without an entry")
         XCTAssertEqual(TrackerText.gapLine(hours: 24), "Alerts after 1 day without an entry")
@@ -532,38 +545,6 @@ final class EntriesPagerTests: XCTestCase {
     func testDayStringIsTheReceiversDate() {
         // 03:00 UTC on Nov 4 is Nov 3 in Chicago.
         XCTAssertEqual(TrackerText.dayString(Fixed.at("2026-11-04T03:00:00Z"), zone: Fixed.chicago), "2026-11-03")
-    }
-}
-
-// MARK: - Temporary entry
-
-@MainActor
-final class AllTrackersEntryModelTests: XCTestCase {
-    private let team = Account.Team(teamID: "team-riverside", name: "The Riverside Group", role: "admin")
-
-    func testOpensTheFirstReceiver() async {
-        let eleanor = TeamReceiver(id: "r1", name: "Eleanor", timeZone: Fixed.chicago)
-        let harold = TeamReceiver(id: "r2", name: "Harold", timeZone: Fixed.chicago)
-        let model = AllTrackersEntryModel(team: team, service: service(receivers: { _ in [eleanor, harold] }))
-        await model.open()
-        XCTAssertEqual(model.receiver?.id, eleanor.id)
-        XCTAssertEqual(model.receiver?.canManage, true, "an admin of the team manages its trackers")
-        XCTAssertEqual(model.outcome, .idle)
-    }
-
-    func testACaregiverReachesTheReceiverWithoutManaging() async {
-        let caregiver = Account.Team(teamID: "team-riverside", name: "The Riverside Group", role: "caregiver")
-        let eleanor = TeamReceiver(id: "r1", name: "Eleanor", timeZone: Fixed.chicago)
-        let model = AllTrackersEntryModel(team: caregiver, service: service(receivers: { _ in [eleanor] }))
-        await model.open()
-        XCTAssertEqual(model.receiver?.canManage, false)
-    }
-
-    func testATeamWithNoReceiversSaysSo() async {
-        let model = AllTrackersEntryModel(team: team, service: service(receivers: { _ in [] }))
-        await model.open()
-        XCTAssertNil(model.receiver)
-        XCTAssertEqual(model.outcome, .noReceivers(teamName: "The Riverside Group"))
     }
 }
 
