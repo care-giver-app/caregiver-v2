@@ -298,7 +298,10 @@ that was never planned. An entry logged ad hoc fulfilled nothing, and deleting i
 The same holds for a skip: deleting one returns the occurrence to waiting rather than erasing it.
 Editing a skipped entry into a logged one says the care happened after all, while deleting the skip
 says only that it should not have been skipped — and a caregiver who marked the wrong dose needs the
-second without having to claim the first.
+second without having to claim the first. The occurrence comes back only while its plan still
+stands. One whose time is still ahead, on a tracker paused since or from a schedule removed since,
+is simply gone, as pausing or removing would have taken it had it been waiting. One whose time has
+passed comes back unrecorded, as past care does when a tracker is paused.
 
 What comes back is the plan's pre-filled values and nothing a caregiver wrote. A note belongs to
 the record rather than the plan: it is what someone said when they logged or skipped the care, so
