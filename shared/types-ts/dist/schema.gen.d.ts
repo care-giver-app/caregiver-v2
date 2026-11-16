@@ -443,11 +443,15 @@ export interface paths {
         };
         /**
          * The care team's care receivers, oldest first
-         * @description Read-only here so the app can choose the active care receiver; adding, editing and archiving them belong to the Team area. Archived receivers are not listed. Any member may call it.
+         * @description Active receivers by default, which is what Team's list and the choice of the active care receiver read. `status=archived` lists the archived ones instead, for the group of their own on Care team. Any member may call it.
          */
         get: operations['listTeamReceivers'];
         put?: never;
-        post?: never;
+        /**
+         * Add care receiver — Add receiver (admin only)
+         * @description The time zone is required: every wall-clock time about this person — schedules, assignments, their day on Home — is read in it.
+         */
+        post: operations['addCareReceiver'];
         delete?: never;
         options?: never;
         head?: never;
@@ -816,6 +820,335 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/teams/{teamId}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One care team — its name and who is on it
+         * @description Every caregiver on the team and the role each holds, readable by any member rather than admins alone. Admins first, then by name. Only the people on it now: what a former teammate looks like here is an open gap in the PRD.
+         */
+        get: operations['getTeam'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/teams/{teamId}/close': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close this care team? — Close team
+         * @description Only for the last caregiver on the team. The team is archived and their membership ends, so nobody can reach it any longer, its receivers with it. Nothing recorded in it is erased; that is something support does on request.
+         */
+        post: operations['closeTeam'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/teams/{teamId}/invitations': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The care team's pending invitations, each with its code (admin only)
+         * @description Invitations not yet used and not yet expired, newest first. The code stays here to copy for as long as the invitation goes unused. Withdrawing one is an open gap in the PRD, so there is no way to here.
+         */
+        get: operations['listTeamInvitations'];
+        put?: never;
+        /**
+         * Invite a caregiver — Create invitation (admin only)
+         * @description Every invitation joins as a caregiver. The app sends no email; the admin copies the returned code and sends it themselves. Expires in fourteen days.
+         */
+        post: operations['inviteCaregiver'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/teams/{teamId}/members/{userId}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** A caregiver — Make admin or Make caregiver (admin only) */
+        put: operations['changeRole'];
+        post?: never;
+        /**
+         * Remove from this care team (admin), or Leave (yourself)
+         * @description An admin may remove anyone; any caregiver may remove themselves, which is leaving. Takes the access and not the record — every entry and journal note they wrote stays, under their name. Their place on the roster goes with it: their assignments still ahead are removed and any coverage schedule naming them ends today; past assignments stay.
+         */
+        delete: operations['removeMember'];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/teams/{teamId}/my-notifications': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Team notification settings — which kinds this team sends you
+         * @description The signed-in caregiver's own choices for this team, by kind for every receiver and tracker on it. All on until changed. The channels — push, email — are the account's, in Settings.
+         */
+        get: operations['getMyTeamNotifications'];
+        /**
+         * Team notification settings — turn a kind on or off
+         * @description Affects only the caller; nobody else on the team.
+         */
+        put: operations['changeMyTeamNotifications'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/receivers/{receiverId}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Care receiver — everything about the person that is not an entry
+         * @description Readable by every member, archived or not. Coverage is read separately (on-duty, assignments, coverage-schedules).
+         */
+        get: operations['getCareReceiver'];
+        /**
+         * Edit care receiver — Save (admin only)
+         * @description Changing the time zone keeps the receiver's routines at their wall-clock times: every future scheduled entry and assignment is re-resolved in the new zone. Nothing already past moves.
+         */
+        put: operations['changeCareReceiver'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/receivers/{receiverId}/archive': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive this care receiver? — Archive (admin only)
+         * @description Home, the receiver switcher and Quick log stop showing them, and nothing about them reminds or alerts anyone: their still-waiting future scheduled entries are removed and no more are made, as when a tracker is paused. Assignments are kept, since they remind nobody. Everything recorded stays readable from Team. Archiving one already archived returns 204.
+         */
+        post: operations['archiveCareReceiver'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/receivers/{receiverId}/restore': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Care receiver — Restore (admin only)
+         * @description Their schedules make scheduled entries again from now on, for trackers that are not paused. Care that came due while they were archived is not made after the fact. Restoring one already active returns 204.
+         */
+        post: operations['restoreCareReceiver'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/receivers/{receiverId}/care-instructions': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edit care instructions — Save (admin only)
+         * @description One free-form document. Records who changed it and when, which the Care receiver screen shows beside it. An empty body clears the instructions, and the screen goes back to saying none have been written.
+         */
+        put: operations['changeCareInstructions'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/receivers/{receiverId}/emergency-contacts': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Emergency contacts — Save (admin only)
+         * @description The whole list, in the order it should appear, replacing the one there. A contact sent with its `contact_id` keeps it; one without is new; one left out is removed. Does not change who last changed the care instructions — that stamp is about the written instructions alone.
+         */
+        put: operations['changeEmergencyContacts'];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/receivers/{receiverId}/on-duty': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who is on duty for this care receiver right now
+         * @description Every assignment covering this moment — more than one when they overlap. Empty when nobody is assigned, which is also every team that keeps no roster; Home and Care receiver then show nothing and "nobody assigned" respectively. A coordination signal only; it decides nothing.
+         */
+        get: operations['listOnDuty'];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/receivers/{receiverId}/assignments': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The assignments ahead, soonest first
+         * @description Every assignment that has not yet ended, made by hand or by a coverage schedule. Schedules are made ahead to the same rolling horizon as scheduled entries, so a rule's assignments appear here a few weeks out.
+         */
+        get: operations['listAssignmentsAhead'];
+        put?: never;
+        /**
+         * An assignment — Save, for a new one (admin only)
+         * @description One span of time one caregiver on this team is responsible for. May overlap others. Must end in the future and after it starts; times are local to the receiver.
+         */
+        post: operations['addAssignment'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/assignments/{assignmentId}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * An assignment — Save or Hand to someone else (admin only)
+         * @description Changes this one assignment and nothing else. One a coverage schedule made belongs to no rule afterward — its `coverage_schedule_id` is gone — so editing or removing the rule later leaves it as it is. An assignment that has already ended cannot be changed.
+         */
+        put: operations['changeAssignment'];
+        post?: never;
+        /**
+         * An assignment — Remove (admin only)
+         * @description Drops this one assignment and leaves the rule that made it exactly as it was; the rule does not make it again. An assignment that has already ended cannot be removed — it says who was responsible.
+         */
+        delete: operations['removeAssignment'];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/receivers/{receiverId}/coverage-schedules': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The coverage schedules behind the assignments
+         * @description Rules not removed, ended or not. Any member may read them.
+         */
+        get: operations['listCoverageSchedules'];
+        put?: never;
+        /**
+         * A coverage schedule — Save, for a new one (admin only)
+         * @description Starts today in the receiver's time zone, and makes its assignments ahead.
+         */
+        post: operations['addCoverageSchedule'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/coverage-schedules/{coverageScheduleId}': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * A coverage schedule — Save, for an existing one (admin only)
+         * @description Redraws the assignments still ahead of it from the new rule, except any already changed by hand, which belong to no rule and stay as they are. Nothing past moves. An end date in the past is refused; ending it today is how a rotation stops now.
+         */
+        put: operations['changeCoverageSchedule'];
+        post?: never;
+        /**
+         * Remove this coverage schedule? — Remove (admin only)
+         * @description The rule and every assignment it made that is still ahead go. Every assignment for a time already past stays, still saying who was responsible, as does any assignment changed by hand. Repeating a removal returns 204.
+         */
+        delete: operations['removeCoverageSchedule'];
         options?: never;
         head?: never;
         patch?: never;
@@ -1408,6 +1741,145 @@ export interface components {
             fields: components['schemas']['TrackerFieldWrite'][];
             gap_hours?: number;
         };
+        /** @enum {string} */
+        ReceiverStatus: 'active' | 'archived';
+        TeamMember: {
+            user_id: string;
+            name: string;
+            role: components['schemas']['Role'];
+        };
+        TeamDetail: {
+            team_id: string;
+            name: string;
+            my_role: components['schemas']['Role'];
+            /** @description Admins first, then by name */
+            members: components['schemas']['TeamMember'][];
+        };
+        TeamInvitation: {
+            /** @description The invite code to copy */
+            code: string;
+            /** Format: email */
+            email: string;
+            /** @description The inviting admin's name, or "a former caregiver" */
+            invited_by_name: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at: string;
+        };
+        NewInvitation: {
+            /** Format: email */
+            email: string;
+        };
+        RoleChange: {
+            role: components['schemas']['Role'];
+        };
+        /** @description Which kinds of reminder and alert this team sends the caller */
+        NotificationChoices: {
+            reminders: boolean;
+            range_alerts: boolean;
+            gap_alerts: boolean;
+            unrecorded_alerts: boolean;
+        };
+        NewCareReceiver: {
+            name: string;
+            /** @description An IANA zone */
+            time_zone: string;
+        };
+        CareReceiverChanges: {
+            name: string;
+            /** @description An IANA zone */
+            time_zone: string;
+        };
+        CareInstructions: {
+            body: string;
+            /** @description Who last changed the written instructions, or "a former caregiver" */
+            updated_by_name: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        EmergencyContact: {
+            contact_id: string;
+            name: string;
+            relationship: string;
+            /** @description As the admin typed it; the app dials it */
+            phone: string;
+        };
+        CareReceiverDetail: {
+            receiver_id: string;
+            team_id: string;
+            team_name: string;
+            name: string;
+            time_zone: string;
+            status: components['schemas']['ReceiverStatus'];
+            /** @description Present while archived */
+            archived_by_name?: string;
+            /** Format: date-time */
+            archived_at?: string;
+            care_instructions?: components['schemas']['CareInstructions'];
+            /** @description In the order the admin set; empty when there are none */
+            emergency_contacts: components['schemas']['EmergencyContact'][];
+        };
+        CareInstructionsWrite: {
+            body: string;
+        };
+        EmergencyContactWrite: {
+            /** @description Keep an existing contact; omit for a new one */
+            contact_id?: string;
+            name: string;
+            relationship: string;
+            phone: string;
+        };
+        EmergencyContactsWrite: {
+            contacts: components['schemas']['EmergencyContactWrite'][];
+        };
+        Assignment: {
+            assignment_id: string;
+            receiver_id: string;
+            user_id: string;
+            /** @description Who is responsible, or "a former caregiver" */
+            caregiver_name: string;
+            /** @description Local YYYY-MM-DDTHH:MM in the receiver's time zone */
+            starts_local: string;
+            /** @description Local YYYY-MM-DDTHH:MM */
+            ends_local: string;
+            /** Format: date-time */
+            starts_at: string;
+            /** Format: date-time */
+            ends_at: string;
+            /** @description The rule that made it; absent if made or since changed by hand */
+            coverage_schedule_id?: string;
+        };
+        AssignmentWrite: {
+            /** @description A caregiver on this team now */
+            user_id: string;
+            starts_local: string;
+            ends_local: string;
+        };
+        CoverageSchedule: {
+            coverage_schedule_id: string;
+            receiver_id: string;
+            user_id: string;
+            caregiver_name: string;
+            rule: components['schemas']['Recurrence'];
+            /** @description Local HH:MM */
+            start_time: string;
+            /** @description Local HH:MM; earlier than start_time means it runs past midnight */
+            end_time: string;
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on?: string;
+        };
+        CoverageScheduleWrite: {
+            /** @description A caregiver on this team now */
+            user_id: string;
+            rule: components['schemas']['Recurrence'];
+            start_time: string;
+            end_time: string;
+            /** Format: date */
+            ends_on?: string;
+        };
         Error: {
             message: string;
         };
@@ -1496,6 +1968,51 @@ export interface components {
         };
         /** @description The entry is not in a state this allows — somebody settled it first, it is still waiting, or its tracker is paused. Reload it and show what is there now. */
         EntryNotInState: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description A care team always has an admin. Refused to the last one demoting themselves, leaving, or being removed — promote someone first. */
+        LastAdmin: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description Only the last caregiver on a care team may close it; anyone else leaves. */
+        NotLastCaregiver: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description That address already belongs to someone on this care team. */
+        InviteeAlreadyMember: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description The care receiver is archived, and everything about them is read-only until an admin restores them. */
+        ReceiverArchived: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description The assignment has already ended, and stays as it is: it says who was responsible. */
+        AssignmentEnded: {
             headers: {
                 [name: string]: unknown;
             };
@@ -2414,7 +2931,9 @@ export interface operations {
     };
     listTeamReceivers: {
         parameters: {
-            query?: never;
+            query?: {
+                status?: components['schemas']['ReceiverStatus'];
+            };
             header?: never;
             path: {
                 teamId: string;
@@ -2432,6 +2951,37 @@ export interface operations {
                     'application/json': components['schemas']['CareReceiver'][];
                 };
             };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    addCareReceiver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['NewCareReceiver'];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CareReceiver'];
+                };
+            };
+            400: components['responses']['BadRequest'];
             401: components['responses']['Unauthorized'];
             403: components['responses']['Forbidden'];
             404: components['responses']['NotFound'];
@@ -3156,6 +3706,632 @@ export interface operations {
                 };
             };
             401: components['responses']['Unauthorized'];
+        };
+    };
+    getTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TeamDetail'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    closeTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['NotLastCaregiver'];
+        };
+    };
+    listTeamInvitations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TeamInvitation'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    inviteCaregiver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['NewInvitation'];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TeamInvitation'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['InviteeAlreadyMember'];
+        };
+    };
+    changeRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['RoleChange'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['TeamMember'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['LastAdmin'];
+        };
+    };
+    removeMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['LastAdmin'];
+        };
+    };
+    getMyTeamNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['NotificationChoices'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    changeMyTeamNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['NotificationChoices'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['NotificationChoices'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    getCareReceiver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CareReceiverDetail'];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    changeCareReceiver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['CareReceiverChanges'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CareReceiver'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['ReceiverArchived'];
+        };
+    };
+    archiveCareReceiver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    restoreCareReceiver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    changeCareInstructions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['CareInstructionsWrite'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CareReceiverDetail'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['ReceiverArchived'];
+        };
+    };
+    changeEmergencyContacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['EmergencyContactsWrite'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CareReceiverDetail'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['ReceiverArchived'];
+        };
+    };
+    listOnDuty: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Assignment'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    listAssignmentsAhead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Assignment'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    addAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['AssignmentWrite'];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Assignment'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['ReceiverArchived'];
+        };
+    };
+    changeAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['AssignmentWrite'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Assignment'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['AssignmentEnded'];
+        };
+    };
+    removeAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['AssignmentEnded'];
+        };
+    };
+    listCoverageSchedules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CoverageSchedule'][];
+                };
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    addCoverageSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receiverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['CoverageScheduleWrite'];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CoverageSchedule'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+            409: components['responses']['ReceiverArchived'];
+        };
+    };
+    changeCoverageSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                coverageScheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['CoverageScheduleWrite'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['CoverageSchedule'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
+        };
+    };
+    removeCoverageSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                coverageScheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['Forbidden'];
+            404: components['responses']['NotFound'];
         };
     };
 }

@@ -97,7 +97,9 @@ team: `notify_reminders`, `notify_range_alerts`, `notify_gap_alerts`, `notify_un
 (all default on). A membership is one caregiver on one team, so the choices are that caregiver's
 own — nobody else on the team is affected — and they cover every receiver and tracker in the team,
 matching the PRD's "by kind for the whole team, not tracker by tracker". Leaving or being removed
-deletes the row; the record stays because it points at the user, not the membership. "At least one
+deletes the row; the record stays because it points at the user, not the membership. It also
+deletes that caregiver's assignments still ahead on the team and ends any coverage schedule naming
+them that day (_amended in the Team endpoints gate_, per the PRD's _Care team_). "At least one
 admin" is enforced by the API in a transaction.
 
 **Invitation** (`invitation`, PK `code`; GSIs `team-index`, `email-index`; TTL `expires_at`) —
@@ -111,7 +113,9 @@ occurrence and assignment, which keeps their wall-clock times.
 
 **Care instructions** (`care-instructions`, PK `receiver_id`) — `team_id`, `body` (free text),
 `contacts` (ordered list of `{contact_id, name, relationship, phone}`), `updated_by`, `updated_at`.
-One per receiver. New.
+One per receiver. New. _Amended in the Team endpoints gate:_ `updated_by`/`updated_at` stamp the
+`body` alone — editing contacts does not change them — because the PRD shows that stamp beside the
+written instructions, and a phone number changing should not make a year-old instruction look new.
 
 **Tracker** (`tracker`, PK `tracker_id`; GSI `receiver-index`) — `receiver_id`, `team_id`, `name`,
 `icon`, `color`, `fields`, `gap_hours` (optional), `status` (`active|paused`),
@@ -179,6 +183,13 @@ one deletes its future assignments and keeps past ones.
 `starts_at`/`ends_at`, `coverage_schedule_id` (absent if made by hand), `created_by`,
 `updated_by`, `updated_at`. Handing one Tuesday to someone else changes `user_id` on that row only.
 New, materialized ahead like entries.
+
+_Amended in the Team endpoints gate:_ a generated assignment also carries `occurrence_local` (which
+of its rule's slots it fills) and, once an admin changes or removes it by hand, `detached_at`. A
+detached row belongs to no rule — the API stops reporting its `coverage_schedule_id` — so editing or
+removing the rule leaves it alone, per the PRD's _Coverage schedule_. A generated assignment removed
+by hand is kept as a `status: removed` row rather than deleted, so the generator does not make that
+slot again; nothing reads it otherwise.
 
 **Tracker template** — stays a catalogue in code (`templates.json`), not a table. A tracker keeps no
 tie to it.

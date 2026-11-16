@@ -625,11 +625,17 @@ paths:
       operationId: listTeamReceivers
       summary: The care team's care receivers, oldest first
       description: >
-        Read-only here so the app can choose the active care receiver; adding,
-        editing and archiving them belong to the Team area. Archived receivers are
-        not listed. Any member may call it.
+        Active receivers by default, which is what Team's list and the choice of
+        the active care receiver read. `status=archived` lists the archived ones
+        instead, for the group of their own on Care team. Any member may call it.
       parameters:
         - { name: teamId, in: path, required: true, schema: { type: string } }
+        - {
+            name: status,
+            in: query,
+            required: false,
+            schema: { $ref: '#/components/schemas/ReceiverStatus' },
+          }
       responses:
         '200':
           description: OK
@@ -638,6 +644,30 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/CareReceiver' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: addCareReceiver
+      summary: Add care receiver — Add receiver (admin only)
+      description: >
+        The time zone is required: every wall-clock time about this person —
+        schedules, assignments, their day on Home — is read in it.
+      parameters:
+        - { name: teamId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewCareReceiver' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CareReceiver' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -1226,6 +1256,489 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/CatalogTemplate' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/teams/{teamId}:
+    get:
+      operationId: getTeam
+      summary: One care team — its name and who is on it
+      description: >
+        Every caregiver on the team and the role each holds, readable by any
+        member rather than admins alone. Admins first, then by name. Only the
+        people on it now: what a former teammate looks like here is an open gap
+        in the PRD.
+      parameters:
+        - { name: teamId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/teams/{teamId}/close:
+    post:
+      operationId: closeTeam
+      summary: Close this care team? — Close team
+      description: >
+        Only for the last caregiver on the team. The team is archived and their
+        membership ends, so nobody can reach it any longer, its receivers with
+        it. Nothing recorded in it is erased; that is something support does on
+        request.
+      parameters:
+        - { name: teamId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/NotLastCaregiver' }
+  /v1/teams/{teamId}/invitations:
+    get:
+      operationId: listTeamInvitations
+      summary: The care team's pending invitations, each with its code (admin only)
+      description: >
+        Invitations not yet used and not yet expired, newest first. The code stays
+        here to copy for as long as the invitation goes unused. Withdrawing one is
+        an open gap in the PRD, so there is no way to here.
+      parameters:
+        - { name: teamId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TeamInvitation' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: inviteCaregiver
+      summary: Invite a caregiver — Create invitation (admin only)
+      description: >
+        Every invitation joins as a caregiver. The app sends no email; the admin
+        copies the returned code and sends it themselves. Expires in fourteen
+        days.
+      parameters:
+        - { name: teamId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewInvitation' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamInvitation' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/InviteeAlreadyMember' }
+  /v1/teams/{teamId}/members/{userId}:
+    put:
+      operationId: changeRole
+      summary: A caregiver — Make admin or Make caregiver (admin only)
+      parameters:
+        - { name: teamId, in: path, required: true, schema: { type: string } }
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleChange' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamMember' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/LastAdmin' }
+    delete:
+      operationId: removeMember
+      summary: Remove from this care team (admin), or Leave (yourself)
+      description: >
+        An admin may remove anyone; any caregiver may remove themselves, which is
+        leaving. Takes the access and not the record — every entry and journal
+        note they wrote stays, under their name. Their place on the roster goes
+        with it: their assignments still ahead are removed and any coverage
+        schedule naming them ends today; past assignments stay.
+      parameters:
+        - { name: teamId, in: path, required: true, schema: { type: string } }
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/LastAdmin' }
+  /v1/teams/{teamId}/my-notifications:
+    get:
+      operationId: getMyTeamNotifications
+      summary: Team notification settings — which kinds this team sends you
+      description: >
+        The signed-in caregiver's own choices for this team, by kind for every
+        receiver and tracker on it. All on until changed. The channels — push,
+        email — are the account's, in Settings.
+      parameters:
+        - { name: teamId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationChoices' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: changeMyTeamNotifications
+      summary: Team notification settings — turn a kind on or off
+      description: Affects only the caller; nobody else on the team.
+      parameters:
+        - { name: teamId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationChoices' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationChoices' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/receivers/{receiverId}:
+    get:
+      operationId: getCareReceiver
+      summary: Care receiver — everything about the person that is not an entry
+      description: >
+        Readable by every member, archived or not. Coverage is read separately
+        (on-duty, assignments, coverage-schedules).
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CareReceiverDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: changeCareReceiver
+      summary: Edit care receiver — Save (admin only)
+      description: >
+        Changing the time zone keeps the receiver's routines at their wall-clock
+        times: every future scheduled entry and assignment is re-resolved in the
+        new zone. Nothing already past moves.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CareReceiverChanges' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CareReceiver' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/ReceiverArchived' }
+  /v1/receivers/{receiverId}/archive:
+    post:
+      operationId: archiveCareReceiver
+      summary: Archive this care receiver? — Archive (admin only)
+      description: >
+        Home, the receiver switcher and Quick log stop showing them, and nothing
+        about them reminds or alerts anyone: their still-waiting future scheduled
+        entries are removed and no more are made, as when a tracker is paused.
+        Assignments are kept, since they remind nobody. Everything recorded stays
+        readable from Team. Archiving one already archived returns 204.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/receivers/{receiverId}/restore:
+    post:
+      operationId: restoreCareReceiver
+      summary: Care receiver — Restore (admin only)
+      description: >
+        Their schedules make scheduled entries again from now on, for trackers
+        that are not paused. Care that came due while they were archived is not
+        made after the fact. Restoring one already active returns 204.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/receivers/{receiverId}/care-instructions:
+    put:
+      operationId: changeCareInstructions
+      summary: Edit care instructions — Save (admin only)
+      description: >
+        One free-form document. Records who changed it and when, which the Care
+        receiver screen shows beside it. An empty body clears the instructions,
+        and the screen goes back to saying none have been written.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CareInstructionsWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CareReceiverDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/ReceiverArchived' }
+  /v1/receivers/{receiverId}/emergency-contacts:
+    put:
+      operationId: changeEmergencyContacts
+      summary: Emergency contacts — Save (admin only)
+      description: >
+        The whole list, in the order it should appear, replacing the one there.
+        A contact sent with its `contact_id` keeps it; one without is new; one
+        left out is removed. Does not change who last changed the care
+        instructions — that stamp is about the written instructions alone.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmergencyContactsWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CareReceiverDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/ReceiverArchived' }
+  /v1/receivers/{receiverId}/on-duty:
+    get:
+      operationId: listOnDuty
+      summary: Who is on duty for this care receiver right now
+      description: >
+        Every assignment covering this moment — more than one when they overlap.
+        Empty when nobody is assigned, which is also every team that keeps no
+        roster; Home and Care receiver then show nothing and "nobody assigned"
+        respectively. A coordination signal only; it decides nothing.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Assignment' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/receivers/{receiverId}/assignments:
+    get:
+      operationId: listAssignmentsAhead
+      summary: The assignments ahead, soonest first
+      description: >
+        Every assignment that has not yet ended, made by hand or by a coverage
+        schedule. Schedules are made ahead to the same rolling horizon as
+        scheduled entries, so a rule's assignments appear here a few weeks out.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Assignment' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: addAssignment
+      summary: An assignment — Save, for a new one (admin only)
+      description: >
+        One span of time one caregiver on this team is responsible for. May
+        overlap others. Must end in the future and after it starts; times are
+        local to the receiver.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignmentWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Assignment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/ReceiverArchived' }
+  /v1/assignments/{assignmentId}:
+    put:
+      operationId: changeAssignment
+      summary: An assignment — Save or Hand to someone else (admin only)
+      description: >
+        Changes this one assignment and nothing else. One a coverage schedule
+        made belongs to no rule afterward — its `coverage_schedule_id` is gone —
+        so editing or removing the rule later leaves it as it is. An assignment
+        that has already ended cannot be changed.
+      parameters:
+        - { name: assignmentId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignmentWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Assignment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/AssignmentEnded' }
+    delete:
+      operationId: removeAssignment
+      summary: An assignment — Remove (admin only)
+      description: >
+        Drops this one assignment and leaves the rule that made it exactly as it
+        was; the rule does not make it again. An assignment that has already
+        ended cannot be removed — it says who was responsible.
+      parameters:
+        - { name: assignmentId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/AssignmentEnded' }
+  /v1/receivers/{receiverId}/coverage-schedules:
+    get:
+      operationId: listCoverageSchedules
+      summary: The coverage schedules behind the assignments
+      description: Rules not removed, ended or not. Any member may read them.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CoverageSchedule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: addCoverageSchedule
+      summary: A coverage schedule — Save, for a new one (admin only)
+      description: Starts today in the receiver's time zone, and makes its assignments ahead.
+      parameters:
+        - { name: receiverId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CoverageScheduleWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoverageSchedule' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/ReceiverArchived' }
+  /v1/coverage-schedules/{coverageScheduleId}:
+    put:
+      operationId: changeCoverageSchedule
+      summary: A coverage schedule — Save, for an existing one (admin only)
+      description: >
+        Redraws the assignments still ahead of it from the new rule, except any
+        already changed by hand, which belong to no rule and stay as they are.
+        Nothing past moves. An end date in the past is refused; ending it today
+        is how a rotation stops now.
+      parameters:
+        - { name: coverageScheduleId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CoverageScheduleWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoverageSchedule' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: removeCoverageSchedule
+      summary: Remove this coverage schedule? — Remove (admin only)
+      description: >
+        The rule and every assignment it made that is still ahead go. Every
+        assignment for a time already past stays, still saying who was
+        responsible, as does any assignment changed by hand. Repeating a removal
+        returns 204.
+      parameters:
+        - { name: coverageScheduleId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: No Content }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 components:
   securitySchemes:
     bearerAuth:
@@ -1995,6 +2508,199 @@ components:
           type: array
           items: { $ref: '#/components/schemas/TrackerFieldWrite' }
         gap_hours: { type: integer }
+    ReceiverStatus:
+      type: string
+      enum: [active, archived]
+    TeamMember:
+      type: object
+      required: [user_id, name, role]
+      properties:
+        user_id: { type: string }
+        name: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+    TeamDetail:
+      type: object
+      required: [team_id, name, my_role, members]
+      properties:
+        team_id: { type: string }
+        name: { type: string }
+        my_role: { $ref: '#/components/schemas/Role' }
+        members:
+          type: array
+          description: Admins first, then by name
+          items: { $ref: '#/components/schemas/TeamMember' }
+    TeamInvitation:
+      type: object
+      required: [code, email, invited_by_name, created_at, expires_at]
+      properties:
+        code: { type: string, description: The invite code to copy }
+        email: { type: string, format: email }
+        invited_by_name:
+          type: string
+          description: The inviting admin's name, or "a former caregiver"
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+    NewInvitation:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+    RoleChange:
+      type: object
+      required: [role]
+      properties:
+        role: { $ref: '#/components/schemas/Role' }
+    NotificationChoices:
+      type: object
+      description: Which kinds of reminder and alert this team sends the caller
+      required: [reminders, range_alerts, gap_alerts, unrecorded_alerts]
+      properties:
+        reminders: { type: boolean }
+        range_alerts: { type: boolean }
+        gap_alerts: { type: boolean }
+        unrecorded_alerts: { type: boolean }
+    NewCareReceiver:
+      type: object
+      required: [name, time_zone]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        time_zone: { type: string, minLength: 1, description: An IANA zone }
+    CareReceiverChanges:
+      type: object
+      required: [name, time_zone]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        time_zone: { type: string, minLength: 1, description: An IANA zone }
+    CareInstructions:
+      type: object
+      required: [body, updated_by_name, updated_at]
+      properties:
+        body: { type: string }
+        updated_by_name:
+          type: string
+          description: Who last changed the written instructions, or "a former caregiver"
+        updated_at: { type: string, format: date-time }
+    EmergencyContact:
+      type: object
+      required: [contact_id, name, relationship, phone]
+      properties:
+        contact_id: { type: string }
+        name: { type: string }
+        relationship: { type: string }
+        phone: { type: string, description: As the admin typed it; the app dials it }
+    CareReceiverDetail:
+      type: object
+      required: [receiver_id, team_id, team_name, name, time_zone, status, emergency_contacts]
+      properties:
+        receiver_id: { type: string }
+        team_id: { type: string }
+        team_name: { type: string }
+        name: { type: string }
+        time_zone: { type: string }
+        status: { $ref: '#/components/schemas/ReceiverStatus' }
+        archived_by_name: { type: string, description: Present while archived }
+        archived_at: { type: string, format: date-time }
+        care_instructions:
+          $ref: '#/components/schemas/CareInstructions'
+        emergency_contacts:
+          type: array
+          description: In the order the admin set; empty when there are none
+          items: { $ref: '#/components/schemas/EmergencyContact' }
+    CareInstructionsWrite:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, maxLength: 20000 }
+    EmergencyContactWrite:
+      type: object
+      required: [name, relationship, phone]
+      properties:
+        contact_id: { type: string, description: Keep an existing contact; omit for a new one }
+        name: { type: string, minLength: 1, maxLength: 100 }
+        relationship: { type: string, maxLength: 100 }
+        phone: { type: string, minLength: 1, maxLength: 40 }
+    EmergencyContactsWrite:
+      type: object
+      required: [contacts]
+      properties:
+        contacts:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/EmergencyContactWrite' }
+    Assignment:
+      type: object
+      required:
+        [
+          assignment_id,
+          receiver_id,
+          user_id,
+          caregiver_name,
+          starts_local,
+          ends_local,
+          starts_at,
+          ends_at,
+        ]
+      properties:
+        assignment_id: { type: string }
+        receiver_id: { type: string }
+        user_id: { type: string }
+        caregiver_name:
+          type: string
+          description: Who is responsible, or "a former caregiver"
+        starts_local:
+          type: string
+          description: "Local YYYY-MM-DDTHH:MM in the receiver's time zone"
+        ends_local: { type: string, description: 'Local YYYY-MM-DDTHH:MM' }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        coverage_schedule_id:
+          type: string
+          description: The rule that made it; absent if made or since changed by hand
+    AssignmentWrite:
+      type: object
+      required: [user_id, starts_local, ends_local]
+      properties:
+        user_id: { type: string, description: A caregiver on this team now }
+        starts_local:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}T([01][0-9]|2[0-3]):[0-5][0-9]$'
+        ends_local:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}T([01][0-9]|2[0-3]):[0-5][0-9]$'
+    CoverageSchedule:
+      type: object
+      required:
+        [
+          coverage_schedule_id,
+          receiver_id,
+          user_id,
+          caregiver_name,
+          rule,
+          start_time,
+          end_time,
+          starts_on,
+        ]
+      properties:
+        coverage_schedule_id: { type: string }
+        receiver_id: { type: string }
+        user_id: { type: string }
+        caregiver_name: { type: string }
+        rule: { $ref: '#/components/schemas/Recurrence' }
+        start_time: { type: string, description: 'Local HH:MM' }
+        end_time:
+          type: string
+          description: Local HH:MM; earlier than start_time means it runs past midnight
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+    CoverageScheduleWrite:
+      type: object
+      required: [user_id, rule, start_time, end_time]
+      properties:
+        user_id: { type: string, description: A caregiver on this team now }
+        rule: { $ref: '#/components/schemas/Recurrence' }
+        start_time: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        end_time: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        ends_on: { type: string, format: date }
     Error:
       type: object
       required: [message]
@@ -2064,6 +2770,44 @@ components:
         The entry is not in a state this allows — somebody settled it first, it
         is still waiting, or its tracker is paused. Reload it and show what is
         there now.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    LastAdmin:
+      description: >
+        A care team always has an admin. Refused to the last one demoting
+        themselves, leaving, or being removed — promote someone first.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotLastCaregiver:
+      description: >
+        Only the last caregiver on a care team may close it; anyone else leaves.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InviteeAlreadyMember:
+      description: >
+        That address already belongs to someone on this care team.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ReceiverArchived:
+      description: >
+        The care receiver is archived, and everything about them is read-only
+        until an admin restores them.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    AssignmentEnded:
+      description: >
+        The assignment has already ended, and stays as it is: it says who was
+        responsible.
       content:
         application/json:
           schema:
