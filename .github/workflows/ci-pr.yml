@@ -156,7 +156,11 @@ jobs:
 
   ios:
     name: iOS build + test
-    runs-on: macos-15
+    runs-on: macos-26
+    env:
+      # Pin the Xcode CI builds with to the one used locally and for release,
+      # so a runner-image update can't swap the Swift compiler underneath us.
+      XCODE_VERSION: '26.2'
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -167,6 +171,12 @@ jobs:
               - 'ios/**'
               - 'shared/types-swift/**'
               - 'shared/openapi/openapi.yaml'
+              - '.github/workflows/ci-pr.yml'
+      - name: Select Xcode
+        if: steps.changes.outputs.ios == 'true'
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+          xcodebuild -version
       - name: Install XcodeGen
         if: steps.changes.outputs.ios == 'true'
         run: brew install xcodegen
