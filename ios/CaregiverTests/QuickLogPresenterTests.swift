@@ -70,6 +70,7 @@ final class QuickLogPresenterTests: XCTestCase {
     }
 }
 
+@MainActor
 final class EntryFieldInputsTests: XCTestCase {
     private func field(_ id: String, _ kind: FieldKind, paused: Bool = false) -> TrackerFieldInfo {
         TrackerFieldInfo(id: id, label: id, kind: kind, unit: nil, paused: paused, options: [])
