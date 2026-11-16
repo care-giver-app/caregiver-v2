@@ -68,8 +68,11 @@ something a family asks support for, which removes everything recorded about the
 after them. Every care receiver, tracker, and entry belongs to exactly one care team.
 
 A caregiver joins by invitation and may leave at any time; leaving takes away the access and not the
-record, so every entry and journal note they wrote stays exactly where it was, under their name. A
-team always has at least one admin, and nothing anyone does may leave it without one — the last
+record, so every entry and journal note they wrote stays exactly where it was, under their name.
+Their place on the roster goes with the access: the assignments still ahead of them are removed, and
+any coverage schedule that names them ends that day, so the team sees that time as uncovered rather
+than trusting it to someone who can no longer open the app. The assignments already past stay, still
+saying who was responsible. A team always has at least one admin, and nothing anyone does may leave it without one — the last
 admin cannot demote themselves, leave the team, or close their account until someone else has been
 promoted. A team with no admin could never invite a caregiver, add a receiver, or make a tracker
 again, and no path inside the app leads back out of that.
@@ -131,7 +134,11 @@ creating, changing, and reassigning a team's assignments and coverage schedules.
 8am–4pm". A care receiver can have any number of coverage schedules, which is what lets a team
 describe a real rotation. A schedule can end on a set date, so a temporary arrangement stops on its
 own. A single generated assignment can be handed to another caregiver without touching the rule
-behind it, so covering one Tuesday for someone does not rewrite the routine.
+behind it, so covering one Tuesday for someone does not rewrite the routine. Changing the rule
+later — a later start, a different day — redraws the assignments still ahead of it, except any that
+someone already changed by hand: the Tuesday somebody agreed to cover stays theirs, because tidying
+up a rule should not quietly undo a favor. An assignment changed that way belongs to no rule
+afterward, and stays or goes on its own.
 
 An admin can remove a schedule outright, and removing one stops the future without rewriting the
 past: the assignments it generated for days already gone stay, still saying who was responsible for
@@ -2113,7 +2120,8 @@ receiver, or make a tracker again, and nothing inside the app can undo it.
 
 Leaving takes away the access, not the record. A caregiver who leaves a team, or is removed from one,
 keeps nothing and loses nothing: every entry and journal note they wrote stays where it is, under
-their name, exactly as it does when a caregiver closes their account.
+their name, exactly as it does when a caregiver closes their account. The assignments still ahead
+of them go with them, for the same reason.
 
 **The teams you belong to.** Every care team, its care receivers, and the way into a new one.
 
@@ -2963,6 +2971,10 @@ put a family in it.
 - **Whether attempts at the current password are limited is unstated.** Change email and Change
   password both ask for it and both say plainly when it is wrong, which is right for someone already
   signed in — but nothing says how many tries a borrowed phone gets before the sheets stop asking.
+- **Whether closing an account frees its place on the roster is unstated.** A caregiver who leaves a
+  team, or is removed, takes their assignments still ahead and their coverage schedules with them, so
+  the team sees that time as uncovered. Nothing says the same happens when they close their account
+  instead, which would leave the roster trusting future days to someone who can no longer sign in.
 
 ### Insights
 
