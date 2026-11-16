@@ -3,8 +3,10 @@ import SwiftUI
 /// Tracker detail — one tracker, whole: what it is, how it is doing, and every
 /// entry logged, skipped or unrecorded against it, newest first (PRD "Tracker
 /// detail"; Figma 371:3339 active, 371:3397 never logged, 372:3371 gap alert,
-/// 372:3407 paused). Admins get Edit in the nav, and Resume on a paused tracker. Log an
-/// entry arrives with Home.
+/// 372:3407 paused). Admins get Edit in the nav, and Resume on a paused tracker. An
+/// active tracker offers Log an entry at the bottom — the never-logged state's offer of
+/// the first entry included — opening Quick log scoped to it; the screen reads itself
+/// again when a run saves.
 struct TrackerDetailV1View: View {
     let trackerID: String
     let receiver: TeamReceiver
@@ -18,6 +20,9 @@ struct TrackerDetailV1View: View {
     /// How Edit tracker ended, acted on once its sheet is down.
     @State private var editOutcome: EditTrackerOutcome?
     @Environment(\.v1PopToTrackers) private var popToTrackers
+    @Environment(\.v1QuickLog) private var quickLog
+    @Environment(\.v1QuickLogRuns) private var quickLogRuns
+    @Environment(\.v1HomeWrites) private var homeWrites
 
     private var zone: TimeZone { receiver.timeZone }
 
@@ -55,6 +60,10 @@ struct TrackerDetailV1View: View {
             }
         }
         .tint(Theme.Colors.accent)
+        // Back from Quick log, with what was logged in the list.
+        .onChange(of: quickLogRuns) { Task { await model?.load() } }
+        // An entry of this tracker may have been edited or deleted on Entry detail.
+        .onChange(of: homeWrites) { Task { await model?.load() } }
         .task {
             if let model {
                 // Back from Schedules, where Edit tracker may have changed it.
@@ -122,6 +131,11 @@ struct TrackerDetailV1View: View {
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.vertical, Theme.Spacing.sm)
+            } else {
+                // Figma 371:3339 / 371:3397.
+                StrideButton(title: "Log an entry") { quickLog(.tracker(id: profile.id), receiver: receiver) }
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .padding(.vertical, Theme.Spacing.sm)
             }
         }
     }

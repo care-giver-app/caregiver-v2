@@ -135,6 +135,36 @@ final class HomeModel {
         await loadAll()
     }
 
+    /// Back from a Quick log run that saved something (PRD "Quick log" exits): the whole
+    /// screen is read again, so a planning run's entries show under Coming up and a
+    /// logging run's in the day — on the day they were logged, if Home was showing
+    /// another, since a run's one time is today at the latest. A run for someone Home is
+    /// not showing (raised on another receiver's screen) is only a plain refresh: its day
+    /// says nothing about this receiver's timeline.
+    func reflect(_ outcome: QuickLogModel.Outcome) async {
+        guard outcome.savedAny, let receiver else { return }
+        if outcome.receiverID == receiver.id, !outcome.planning, let logged = outcome.latestDay,
+           logged != day, logged <= today {
+            day = logged
+            dayPhase = .loading
+        }
+        await loadAll()
+    }
+
+    /// Back from an edit or delete on Entry detail or Journal note (PRD "Edit entry",
+    /// "Delete this entry?", "Delete this note?"): the whole screen is read again. An edit
+    /// that moved an entry to another day takes the timeline with it — the day shown
+    /// becomes the one the entry now belongs to — so it does not seem to vanish the moment
+    /// it is corrected. A write about someone Home is not showing reads nothing.
+    func reflect(_ write: HomeWrite) async {
+        guard let receiver, write.receiverID == receiver.id else { return }
+        if let moved = write.movedTo, moved != day, moved <= today {
+            day = moved
+            dayPhase = .loading
+        }
+        await loadAll()
+    }
+
     func retry() async {
         phase = .loading
         dayPhase = .loading

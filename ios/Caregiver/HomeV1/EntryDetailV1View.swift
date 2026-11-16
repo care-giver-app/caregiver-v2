@@ -6,15 +6,39 @@ import SwiftUI
 /// named with the range it was expected to hold to; its fields and note; the schedule it
 /// came from; who logged or skipped it, and who changed it last.
 ///
-/// Reads only for now. What it offers by state (`EntryDetailContent.offers`) — Log it and
-/// Skip at the bottom, Edit in the nav, Delete at the bottom — arrives with Home's write
-/// side, and goes in `actions(_:)` and the toolbar here.
+/// What it offers goes by state (`EntryDetailContent.offers`): a scheduled or unrecorded
+/// entry offers Log it and Skip at the bottom (Figma 445:4258), each opening Quick log on
+/// this one entry with the choice made; it reads itself again when a run saves. A logged
+/// or skipped entry offers Edit in the nav and Delete at the bottom (Figma 445:4263,
+/// 445:4326), each raising its sheet over this screen. Saving an edit shows the entry as
+/// it now stands; deleting one that fulfilled a plan stays here showing it waiting again,
+/// while deleting one logged ad hoc goes back to Home. Every write is told to Home.
 struct EntryDetailV1View: View {
+    /// Edit entry or Delete this entry?, on the entry as it was when raised.
+    private enum Sheet: Identifiable {
+        case edit(EntryDetailInfo)
+        case delete(EntryDetailInfo)
+
+        var id: String {
+            switch self {
+            case .edit(let d): "edit-\(d.entry.id)"
+            case .delete(let d): "delete-\(d.entry.id)"
+            }
+        }
+    }
+
     let entryID: String
     let receiver: TeamReceiver
     let home: HomeService
 
     @State private var model: HomeReadModel<EntryDetailInfo>?
+    @State private var sheet: Sheet?
+    /// Set once the entry is gone for good; Home is gone back to as the sheet goes.
+    @State private var goHome = false
+    @Environment(\.v1QuickLog) private var quickLog
+    @Environment(\.v1QuickLogRuns) private var quickLogRuns
+    @Environment(\.v1HomeWrote) private var homeWrote
+    @Environment(\.v1PopToHome) private var popToHome
 
     var body: some View {
         Group {
@@ -25,6 +49,30 @@ struct EntryDetailV1View: View {
             }
         }
         .homePushedChrome()
+        .toolbar {
+            if let detail = model?.value, EntryOffer.offers(for: detail.entry.state).contains(.edit) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") { sheet = .edit(detail) }
+                        .font(.system(size: 15, weight: .medium))
+                }
+            }
+        }
+        .sheet(item: $sheet, onDismiss: {
+            guard goHome else { return }
+            goHome = false
+            popToHome()
+        }) { sheet in
+            switch sheet {
+            case .edit(let detail):
+                EditEntrySheet(model: EditEntryModel(detail, zone: receiver.timeZone, home: home),
+                               onSaved: saved, onFailed: editFailed)
+            case .delete(let detail):
+                DeleteEntrySheet(model: DeleteEntryModel(detail, home: home),
+                                 onDeleted: deleted, onFailed: { _ in reload() })
+            }
+        }
+        // Back from Quick log, which may have logged or skipped this entry.
+        .onChange(of: quickLogRuns) { Task { await model?.load() } }
         .task {
             // Every appearance reads it again: it may have been logged, edited or deleted since.
             if let model {
@@ -47,7 +95,9 @@ struct EntryDetailV1View: View {
         case .failed:
             StrideErrorState(message: "Couldn't load this entry.") { Task { await model.retry() } }
         case .loaded(let detail):
-            loaded(EntryDetailContent(detail, now: model.now, zone: receiver.timeZone), model: model)
+            let content = EntryDetailContent(detail, now: model.now, zone: receiver.timeZone)
+            loaded(content, model: model)
+                .safeAreaInset(edge: .bottom, spacing: 0) { actions(content.offers, detail: detail) }
         }
     }
 
@@ -94,6 +144,58 @@ struct EntryDetailV1View: View {
             .padding(.bottom, Theme.Spacing.lg)
         }
         .refreshable { await model.load() }
+    }
+
+    private func reload() {
+        Task { await model?.load() }
+    }
+
+    /// Edit entry saved: shown as it now stands, and Home told — with the day it moved to,
+    /// so the timeline behind this screen follows it there.
+    private func saved(_ saved: EditEntryModel.Saved) {
+        model?.replace(with: saved.detail)
+        homeWrote(HomeWrite(receiverID: receiver.id, movedTo: saved.movedTo))
+    }
+
+    /// Edit entry could not land. Deleted elsewhere goes back to Home as the sheet goes,
+    /// as a delete would; changed first reads this screen again behind it.
+    private func editFailed(_ failure: HomeEditFailure) {
+        guard failure.sendsHome else { return reload() }
+        homeWrote(HomeWrite(receiverID: receiver.id))
+        goHome = true
+    }
+
+    /// Delete this entry? landed: waiting again stays here, gone goes back to Home.
+    private func deleted(_ outcome: DeleteEntryModel.Outcome) {
+        homeWrote(HomeWrite(receiverID: receiver.id))
+        switch outcome {
+        case .waitingAgain(let detail): model?.replace(with: detail)
+        case .gone: goHome = true
+        }
+    }
+
+    /// Figma 445:4258: Log it, then Skip, both into Quick log at this entry's step.
+    /// Figma 445:4263: Delete, for a logged or skipped entry.
+    @ViewBuilder
+    private func actions(_ offers: [EntryOffer], detail: EntryDetailInfo) -> some View {
+        if offers.contains(.delete) {
+            StrideButton(title: "Delete", style: .destructive) { sheet = .delete(detail) }
+                .padding(.horizontal, Theme.Spacing.lg)
+                .padding(.vertical, Theme.Spacing.sm)
+        } else if offers.contains(.logIt) || offers.contains(.skip) {
+            VStack(spacing: 10) {
+                if offers.contains(.logIt) {
+                    StrideButton(title: "Log it") { quickLog(.entry(detail, choice: .logIt), receiver: receiver) }
+                }
+                if offers.contains(.skip) {
+                    StrideButton(title: "Skip", style: .secondary) {
+                        quickLog(.entry(detail, choice: .skip), receiver: receiver)
+                    }
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.vertical, Theme.Spacing.sm)
+        }
     }
 
     /// Figma 445:4287 (out of range, red) / 445:4235 (unrecorded, amber).

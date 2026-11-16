@@ -118,6 +118,31 @@ struct HomeService: Sendable {
     var entry: @Sendable (_ entryID: String) async throws -> EntryDetailInfo
     var journalNote: @Sendable (_ noteID: String) async throws -> JournalNoteInfo
 
+    // Quick log's waiting read and Home's writes (`HomeWrites.swift`). Unstubbed by
+    // default, so a test states the ones it reaches.
+
+    /// The occurrences Quick log's picker leads with: unrecorded from the last 48 hours
+    /// oldest first, then the rest of today's scheduled, soonest first.
+    var waiting: @Sendable (_ receiverID: String) async throws -> [ReceiverEntryItem] = { _ in throw Unstubbed() }
+    /// 409 on a paused tracker is thrown as `EntryNotInState`, as are the other 409s below.
+    var addEntry: @Sendable (_ trackerID: String, _ entry: NewEntryWrite) async throws -> EntryDetailInfo
+        = { _, _ in throw Unstubbed() }
+    var logEntry: @Sendable (_ entryID: String, _ care: EntryCareWrite) async throws -> EntryDetailInfo
+        = { _, _ in throw Unstubbed() }
+    var skipEntry: @Sendable (_ entryID: String, _ note: String?) async throws -> EntryDetailInfo
+        = { _, _ in throw Unstubbed() }
+    var changeEntry: @Sendable (_ entryID: String, _ care: EntryCareWrite) async throws -> EntryDetailInfo
+        = { _, _ in throw Unstubbed() }
+    /// The entry waiting again when it fulfilled a plan that still stands; nil when it is gone.
+    var deleteEntry: @Sendable (_ entryID: String) async throws -> EntryDetailInfo? = { _ in throw Unstubbed() }
+    var addJournalNote: @Sendable (_ receiverID: String, _ note: NoteWrite) async throws -> JournalNoteInfo
+        = { _, _ in throw Unstubbed() }
+    var changeJournalNote: @Sendable (_ noteID: String, _ note: NoteWrite) async throws -> JournalNoteInfo
+        = { _, _ in throw Unstubbed() }
+    var deleteJournalNote: @Sendable (_ noteID: String) async throws -> Void = { _ in throw Unstubbed() }
+
+    struct Unstubbed: Error {}
+
     static func live(_ client: Client) -> HomeService {
         HomeService(
             needsAttention: { receiverID, limit in
@@ -174,7 +199,7 @@ struct HomeService: Sendable {
                 case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
                 }
             }
-        )
+        ).withWrites(client)
     }
 }
 

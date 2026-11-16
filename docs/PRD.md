@@ -1090,8 +1090,8 @@ a thumb touches a row in a sheet opened to log something else.
 The picker always offers an admin a new tracker, and taking it ends the run: Quick log is dismissed
 and Add tracker takes its place, so nobody ends up with a logging sheet buried under a setup sheet.
 Little is lost, because the picker is the run's first part and at most a selection goes with it — and
-cancelling the new tracker lands on Home, which is where a caregiver who abandoned the whole errand
-belongs. A receiver with no active trackers leaves the picker holding a journal note and that offer,
+cancelling the new tracker lands back on the screen Quick log was raised over, which is where a
+caregiver who abandoned the whole errand was standing. A receiver with no active trackers leaves the picker holding a journal note and that offer,
 while a caregiver who is not an admin is told an admin sets the trackers up, in the same words Home
 uses.
 
@@ -1101,9 +1101,17 @@ say about a day that has not happened. Waiting occurrences leave it on a future 
 of that reason: they are already plans, and there is nothing to plan about a plan.
 
 The run ends on a result that reports item by item, since some may save while others do not, and a
-caregiver who has just entered five things needs to know which of them landed. A logging run returns
-to a Home that already reflects the new entries; a planning run returns to a Home where they sit
-under what is coming up rather than in the day behind it.
+caregiver who has just entered five things needs to know which of them landed. An item that failed
+to send — the connection dropped, the server stumbled — can be sent again from the result, because
+what the caregiver entered is still good and running the whole thing again to resend one line would
+cost everything that did land. An item refused because someone settled it first, or its tracker was
+paused, is not offered again, since sending it a second time would meet the same answer.
+
+Done and Cancel both return to the screen Quick log was raised over, refreshed when anything saved,
+because the ⊕ button sits in the tab bar wherever a caregiver is and a sheet that closed onto a
+different tab would lose their place. Raised over Home, a logging run returns to a Home that already
+reflects the new entries; a planning run returns to a Home where they sit under what is coming up
+rather than in the day behind it.
 
 #### Screens
 
@@ -1418,19 +1426,23 @@ under what is coming up rather than in the day behind it.
       a picked occurrence's step offers Log it or Skip, with a note either way,
       so one run covers an evening where two doses were given and one was held
     - >
-      a result reporting item by item, since some may save while others do not
+      a result reporting item by item, since some may save while others do not;
+      an item that failed to send can be sent again from it
     - Add a tracker — admins only, offered whatever else the picker holds
   exits:
     - action: Done, after a logging run
+      when: raised from Home
       to: Home, with the new entries in the day behind it
       as: back
     - action: Done, after a planning run
+      when: raised from Home
       to: Home, with the new entries under what is coming up
       as: back
     - action: Done, raised from Tracker detail
       to: Tracker detail, with what was logged in its list
       as: back
     - action: Cancel
+      when: raised from Home
       to: Home
       as: back
     - action: Cancel, raised from Tracker detail
@@ -1479,6 +1491,11 @@ under what is coming up rather than in the day behind it.
   appointment two weeks out, appears nowhere as an upcoming entry until it is the next one. A
   tracker's Schedules screen says when its doses repeat, but a one-off planned entry sitting behind
   another has no place to be seen in advance.
+- **A journal note moved to another day leaves the timeline where it was.** An edited entry takes
+  the timeline with it to its new day, so the correction does not appear to vanish, but nothing says
+  the same of a note whose time is changed to Monday from a Tuesday timeline. The app stays on the
+  day it was showing, where the note is now missing. Whether a note should follow its entry's rule
+  is open.
 - **A point on a chart does not open its entry.** The timeline, needs attention, Coming up, and a
   tracker's own list all lead to Entry detail, but a reading a caregiver has picked out of an insight
   is an entry they are looking at with no way to open it. Insights is deferred, so this waits with
@@ -1865,7 +1882,7 @@ reading questions.
       as: back
     - action: Cancel
       when: it replaced Quick log
-      to: Home
+      to: Home, or whichever screen Quick log was raised over
       as: back
 
 - screen: Edit tracker
