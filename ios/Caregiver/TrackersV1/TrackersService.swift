@@ -295,6 +295,7 @@ struct TrackersService: Sendable {
             listReceivers: { teamID in
                 switch try await client.listTeamReceivers(path: .init(teamId: teamID)) {
                 case .ok(let ok): return try ok.body.json.map(TeamReceiver.init)
+                case .badRequest: throw AppError.forStatus(400, serverMessage: nil)
                 case .unauthorized: throw AppError.forStatus(401, serverMessage: nil)
                 case .forbidden: throw AppError.forStatus(403, serverMessage: nil)
                 case .notFound: throw AppError.forStatus(404, serverMessage: nil)
