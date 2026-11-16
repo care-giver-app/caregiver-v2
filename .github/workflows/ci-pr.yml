@@ -131,6 +131,21 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+      # The smoke test exercises the API, so only a change that can alter what dev serves runs it.
+      # The deploy still runs on every PR, so dev always holds the PR's branch.
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'api/**'
+              - 'services/**'
+              - 'shared/go-common/**'
+              - 'shared/types-go/**'
+              - 'shared/openapi/openapi.yaml'
+              - 'infra/**'
+              - 'pnpm-lock.yaml'
+              - '.github/workflows/ci-pr.yml'
       - uses: pnpm/action-setup@v4
         # Version comes from package.json `packageManager` field; do NOT add `with: version`.
       - uses: actions/setup-node@v4
@@ -152,6 +167,7 @@ jobs:
       # Same job as the deploy, so the deploy-dev lock keeps another PR from redeploying dev
       # between the two. Creates throwaway Cognito users and rows, and deletes them afterwards.
       - name: Smoke test dev (api/features)
+        if: steps.changes.outputs.backend == 'true'
         run: make -C api smoke-dev
 
   ios:

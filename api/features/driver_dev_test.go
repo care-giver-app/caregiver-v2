@@ -9,12 +9,14 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	cip "github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
+	ciptypes "github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/store"
@@ -23,14 +25,14 @@ import (
 const devRegion = "us-east-2"
 
 // devDriver runs the features against the deployed dev API with real Cognito
-// users. Cognito is driven through the aws CLI rather than the SDK, so the
-// suite adds no Cognito module to go.mod; the CLI is already needed to deploy.
-// Everything it makes is deleted in the After hook, pass or fail.
+// users, made through the Cognito SDK (the aws CLI cost about a second of
+// start-up per call, four calls per person). Everything it makes is deleted in the After hook, pass or fail.
 type devDriver struct {
 	base         string
 	poolID       string
 	clientID     string
 	http         *http.Client
+	cognito      *cip.Client
 	t            tables
 	createdUsers []string // Cognito usernames, recorded the moment each exists
 }
@@ -50,7 +52,8 @@ func newDevDriver(t *testing.T) *devDriver {
 	}
 	return &devDriver{
 		base: strings.TrimRight(base, "/"), poolID: poolID, clientID: clientID,
-		http: &http.Client{Timeout: 30 * time.Second},
+		http:    &http.Client{Timeout: 30 * time.Second},
+		cognito: cip.NewFromConfig(cfg),
 		t: tables{client: dynamodb.NewFromConfig(cfg), names: store.TableNames{
 			Users:        "caregiver-dev-v1-user",
 			Teams:        "caregiver-dev-v1-team",
@@ -65,38 +68,48 @@ func newDevDriver(t *testing.T) *devDriver {
 	}
 }
 
-func (d *devDriver) aws(ctx context.Context, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, "aws", append(args, "--region", devRegion)...)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("aws %s: %v: %s", strings.Join(args[:2], " "), err, strings.TrimSpace(stderr.String()))
-	}
-	return strings.TrimSpace(stdout.String()), nil
-}
-
 func (d *devDriver) newPerson(ctx context.Context, p *person) error {
 	password := "Feat-" + strings.ReplaceAll(p.email, "@", "-") + "-aA1"
-	sub, err := d.aws(ctx, "cognito-idp", "admin-create-user", "--user-pool-id", d.poolID, "--username", p.email,
-		"--message-action", "SUPPRESS",
-		"--user-attributes", "Name=email,Value="+p.email, "Name=email_verified,Value=true", "Name=name,Value="+p.label,
-		"--query", "User.Attributes[?Name=='sub'].Value | [0]", "--output", "text")
+	created, err := d.cognito.AdminCreateUser(ctx, &cip.AdminCreateUserInput{
+		UserPoolId:    aws.String(d.poolID),
+		Username:      aws.String(p.email),
+		MessageAction: ciptypes.MessageActionTypeSuppress,
+		UserAttributes: []ciptypes.AttributeType{
+			{Name: aws.String("email"), Value: aws.String(p.email)},
+			{Name: aws.String("email_verified"), Value: aws.String("true")},
+			{Name: aws.String("name"), Value: aws.String(p.label)},
+		},
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("cognito admin-create-user: %w", err)
 	}
 	d.createdUsers = append(d.createdUsers, p.email)
-	p.userID = sub
-	if _, err := d.aws(ctx, "cognito-idp", "admin-set-user-password", "--user-pool-id", d.poolID,
-		"--username", p.email, "--password", password, "--permanent"); err != nil {
-		return err
+	for _, a := range created.User.Attributes {
+		if aws.ToString(a.Name) == "sub" {
+			p.userID = aws.ToString(a.Value)
+		}
 	}
-	tok, err := d.aws(ctx, "cognito-idp", "admin-initiate-auth", "--user-pool-id", d.poolID, "--client-id", d.clientID,
-		"--auth-flow", "ADMIN_USER_PASSWORD_AUTH", "--auth-parameters", "USERNAME="+p.email+",PASSWORD="+password,
-		"--query", "AuthenticationResult.IdToken", "--output", "text")
+	if p.userID == "" {
+		return fmt.Errorf("cognito admin-create-user: no sub for %s", p.email)
+	}
+	if _, err := d.cognito.AdminSetUserPassword(ctx, &cip.AdminSetUserPasswordInput{
+		UserPoolId: aws.String(d.poolID), Username: aws.String(p.email),
+		Password: aws.String(password), Permanent: true,
+	}); err != nil {
+		return fmt.Errorf("cognito admin-set-user-password: %w", err)
+	}
+	auth, err := d.cognito.AdminInitiateAuth(ctx, &cip.AdminInitiateAuthInput{
+		UserPoolId: aws.String(d.poolID), ClientId: aws.String(d.clientID),
+		AuthFlow:       ciptypes.AuthFlowTypeAdminUserPasswordAuth,
+		AuthParameters: map[string]string{"USERNAME": p.email, "PASSWORD": password},
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("cognito admin-initiate-auth: %w", err)
 	}
-	p.token = tok
+	if auth.AuthenticationResult == nil {
+		return fmt.Errorf("cognito admin-initiate-auth: challenge %s instead of tokens", auth.ChallengeName)
+	}
+	p.token = aws.ToString(auth.AuthenticationResult.IdToken)
 	return nil
 }
 
@@ -141,8 +154,10 @@ func (d *devDriver) cleanup(ctx context.Context, rows []rowKey, _ []*person) err
 		}
 	}
 	for _, u := range d.createdUsers {
-		if _, err := d.aws(ctx, "cognito-idp", "admin-delete-user", "--user-pool-id", d.poolID, "--username", u); err != nil {
-			errs = append(errs, err)
+		if _, err := d.cognito.AdminDeleteUser(ctx, &cip.AdminDeleteUserInput{
+			UserPoolId: aws.String(d.poolID), Username: aws.String(u),
+		}); err != nil {
+			errs = append(errs, fmt.Errorf("cognito admin-delete-user %s: %w", u, err))
 		}
 	}
 	d.createdUsers = nil

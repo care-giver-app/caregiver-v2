@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-lambda-go v1.54.0
 	github.com/aws/aws-sdk-go-v2 v1.41.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.41
+	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.59.0
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.56.0
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2
 	github.com/care-giver-app/caregiver-v2/shared/go-common v0.0.0-00010101000000-000000000000
