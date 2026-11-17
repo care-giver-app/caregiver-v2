@@ -392,7 +392,13 @@ func (s *EntryStore) CreateIfAbsent(ctx context.Context, e domain.Entry) (bool, 
 // is after now — every occurrence of theirs still to come — oldest first, via
 // the sparse open-index.
 func (s *EntryStore) FutureOpenByReceiver(ctx context.Context, receiverID string, now time.Time) ([]domain.Entry, error) {
-	return queryAll[domain.Entry](ctx, s.client, &dynamodb.QueryInput{
+	return queryAll[domain.Entry](ctx, s.client, s.futureOpenByReceiver(receiverID, now))
+}
+
+// futureOpenByReceiver queries the open-index for the receiver's scheduled
+// entries whose open_at is after now.
+func (s *EntryStore) futureOpenByReceiver(receiverID string, now time.Time) *dynamodb.QueryInput {
+	return &dynamodb.QueryInput{
 		TableName:              aws.String(s.table),
 		IndexName:              aws.String(openIndex),
 		KeyConditionExpression: aws.String("receiver_id = :r AND open_at > :now"),
@@ -401,7 +407,20 @@ func (s *EntryStore) FutureOpenByReceiver(ctx context.Context, receiverID string
 			":now": timeKey(now),
 		},
 		ScanIndexForward: aws.Bool(true),
-	})
+	}
+}
+
+// DeleteFutureOpenForReceiver deletes the receiver's scheduled entries whose
+// open_at is after now, across all their trackers, via the open-index — what
+// archiving a receiver, or closing their team, removes. It is
+// DeleteFutureOpenForTracker for every tracker of theirs at once: logged,
+// skipped and already-unrecorded entries stay, each delete is conditional on
+// the entry still being scheduled, and repeating it is safe. It returns how
+// many were deleted.
+func (s *EntryStore) DeleteFutureOpenForReceiver(ctx context.Context, receiverID string, now time.Time) (int, error) {
+	in := s.futureOpenByReceiver(receiverID, now)
+	in.ProjectionExpression = aws.String("entry_id")
+	return s.deleteStillScheduled(ctx, in)
 }
 
 // Retime moves a scheduled entry's occurrence to at — occurrence_at, and with

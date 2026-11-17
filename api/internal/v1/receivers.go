@@ -155,14 +155,10 @@ type careReceiverDetail struct {
 	EmergencyContacts []emergencyContact    `json:"emergency_contacts"`
 }
 
-// writeDetail writes the Care receiver screen's data for rc with status.
-func (h *Receivers) writeDetail(w http.ResponseWriter, r *http.Request, status int, rc domain.Receiver) {
+// writeDetail writes the Care receiver screen's data for rc, on team, with
+// status.
+func (h *Receivers) writeDetail(w http.ResponseWriter, r *http.Request, status int, rc domain.Receiver, team domain.Team) {
 	ctx := r.Context()
-	team, err := h.stores.Teams.Get(ctx, rc.TeamID)
-	if err != nil {
-		httpx.ServerError(w, r, err, "team load failed")
-		return
-	}
 	ci, err := h.stores.CareInstructions.Get(ctx, rc.ReceiverID)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		httpx.ServerError(w, r, err, "care instructions load failed")
@@ -210,14 +206,11 @@ func (h *Receivers) Get(w http.ResponseWriter, r *http.Request) {
 	if c == nil {
 		return
 	}
-	rc, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
-	if !ok {
+	rc, team, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
+	if !ok || !requireTeamRole(w, r, h.stores, c, rc.TeamID, false) {
 		return
 	}
-	if _, ok := loadTeam(w, r, h.stores, rc.TeamID); !ok || !requireTeamRole(w, r, h.stores, c, rc.TeamID, false) {
-		return
-	}
-	h.writeDetail(w, r, http.StatusOK, rc)
+	h.writeDetail(w, r, http.StatusOK, rc, team)
 }
 
 // Change serves PUT /v1/receivers/{receiverId} (Edit care receiver). Admins
@@ -228,7 +221,7 @@ func (h *Receivers) Change(w http.ResponseWriter, r *http.Request) {
 	if c == nil {
 		return
 	}
-	rc, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
+	rc, _, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
 	if !ok || !requireTeamRole(w, r, h.stores, c, rc.TeamID, true) || refuseArchived(w, rc) {
 		return
 	}
@@ -271,7 +264,7 @@ func (h *Receivers) Archive(w http.ResponseWriter, r *http.Request) {
 	if c == nil {
 		return
 	}
-	rc, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
+	rc, _, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
 	if !ok || !requireTeamRole(w, r, h.stores, c, rc.TeamID, true) {
 		return
 	}
@@ -284,16 +277,9 @@ func (h *Receivers) Archive(w http.ResponseWriter, r *http.Request) {
 		httpx.ServerError(w, r, err, "archive failed")
 		return
 	}
-	trackers, err := h.stores.Trackers.ListByReceiver(ctx, rc.ReceiverID)
-	if err != nil {
-		httpx.ServerError(w, r, err, "tracker load failed")
+	if _, err := h.stores.Entries.DeleteFutureOpenForReceiver(ctx, rc.ReceiverID, now); err != nil {
+		httpx.ServerError(w, r, err, "archive failed")
 		return
-	}
-	for _, t := range trackers {
-		if _, err := h.stores.Entries.DeleteFutureOpenForTracker(ctx, t.TrackerID, now); err != nil {
-			httpx.ServerError(w, r, err, "archive failed")
-			return
-		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -307,7 +293,7 @@ func (h *Receivers) Restore(w http.ResponseWriter, r *http.Request) {
 	if c == nil {
 		return
 	}
-	rc, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
+	rc, _, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
 	if !ok || !requireTeamRole(w, r, h.stores, c, rc.TeamID, true) {
 		return
 	}
@@ -380,7 +366,7 @@ func (h *Receivers) ChangeCareInstructions(w http.ResponseWriter, r *http.Reques
 	if c == nil {
 		return
 	}
-	rc, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
+	rc, team, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
 	if !ok || !requireTeamRole(w, r, h.stores, c, rc.TeamID, true) || refuseArchived(w, rc) {
 		return
 	}
@@ -403,7 +389,7 @@ func (h *Receivers) ChangeCareInstructions(w http.ResponseWriter, r *http.Reques
 	if writeCareErr(w, r, h.stores.SetCareInstructionsBody(r.Context(), rc, body, c.UserID, h.now().UTC())) {
 		return
 	}
-	h.writeDetail(w, r, http.StatusOK, rc)
+	h.writeDetail(w, r, http.StatusOK, rc, team)
 }
 
 // ChangeEmergencyContacts serves PUT /v1/receivers/{receiverId}/emergency-contacts.
@@ -415,7 +401,7 @@ func (h *Receivers) ChangeEmergencyContacts(w http.ResponseWriter, r *http.Reque
 	if c == nil {
 		return
 	}
-	rc, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
+	rc, team, ok := loadAnyReceiver(w, r, h.stores, r.PathValue("receiverId"))
 	if !ok || !requireTeamRole(w, r, h.stores, c, rc.TeamID, true) || refuseArchived(w, rc) {
 		return
 	}
@@ -453,5 +439,5 @@ func (h *Receivers) ChangeEmergencyContacts(w http.ResponseWriter, r *http.Reque
 	if writeCareErr(w, r, h.stores.SetEmergencyContacts(ctx, rc, contacts)) {
 		return
 	}
-	h.writeDetail(w, r, http.StatusOK, rc)
+	h.writeDetail(w, r, http.StatusOK, rc, team)
 }

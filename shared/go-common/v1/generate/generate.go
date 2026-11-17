@@ -249,8 +249,11 @@ func activeOptions(f domain.Field, v any) (any, bool) {
 // Result is what one Generate call did.
 type Result struct {
 	// Skipped is true when nothing was generated because the schedule is
-	// removed, its tracker paused, or its receiver archived — found so before
-	// it ran, or while it ran, when what it wrote is taken back.
+	// removed, its tracker paused, its receiver archived or its team closed —
+	// found so before it ran, or while it ran, when what it wrote is taken
+	// back. A closed team is only found on the re-read after writing: callers
+	// already know their team is open (the API routes refuse a closed team,
+	// and the daily run skips them), so Generate does not read it first.
 	Skipped bool
 	// Written counts the entries created; Present those already there (an
 	// earlier run's, or one already logged or skipped), which are left as they are.
@@ -275,13 +278,13 @@ var afterWrite func()
 // write is conditional on the entry id not existing, so re-runs and concurrent
 // runs never duplicate an occurrence and never overwrite one already logged or
 // skipped. It does nothing for a removed schedule, a paused tracker, or an
-// archived receiver.
+// archived receiver, and takes back what it wrote for a closed team.
 //
 // The schedule, tracker and receiver it is handed may be stale by the time its
 // writes land: a removal, pause, archive or change may have deleted the
 // occurrences waiting before this run wrote its own. So once written it
-// re-reads all three. If the schedule is removed, the tracker paused or the
-// receiver archived, it takes back what it wrote and reports Skipped. If the
+// re-reads all three, and the team. If the schedule is removed, the tracker
+// paused, the receiver archived or the team closed, it takes back what it wrote and reports Skipped. If the
 // schedule changed (its updated_at moved), or the receiver's time zone did, it
 // takes back what it wrote and starts over from them as they now are. The bookmark is written only on
 // condition the schedule is still live and unchanged, and a refused bookmark
@@ -299,26 +302,31 @@ func Generate(ctx context.Context, s *store.Stores, sc domain.Schedule, t domain
 	}
 }
 
-// current is a schedule, its tracker and its receiver as last read.
+// current is a schedule, its tracker, its receiver and its team as last read.
 type current struct {
 	sc   domain.Schedule
 	t    domain.Tracker
 	rc   domain.Receiver
-	gone bool // one of the three no longer exists
+	team domain.Team
+	gone bool // one of the four no longer exists
 }
 
-// live reports whether the schedule should still be generating.
+// live reports whether the schedule should still be generating: not removed,
+// its tracker not paused, its receiver not archived and its team not closed.
 func (c current) live() bool {
-	return !c.gone && c.sc.RemovedAt == nil && c.t.Status != domain.TrackerPaused && c.rc.Status != domain.ReceiverArchived
+	return !c.gone && c.sc.RemovedAt == nil && c.t.Status != domain.TrackerPaused &&
+		c.rc.Status != domain.ReceiverArchived && c.team.Status != domain.TeamArchived
 }
 
-// reread reads the schedule, tracker and receiver afresh.
+// reread reads the schedule, tracker, receiver and team afresh.
 func reread(ctx context.Context, s *store.Stores, sc domain.Schedule) (current, error) {
 	var c current
 	var err error
 	if c.sc, err = s.Schedules.Get(ctx, sc.ScheduleID); err == nil {
 		if c.t, err = s.Trackers.Get(ctx, sc.TrackerID); err == nil {
-			c.rc, err = s.Receivers.Get(ctx, sc.ReceiverID)
+			if c.rc, err = s.Receivers.Get(ctx, sc.ReceiverID); err == nil {
+				c.team, err = s.Teams.Get(ctx, sc.TeamID)
+			}
 		}
 	}
 	if errors.Is(err, store.ErrNotFound) {

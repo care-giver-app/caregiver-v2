@@ -171,7 +171,35 @@ func TestTeam_Close(t *testing.T) {
 	want(t, f.do("admin", http.MethodPost, "/v1/teams/t1/close", ""), http.StatusConflict)
 	want(t, f.do("out", http.MethodPost, "/v1/teams/t1/close", ""), http.StatusForbidden)
 	want(t, f.do("cg", http.MethodDelete, "/v1/teams/t1/members/cg", ""), http.StatusNoContent)
+
+	// r1 has a routine with occurrences still to come.
+	ctx := context.Background()
+	s := f.l.Stores
+	tr := domain.Tracker{TrackerID: "tr1", ReceiverID: "r1", TeamID: "t1", Name: "Meds", Status: domain.TrackerActive, CreatedAt: teamNow}
+	f.put(t, f.l.Names.Trackers, tr)
+	sc := domain.Schedule{ScheduleID: "s1", TrackerID: "tr1", ReceiverID: "r1", TeamID: "t1",
+		Rule: domain.Rule{Freq: domain.FreqWeekly, Interval: 1, ByDay: []string{"MO", "TU", "WE", "TH", "FR", "SA", "SU"}},
+		Time: "08:00", StartsOn: "2026-11-01", PlannedValues: map[string]any{}, CreatedAt: teamNow, UpdatedAt: teamNow}
+	f.put(t, f.l.Names.Schedules, sc)
+	rc, _ := s.Receivers.Get(ctx, "r1")
+	if res, err := generate.Generate(ctx, s, sc, tr, rc, teamNow, teamNow); err != nil || res.Written == 0 {
+		t.Fatalf("generate: %+v %v", res, err)
+	}
+
 	want(t, f.do("admin", http.MethodPost, "/v1/teams/t1/close", ""), http.StatusNoContent)
+	if es, err := s.Entries.FutureOpenByReceiver(ctx, "r1", teamNow); err != nil || len(es) != 0 {
+		t.Fatalf("close left %d waiting (err %v)", len(es), err)
+	}
+	if rc, _ := s.Receivers.Get(ctx, "r1"); rc.Status != domain.ReceiverActive {
+		t.Fatalf("receiver status changed: %+v", rc)
+	}
+	// And the generator makes no more for a closed team.
+	if res, err := generate.Generate(ctx, s, sc, tr, rc, teamNow, teamNow); err != nil || !res.Skipped {
+		t.Fatalf("generate after close: %+v %v", res, err)
+	}
+	if es, _ := s.Entries.FutureOpenByReceiver(ctx, "r1", teamNow); len(es) != 0 {
+		t.Fatalf("generated %d for a closed team", len(es))
+	}
 	team, _ := f.l.Stores.Teams.Get(context.Background(), "t1")
 	if team.Status != domain.TeamArchived || team.ArchivedBy != "admin" || !team.ArchivedAt.Equal(teamNow) {
 		t.Fatalf("team: %+v", team)
@@ -436,4 +464,31 @@ func TestReceivers_ArchiveRestoreAndTimeZone(t *testing.T) {
 		t.Fatalf("receiver: %+v", rc)
 	}
 	want(t, f.do("admin", http.MethodPost, "/v1/receivers/missing/archive", ""), http.StatusNotFound)
+}
+
+// A closed team's receivers are unreachable on every receiver route, read or
+// write, even to someone whose membership survived the close (a caregiver who
+// joined as it closed). admin is still an admin of t-closed here.
+func TestReceivers_closedTeamIsNotFound(t *testing.T) {
+	f := newTeamFixture(t)
+	f.put(t, f.l.Names.Receivers, domain.Receiver{ReceiverID: "r-closed", TeamID: "t-closed", Name: "Pat",
+		TimeZone: "UTC", Status: domain.ReceiverActive, CreatedBy: "admin", CreatedAt: teamNow})
+	f.put(t, f.l.Names.Trackers, domain.Tracker{TrackerID: "tr-closed", ReceiverID: "r-closed", TeamID: "t-closed",
+		Name: "Meds", Status: domain.TrackerActive, CreatedAt: teamNow})
+	for _, c := range []struct{ method, path, body string }{
+		{http.MethodGet, "/v1/receivers/r-closed", ""},
+		{http.MethodPut, "/v1/receivers/r-closed", `{"name":"Pat","time_zone":"UTC"}`},
+		{http.MethodPost, "/v1/receivers/r-closed/archive", ""},
+		{http.MethodPost, "/v1/receivers/r-closed/restore", ""},
+		{http.MethodPut, "/v1/receivers/r-closed/care-instructions", `{"body":"x"}`},
+		{http.MethodPut, "/v1/receivers/r-closed/emergency-contacts", `{"contacts":[]}`},
+		{http.MethodPost, "/v1/trackers/tr-closed/pause", ""},
+	} {
+		t.Run(c.method+" "+c.path, func(t *testing.T) {
+			want(t, f.do("admin", c.method, c.path, c.body), http.StatusNotFound)
+		})
+	}
+	if rc, _ := f.l.Stores.Receivers.Get(context.Background(), "r-closed"); rc.Status != domain.ReceiverActive || rc.Name != "Pat" {
+		t.Fatalf("closed team's receiver changed: %+v", rc)
+	}
 }

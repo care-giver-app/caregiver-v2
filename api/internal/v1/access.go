@@ -49,37 +49,42 @@ func loadTeam(w http.ResponseWriter, r *http.Request, s *store.Stores, teamID st
 	return team, true
 }
 
-// loadAnyReceiver writes 404 and returns false when the receiver is unknown.
-// Unlike loadReceiver it returns an archived one: the Team area reads them,
-// and refuses changes to them with 409 rather than 404.
-func loadAnyReceiver(w http.ResponseWriter, r *http.Request, s *store.Stores, receiverID string) (domain.Receiver, bool) {
-	rc, err := s.Receivers.Get(r.Context(), receiverID)
-	if errors.Is(err, store.ErrNotFound) {
-		httpx.WriteError(w, http.StatusNotFound, "not found")
-		return domain.Receiver{}, false
-	} else if err != nil {
-		httpx.ServerError(w, r, err, "receiver load failed")
-		return domain.Receiver{}, false
-	}
-	return rc, true
+// loadAnyReceiver writes 404 and returns false when the receiver is unknown,
+// or their team is unknown or archived (closed). Unlike loadReceiver it
+// returns an archived receiver: the Team area reads them, and refuses changes
+// to them with 409 rather than 404. It returns the team as read.
+func loadAnyReceiver(w http.ResponseWriter, r *http.Request, s *store.Stores, receiverID string) (domain.Receiver, domain.Team, bool) {
+	return loadReceiverOnTeam(w, r, s, receiverID, true)
 }
 
 // loadReceiver writes 404 and returns false when the receiver is unknown or
-// archived.
+// archived, or their team is unknown or archived (closed).
 func loadReceiver(w http.ResponseWriter, r *http.Request, s *store.Stores, receiverID string) (domain.Receiver, bool) {
-	rc, err := s.Receivers.Get(r.Context(), receiverID)
-	if errors.Is(err, store.ErrNotFound) || (err == nil && rc.Status == domain.ReceiverArchived) {
-		httpx.WriteError(w, http.StatusNotFound, "not found")
-		return domain.Receiver{}, false
-	} else if err != nil {
-		httpx.ServerError(w, r, err, "receiver load failed")
-		return domain.Receiver{}, false
-	}
-	return rc, true
+	rc, _, ok := loadReceiverOnTeam(w, r, s, receiverID, false)
+	return rc, ok
 }
 
-// loadTracker writes 404 and returns false when the tracker is unknown or its
-// receiver is unknown or archived.
+// loadReceiverOnTeam is every receiver route's load: the receiver, refused
+// when archived unless archivedOK, and their team, refused when closed the way
+// loadTeam refuses it. A closed team is unreachable on every route below it.
+func loadReceiverOnTeam(w http.ResponseWriter, r *http.Request, s *store.Stores, receiverID string, archivedOK bool) (domain.Receiver, domain.Team, bool) {
+	rc, err := s.Receivers.Get(r.Context(), receiverID)
+	if errors.Is(err, store.ErrNotFound) || (err == nil && rc.Status == domain.ReceiverArchived && !archivedOK) {
+		httpx.WriteError(w, http.StatusNotFound, "not found")
+		return domain.Receiver{}, domain.Team{}, false
+	} else if err != nil {
+		httpx.ServerError(w, r, err, "receiver load failed")
+		return domain.Receiver{}, domain.Team{}, false
+	}
+	team, ok := loadTeam(w, r, s, rc.TeamID)
+	if !ok {
+		return domain.Receiver{}, domain.Team{}, false
+	}
+	return rc, team, true
+}
+
+// loadTracker writes 404 and returns false when the tracker is unknown, its
+// receiver is unknown or archived, or their team is unknown or closed.
 func loadTracker(w http.ResponseWriter, r *http.Request, s *store.Stores, trackerID string) (domain.Tracker, domain.Receiver, bool) {
 	t, err := s.Trackers.Get(r.Context(), trackerID)
 	if errors.Is(err, store.ErrNotFound) {

@@ -181,3 +181,33 @@ func TestEntries_FutureOpenAndRetime(t *testing.T) {
 		t.Fatalf("wrong local retimed: %v %v", ok, err)
 	}
 }
+
+func TestEntries_DeleteFutureOpenForReceiver(t *testing.T) {
+	l := dynamotest.StartLocal(t)
+	ctx := context.Background()
+	now := time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC)
+	past, future := now.Add(-time.Hour), now.Add(time.Hour)
+	for _, e := range []domain.Entry{
+		{EntryID: "past", TrackerID: "tr1", ReceiverID: "r1", OccurrenceAt: &past, State: domain.EntryScheduled, TimelineAt: past, OpenAt: &past},
+		{EntryID: "future-tr1", TrackerID: "tr1", ReceiverID: "r1", OccurrenceAt: &future, State: domain.EntryScheduled, TimelineAt: future, OpenAt: &future},
+		{EntryID: "future-tr2", TrackerID: "tr2", ReceiverID: "r1", OccurrenceAt: &future, State: domain.EntryScheduled, TimelineAt: future, OpenAt: &future},
+		{EntryID: "skipped", TrackerID: "tr1", ReceiverID: "r1", OccurrenceAt: &future, State: domain.EntrySkipped, TimelineAt: future},
+		{EntryID: "other-receiver", TrackerID: "tr3", ReceiverID: "r2", OccurrenceAt: &future, State: domain.EntryScheduled, TimelineAt: future, OpenAt: &future},
+	} {
+		e.TeamID, e.ScheduleID, e.OccurrenceLocal, e.Values, e.CreatedAt = "t1", "s1", "2026-11-16T07:00", map[string]any{}, now
+		seed(t, l, l.Names.Entries, e)
+	}
+	n, err := l.Stores.Entries.DeleteFutureOpenForReceiver(ctx, "r1", now)
+	if err != nil || n != 2 {
+		t.Fatalf("deleted %d, err %v", n, err)
+	}
+	for id, kept := range map[string]bool{"past": true, "future-tr1": false, "future-tr2": false, "skipped": true, "other-receiver": true} {
+		_, err := l.Stores.Entries.Get(ctx, id)
+		if kept != (err == nil) {
+			t.Errorf("%s: kept %v, err %v", id, kept, err)
+		}
+	}
+	if n, err := l.Stores.Entries.DeleteFutureOpenForReceiver(ctx, "r1", now); err != nil || n != 0 {
+		t.Fatalf("again: %d %v", n, err)
+	}
+}

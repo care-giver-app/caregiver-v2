@@ -121,8 +121,36 @@ func TestCloseTeam(t *testing.T) {
 	if err := s.RemoveMember(ctx, "t1", "c"); err != nil {
 		t.Fatal(err)
 	}
+	// Receivers, active and archived, each with an entry still to come, one
+	// already logged, and one past.
+	past, future := at.Add(-time.Hour), at.Add(time.Hour)
+	for _, rc := range []domain.Receiver{
+		{ReceiverID: "r1", TeamID: "t1", Name: "Ann", TimeZone: "UTC", Status: domain.ReceiverActive, CreatedAt: at},
+		{ReceiverID: "r2", TeamID: "t1", Name: "Bob", TimeZone: "UTC", Status: domain.ReceiverArchived, CreatedAt: at},
+	} {
+		if err := s.Receivers.Create(ctx, rc); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, e := range []domain.Entry{
+		{EntryID: "r1-future", ReceiverID: "r1", OccurrenceAt: &future, State: domain.EntryScheduled, TimelineAt: future, OpenAt: &future},
+		{EntryID: "r1-past", ReceiverID: "r1", OccurrenceAt: &past, State: domain.EntryScheduled, TimelineAt: past, OpenAt: &past},
+		{EntryID: "r1-logged", ReceiverID: "r1", OccurrenceAt: &future, State: domain.EntryLogged, TimelineAt: future},
+		{EntryID: "r2-future", ReceiverID: "r2", OccurrenceAt: &future, State: domain.EntryScheduled, TimelineAt: future, OpenAt: &future},
+	} {
+		e.TrackerID, e.TeamID, e.ScheduleID, e.OccurrenceLocal, e.Values, e.CreatedAt = "tr1", "t1", "s1", "2026-11-16T13:00", map[string]any{}, at
+		seed(t, l, l.Names.Entries, e)
+	}
 	if err := s.CloseTeam(ctx, "t1", "a", at); err != nil {
 		t.Fatalf("close: %v", err)
+	}
+	for id, kept := range map[string]bool{"r1-future": false, "r1-past": true, "r1-logged": true, "r2-future": false} {
+		if _, err := s.Entries.Get(ctx, id); kept != (err == nil) {
+			t.Errorf("entry %s: want kept %v, err %v", id, kept, err)
+		}
+	}
+	if rc, _ := s.Receivers.Get(ctx, "r1"); rc.Status != domain.ReceiverActive {
+		t.Errorf("receiver status changed: %+v", rc)
 	}
 	team, _ := s.Teams.Get(ctx, "t1")
 	if team.Status != domain.TeamArchived || team.ArchivedBy != "a" || team.ArchivedAt == nil || !team.ArchivedAt.Equal(at) {
@@ -160,5 +188,54 @@ func TestMemberships_ListByTeamAndNotifications(t *testing.T) {
 	}
 	if _, err := l.Stores.Memberships.Get(ctx, "nobody", "t1"); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("update created a row: %v", err)
+	}
+}
+
+// staleAdmin makes the team-index still show userID as an admin, listed
+// first, whatever the table holds.
+func staleAdmin(userID string) func(context.Context, *store.Stores, []domain.Membership) []domain.Membership {
+	return func(_ context.Context, _ *store.Stores, ms []domain.Membership) []domain.Membership {
+		out := []domain.Membership{domain.NewMembership(userID, "t1", domain.RoleAdmin, time.Time{})}
+		for _, m := range ms {
+			if m.UserID != userID {
+				out = append(out, m)
+			}
+		}
+		return out
+	}
+}
+
+func TestMembers_staleIndexAdminIsConfirmedAgainstTheTable(t *testing.T) {
+	l := dynamotest.StartLocal(t)
+	ctx := context.Background()
+	s := l.Stores
+	// b was just made a caregiver; the index has not caught up and still
+	// lists b first, as an admin. c is a real admin.
+	teamOf(t, l, map[string]domain.Role{"a": domain.RoleAdmin, "b": domain.RoleCaregiver, "c": domain.RoleAdmin})
+	defer store.SetTeamIndexView(staleAdmin("b"))()
+
+	if m, err := s.ChangeRole(ctx, "t1", "a", domain.RoleCaregiver); err != nil || m.Role != domain.RoleCaregiver {
+		t.Fatalf("demote with c still admin: %+v %v", m, err)
+	}
+	// Now c is the only admin; the stale b is no cover.
+	if err := s.RemoveMember(ctx, "t1", "c"); !errors.Is(err, store.ErrLastAdmin) {
+		t.Fatalf("remove the only real admin: %v", err)
+	}
+}
+
+func TestMembers_targetDeletedMeanwhileIsNotFound(t *testing.T) {
+	l := dynamotest.StartLocal(t)
+	ctx := context.Background()
+	s := l.Stores
+	teamOf(t, l, map[string]domain.Role{"a": domain.RoleAdmin, "b": domain.RoleAdmin})
+	// b leaves between the change reading the team and writing: every read
+	// of the index deletes b's row, and still lists b.
+	defer store.SetTeamIndexView(func(ctx context.Context, st *store.Stores, ms []domain.Membership) []domain.Membership {
+		_ = st.RemoveMemberRow(ctx, "b", "t1")
+		return staleAdmin("b")(ctx, st, ms)
+	})()
+
+	if err := s.RemoveMember(ctx, "t1", "b"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("remove one already gone: %v", err)
 	}
 }
