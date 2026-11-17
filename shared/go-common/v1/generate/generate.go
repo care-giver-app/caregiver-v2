@@ -282,8 +282,8 @@ var afterWrite func()
 // occurrences waiting before this run wrote its own. So once written it
 // re-reads all three. If the schedule is removed, the tracker paused or the
 // receiver archived, it takes back what it wrote and reports Skipped. If the
-// schedule changed (its updated_at moved), it takes back what it wrote and
-// starts over from the schedule as it now is. The bookmark is written only on
+// schedule changed (its updated_at moved), or the receiver's time zone did, it
+// takes back what it wrote and starts over from them as they now are. The bookmark is written only on
 // condition the schedule is still live and unchanged, and a refused bookmark
 // is treated as the same race.
 func Generate(ctx context.Context, s *store.Stores, sc domain.Schedule, t domain.Tracker, rc domain.Receiver, from, now time.Time) (Result, error) {
@@ -362,7 +362,9 @@ func generateOnce(ctx context.Context, s *store.Stores, sc domain.Schedule, t do
 	if err != nil {
 		return res, nil, err
 	}
-	if cur.live() && cur.sc.UpdatedAt.Equal(sc.UpdatedAt) {
+	// A receiver whose time zone changed while this ran: what it wrote was
+	// resolved in the old zone, so it is taken back and made again in the new.
+	if cur.live() && cur.sc.UpdatedAt.Equal(sc.UpdatedAt) && cur.rc.TimeZone == rc.TimeZone {
 		if len(occs) == 0 {
 			return res, nil, nil
 		}
@@ -388,4 +390,45 @@ func generateOnce(ctx context.Context, s *store.Stores, sc domain.Schedule, t do
 		return Result{}, &cur, nil
 	}
 	return Result{Skipped: true}, nil, nil
+}
+
+// Retime re-resolves each of the receiver's occurrences still to come — every
+// scheduled entry whose instant is after now — in the receiver's time zone as
+// it now stands, keeping its local wall-clock time: occurrence_local stays,
+// and occurrence_at, timeline_at and open_at move. Anything at or before now
+// stays where it is. It is what changing a receiver's time zone does, and is
+// safe to repeat: an entry already at its instant is not written. It returns
+// how many entries moved. An entry that the new zone puts at or before now is
+// moved there too, and so reads as unrecorded.
+func Retime(ctx context.Context, s *store.Stores, rc domain.Receiver, now time.Time) (int, error) {
+	loc, err := time.LoadLocation(rc.TimeZone)
+	if err != nil {
+		return 0, fmt.Errorf("receiver %s time zone: %w", rc.ReceiverID, err)
+	}
+	entries, err := s.Entries.FutureOpenByReceiver(ctx, rc.ReceiverID, now)
+	if err != nil {
+		return 0, err
+	}
+	moved := 0
+	for _, e := range entries {
+		if e.OccurrenceLocal == "" || e.OccurrenceAt == nil {
+			continue
+		}
+		wall, err := time.Parse(LocalFormat, e.OccurrenceLocal)
+		if err != nil {
+			return moved, fmt.Errorf("entry %s occurrence_local %q: %w", e.EntryID, e.OccurrenceLocal, err)
+		}
+		at := resolve(wall.Year(), wall.Month(), wall.Day(), wall.Hour(), wall.Minute(), loc).UTC()
+		if at.Equal(*e.OccurrenceAt) {
+			continue
+		}
+		ok, err := s.Entries.Retime(ctx, e.EntryID, e.OccurrenceLocal, at)
+		if err != nil {
+			return moved, err
+		}
+		if ok {
+			moved++
+		}
+	}
+	return moved, nil
 }

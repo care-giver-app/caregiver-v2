@@ -387,3 +387,43 @@ func (s *EntryStore) CreateIfAbsent(ctx context.Context, e domain.Entry) (bool, 
 	}
 	return err == nil, err
 }
+
+// FutureOpenByReceiver returns the receiver's scheduled entries whose open_at
+// is after now — every occurrence of theirs still to come — oldest first, via
+// the sparse open-index.
+func (s *EntryStore) FutureOpenByReceiver(ctx context.Context, receiverID string, now time.Time) ([]domain.Entry, error) {
+	return queryAll[domain.Entry](ctx, s.client, &dynamodb.QueryInput{
+		TableName:              aws.String(s.table),
+		IndexName:              aws.String(openIndex),
+		KeyConditionExpression: aws.String("receiver_id = :r AND open_at > :now"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":r":   &types.AttributeValueMemberS{Value: receiverID},
+			":now": timeKey(now),
+		},
+		ScanIndexForward: aws.Bool(true),
+	})
+}
+
+// Retime moves a scheduled entry's occurrence to at — occurrence_at, and with
+// it timeline_at and open_at — keeping occurrence_local. It is conditional on
+// the entry still being scheduled for that local time, and reports whether it
+// moved it: one logged, skipped or deleted meanwhile is left as it is.
+func (s *EntryStore) Retime(ctx context.Context, entryID, occurrenceLocal string, at time.Time) (bool, error) {
+	_, err := s.client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName:                aws.String(s.table),
+		Key:                      entryKey(entryID),
+		UpdateExpression:         aws.String("SET occurrence_at = :at, timeline_at = :at, open_at = :at"),
+		ConditionExpression:      aws.String("#s = :scheduled AND occurrence_local = :local"),
+		ExpressionAttributeNames: map[string]string{"#s": "state"},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":at":        timeKey(at),
+			":scheduled": &types.AttributeValueMemberS{Value: string(domain.EntryScheduled)},
+			":local":     &types.AttributeValueMemberS{Value: occurrenceLocal},
+		},
+	})
+	var ccf *types.ConditionalCheckFailedException
+	if errors.As(err, &ccf) {
+		return false, nil
+	}
+	return err == nil, err
+}
