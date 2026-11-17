@@ -94,6 +94,7 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	v1rcv := v1.NewReceivers(v1Stores)
 	v1trk := v1.NewTrackers(v1Stores)
 	mux.Handle("GET /v1/teams/{teamId}/receivers", v1authn.Wrap(http.HandlerFunc(v1rcv.ListByTeam)))
+	mux.Handle("POST /v1/teams/{teamId}/receivers", v1authn.Wrap(http.HandlerFunc(v1rcv.Create)))
 	mux.Handle("GET /v1/receivers/{receiverId}/trackers", v1authn.Wrap(http.HandlerFunc(v1trk.ListByReceiver)))
 	mux.Handle("POST /v1/receivers/{receiverId}/trackers", v1authn.Wrap(http.HandlerFunc(v1trk.Create)))
 	mux.Handle("GET /v1/trackers/{trackerId}", v1authn.Wrap(http.HandlerFunc(v1trk.Get)))
@@ -123,6 +124,21 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	mux.Handle("PUT /v1/journal-notes/{noteId}", v1authn.Wrap(http.HandlerFunc(v1home.ChangeJournalNote)))
 	mux.Handle("DELETE /v1/journal-notes/{noteId}", v1authn.Wrap(http.HandlerFunc(v1home.DeleteJournalNote)))
 
+	mux.Handle("GET /v1/teams/{teamId}", v1authn.Wrap(http.HandlerFunc(v1teams.Get)))
+	mux.Handle("POST /v1/teams/{teamId}/close", v1authn.Wrap(http.HandlerFunc(v1teams.Close)))
+	mux.Handle("GET /v1/teams/{teamId}/invitations", v1authn.Wrap(http.HandlerFunc(v1inv.ListByTeam)))
+	mux.Handle("POST /v1/teams/{teamId}/invitations", v1authn.Wrap(http.HandlerFunc(v1inv.Create)))
+	mux.Handle("PUT /v1/teams/{teamId}/members/{userId}", v1authn.Wrap(http.HandlerFunc(v1teams.ChangeRole)))
+	mux.Handle("DELETE /v1/teams/{teamId}/members/{userId}", v1authn.Wrap(http.HandlerFunc(v1teams.RemoveMember)))
+	mux.Handle("GET /v1/teams/{teamId}/my-notifications", v1authn.Wrap(http.HandlerFunc(v1teams.MyNotifications)))
+	mux.Handle("PUT /v1/teams/{teamId}/my-notifications", v1authn.Wrap(http.HandlerFunc(v1teams.ChangeMyNotifications)))
+	mux.Handle("GET /v1/receivers/{receiverId}", v1authn.Wrap(http.HandlerFunc(v1rcv.Get)))
+	mux.Handle("PUT /v1/receivers/{receiverId}", v1authn.Wrap(http.HandlerFunc(v1rcv.Change)))
+	mux.Handle("POST /v1/receivers/{receiverId}/archive", v1authn.Wrap(http.HandlerFunc(v1rcv.Archive)))
+	mux.Handle("POST /v1/receivers/{receiverId}/restore", v1authn.Wrap(http.HandlerFunc(v1rcv.Restore)))
+	mux.Handle("PUT /v1/receivers/{receiverId}/care-instructions", v1authn.Wrap(http.HandlerFunc(v1rcv.ChangeCareInstructions)))
+	mux.Handle("PUT /v1/receivers/{receiverId}/emergency-contacts", v1authn.Wrap(http.HandlerFunc(v1rcv.ChangeEmergencyContacts)))
+
 	return middleware.RequestLogger(log)(mux), nil
 }
 
@@ -151,20 +167,21 @@ func newStores(ctx context.Context) (*store.Stores, error) {
 
 func newV1Stores(ctx context.Context) (*v1store.Stores, error) {
 	names := v1store.TableNames{
-		Users:        os.Getenv("V1_USERS_TABLE"),
-		Teams:        os.Getenv("V1_TEAMS_TABLE"),
-		Memberships:  os.Getenv("V1_MEMBERSHIPS_TABLE"),
-		Invitations:  os.Getenv("V1_INVITATIONS_TABLE"),
-		Receivers:    os.Getenv("V1_RECEIVERS_TABLE"),
-		Trackers:     os.Getenv("V1_TRACKERS_TABLE"),
-		Schedules:    os.Getenv("V1_SCHEDULES_TABLE"),
-		Entries:      os.Getenv("V1_ENTRIES_TABLE"),
-		JournalNotes: os.Getenv("V1_JOURNAL_NOTES_TABLE"),
+		Users:            os.Getenv("V1_USERS_TABLE"),
+		Teams:            os.Getenv("V1_TEAMS_TABLE"),
+		Memberships:      os.Getenv("V1_MEMBERSHIPS_TABLE"),
+		Invitations:      os.Getenv("V1_INVITATIONS_TABLE"),
+		Receivers:        os.Getenv("V1_RECEIVERS_TABLE"),
+		CareInstructions: os.Getenv("V1_CARE_INSTRUCTIONS_TABLE"),
+		Trackers:         os.Getenv("V1_TRACKERS_TABLE"),
+		Schedules:        os.Getenv("V1_SCHEDULES_TABLE"),
+		Entries:          os.Getenv("V1_ENTRIES_TABLE"),
+		JournalNotes:     os.Getenv("V1_JOURNAL_NOTES_TABLE"),
 	}
 	if names.Users == "" || names.Teams == "" || names.Memberships == "" || names.Invitations == "" ||
 		names.Receivers == "" || names.Trackers == "" || names.Schedules == "" || names.Entries == "" ||
-		names.JournalNotes == "" {
-		return nil, fmt.Errorf("all V1_*_TABLE env vars (users, teams, memberships, invitations, receivers, trackers, schedules, entries, journal notes) must be set")
+		names.JournalNotes == "" || names.CareInstructions == "" {
+		return nil, fmt.Errorf("all V1_*_TABLE env vars (users, teams, memberships, invitations, receivers, care instructions, trackers, schedules, entries, journal notes) must be set")
 	}
 	client, err := v1store.NewClient(ctx, os.Getenv("DYNAMODB_ENDPOINT"))
 	if err != nil {

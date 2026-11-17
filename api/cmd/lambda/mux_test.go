@@ -42,6 +42,7 @@ func setTableEnv(t *testing.T) {
 	t.Setenv("V1_MEMBERSHIPS_TABLE", "v1m")
 	t.Setenv("V1_INVITATIONS_TABLE", "v1i")
 	t.Setenv("V1_RECEIVERS_TABLE", "v1r")
+	t.Setenv("V1_CARE_INSTRUCTIONS_TABLE", "v1ci")
 	t.Setenv("V1_TRACKERS_TABLE", "v1tr")
 	t.Setenv("V1_SCHEDULES_TABLE", "v1s")
 	t.Setenv("V1_ENTRIES_TABLE", "v1e")
@@ -57,7 +58,7 @@ func TestNewMux_requiresV1TableEnv(t *testing.T) {
 	setTableEnv(t)
 	for _, k := range []string{
 		"V1_USERS_TABLE", "V1_TEAMS_TABLE", "V1_MEMBERSHIPS_TABLE", "V1_INVITATIONS_TABLE",
-		"V1_RECEIVERS_TABLE", "V1_TRACKERS_TABLE", "V1_SCHEDULES_TABLE", "V1_ENTRIES_TABLE",
+		"V1_RECEIVERS_TABLE", "V1_CARE_INSTRUCTIONS_TABLE", "V1_TRACKERS_TABLE", "V1_SCHEDULES_TABLE", "V1_ENTRIES_TABLE",
 		"V1_JOURNAL_NOTES_TABLE",
 	} {
 		t.Run(k, func(t *testing.T) {
@@ -107,6 +108,21 @@ func TestNewMux_v1RoutesAreRegisteredBehindAuth(t *testing.T) {
 		{http.MethodPost, "/v1/receivers/r1/journal-notes"},
 		{http.MethodPut, "/v1/journal-notes/n1"},
 		{http.MethodDelete, "/v1/journal-notes/n1"},
+		{http.MethodPost, "/v1/teams/t1/receivers"},
+		{http.MethodGet, "/v1/teams/t1"},
+		{http.MethodPost, "/v1/teams/t1/close"},
+		{http.MethodGet, "/v1/teams/t1/invitations"},
+		{http.MethodPost, "/v1/teams/t1/invitations"},
+		{http.MethodPut, "/v1/teams/t1/members/u1"},
+		{http.MethodDelete, "/v1/teams/t1/members/u1"},
+		{http.MethodGet, "/v1/teams/t1/my-notifications"},
+		{http.MethodPut, "/v1/teams/t1/my-notifications"},
+		{http.MethodGet, "/v1/receivers/r1"},
+		{http.MethodPut, "/v1/receivers/r1"},
+		{http.MethodPost, "/v1/receivers/r1/archive"},
+		{http.MethodPost, "/v1/receivers/r1/restore"},
+		{http.MethodPut, "/v1/receivers/r1/care-instructions"},
+		{http.MethodPut, "/v1/receivers/r1/emergency-contacts"},
 	} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(rt.method, rt.path, nil))

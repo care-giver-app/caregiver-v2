@@ -64,7 +64,13 @@ func readSchedule(w http.ResponseWriter, r *http.Request, t domain.Tracker, rc d
 // failure here does not fail the request: it is logged, and the daily job
 // fills the occurrences in on its next run.
 func (h *Trackers) generateFromNow(ctx context.Context, sc domain.Schedule, t domain.Tracker, rc domain.Receiver, now time.Time) {
-	if _, err := generate.Generate(ctx, h.stores, sc, t, rc, now, now); err != nil {
+	generateFromNow(ctx, h.stores, sc, t, rc, now)
+}
+
+// generateFromNow is Trackers.generateFromNow for any handler; restoring a
+// receiver uses it too.
+func generateFromNow(ctx context.Context, s *store.Stores, sc domain.Schedule, t domain.Tracker, rc domain.Receiver, now time.Time) {
+	if _, err := generate.Generate(ctx, s, sc, t, rc, now, now); err != nil {
 		logger.FromContext(ctx).Error("schedule generation failed; the daily job will fill it in",
 			"err", err.Error(), "schedule_id", sc.ScheduleID, "tracker_id", sc.TrackerID)
 	}
