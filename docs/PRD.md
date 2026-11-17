@@ -2534,6 +2534,11 @@ caregiver.
     - action: Cancel
       to: Care receiver
       as: back
+  open:
+    - >
+      what becomes of care still ahead that the new time zone puts in the past —
+      today's 8:00 dose, moved to 8:00 in a zone where it is already 11:00, reads
+      at once as unrecorded
 
 - screen: Edit care instructions
   kind: sheet
@@ -2640,6 +2645,11 @@ caregiver.
 - **Whether switching care receivers resets the Home tab is not stated.** If the pushed stack
   survives, a caregiver who switches while reading one receiver's Trackers is left looking at
   another receiver's trackers under the first one's name.
+- **What a time-zone change does to care it moves into the past is unstated.** Changing a care
+  receiver's time zone keeps their routines at their wall-clock times, so a move east can put
+  something still ahead behind the clock: today's 8:00 dose, moved to 8:00 in a zone where it is
+  already 11:00. Nothing says whether that care becomes unrecorded at once and needs attention, or
+  whether it should be dropped the way a new schedule skips a time already past.
 
 ### Settings
 
