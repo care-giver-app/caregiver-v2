@@ -42,6 +42,7 @@ export interface ApiStackProps extends cdk.StackProps {
     membership: dynamodb.ITable;
     invitation: dynamodb.ITable;
     receiver: dynamodb.ITable;
+    'care-instructions': dynamodb.ITable;
     tracker: dynamodb.ITable;
     schedule: dynamodb.ITable;
     entry: dynamodb.ITable;
@@ -133,6 +134,7 @@ export class ApiStack extends cdk.Stack {
       membership,
       invitation,
       receiver,
+      'care-instructions': careInstructions,
       tracker,
       schedule,
       entry,
@@ -144,6 +146,7 @@ export class ApiStack extends cdk.Stack {
       membership,
       invitation,
       receiver,
+      careInstructions,
       tracker,
       schedule,
       entry,
@@ -156,6 +159,7 @@ export class ApiStack extends cdk.Stack {
     this.apiFunction.addEnvironment('V1_MEMBERSHIPS_TABLE', membership.tableName);
     this.apiFunction.addEnvironment('V1_INVITATIONS_TABLE', invitation.tableName);
     this.apiFunction.addEnvironment('V1_RECEIVERS_TABLE', receiver.tableName);
+    this.apiFunction.addEnvironment('V1_CARE_INSTRUCTIONS_TABLE', careInstructions.tableName);
     this.apiFunction.addEnvironment('V1_TRACKERS_TABLE', tracker.tableName);
     this.apiFunction.addEnvironment('V1_SCHEDULES_TABLE', schedule.tableName);
     this.apiFunction.addEnvironment('V1_ENTRIES_TABLE', entry.tableName);
@@ -307,6 +311,21 @@ export class ApiStack extends cdk.Stack {
       { path: '/v1/receivers/{receiverId}/journal-notes', methods: [apigw.HttpMethod.POST] },
       { path: '/v1/journal-notes/{noteId}', methods: [apigw.HttpMethod.PUT] },
       { path: '/v1/journal-notes/{noteId}', methods: [apigw.HttpMethod.DELETE] },
+      { path: '/v1/teams/{teamId}/receivers', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/teams/{teamId}', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/teams/{teamId}/close', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/teams/{teamId}/invitations', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/teams/{teamId}/invitations', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/teams/{teamId}/members/{userId}', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/teams/{teamId}/members/{userId}', methods: [apigw.HttpMethod.DELETE] },
+      { path: '/v1/teams/{teamId}/my-notifications', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/teams/{teamId}/my-notifications', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/receivers/{receiverId}', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/receivers/{receiverId}', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/receivers/{receiverId}/archive', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/receivers/{receiverId}/restore', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/receivers/{receiverId}/care-instructions', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/receivers/{receiverId}/emergency-contacts', methods: [apigw.HttpMethod.PUT] },
     ];
     for (const route of authedRoutes) {
       httpApi.addRoutes({

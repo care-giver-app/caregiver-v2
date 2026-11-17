@@ -140,7 +140,7 @@ describe('ApiStack', () => {
     const t = Template.fromStack(apiStack);
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
-    t.resourceCountIs('AWS::ApiGatewayV2::Route', 62);
+    t.resourceCountIs('AWS::ApiGatewayV2::Route', 77);
 
     for (const routeKey of [
       'GET /me',
@@ -190,6 +190,21 @@ describe('ApiStack', () => {
       'POST /v1/receivers/{receiverId}/journal-notes',
       'PUT /v1/journal-notes/{noteId}',
       'DELETE /v1/journal-notes/{noteId}',
+      'POST /v1/teams/{teamId}/receivers',
+      'GET /v1/teams/{teamId}',
+      'POST /v1/teams/{teamId}/close',
+      'GET /v1/teams/{teamId}/invitations',
+      'POST /v1/teams/{teamId}/invitations',
+      'PUT /v1/teams/{teamId}/members/{userId}',
+      'DELETE /v1/teams/{teamId}/members/{userId}',
+      'GET /v1/teams/{teamId}/my-notifications',
+      'PUT /v1/teams/{teamId}/my-notifications',
+      'GET /v1/receivers/{receiverId}',
+      'PUT /v1/receivers/{receiverId}',
+      'POST /v1/receivers/{receiverId}/archive',
+      'POST /v1/receivers/{receiverId}/restore',
+      'PUT /v1/receivers/{receiverId}/care-instructions',
+      'PUT /v1/receivers/{receiverId}/emergency-contacts',
     ]) {
       t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
         RouteKey: routeKey,
@@ -204,7 +219,7 @@ describe('ApiStack', () => {
     }
   });
 
-  test('gives the API the getting-in, trackers and home v1 tables and no others', () => {
+  test('gives the API the getting-in, trackers, home and team v1 tables and no others', () => {
     const app = new cdk.App();
     const env = { account: '123456789012', region: 'us-east-2' };
     const shared = new SharedStack(app, 'CaregiverDev-Shared', { env, stage: 'dev' });
@@ -228,6 +243,7 @@ describe('ApiStack', () => {
       'V1_MEMBERSHIPS_TABLE',
       'V1_INVITATIONS_TABLE',
       'V1_RECEIVERS_TABLE',
+      'V1_CARE_INSTRUCTIONS_TABLE',
       'V1_TRACKERS_TABLE',
       'V1_SCHEDULES_TABLE',
       'V1_ENTRIES_TABLE',
@@ -241,6 +257,7 @@ describe('ApiStack', () => {
       'V1MembershipTable',
       'V1InvitationTable',
       'V1ReceiverTable',
+      'V1CareInstructionsTable',
       'V1TrackerTable',
       'V1ScheduleTable',
       'V1EntryTable',
