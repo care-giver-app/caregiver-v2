@@ -32,7 +32,7 @@ func TestMembers_lastAdmin(t *testing.T) {
 	if _, err := s.ChangeRole(ctx, "t1", "a", domain.RoleCaregiver); !errors.Is(err, store.ErrLastAdmin) {
 		t.Fatalf("demote last admin: %v", err)
 	}
-	if err := s.RemoveMember(ctx, "t1", "a"); !errors.Is(err, store.ErrLastAdmin) {
+	if err := s.RemoveMember(ctx, "t1", "a", time.Now()); !errors.Is(err, store.ErrLastAdmin) {
 		t.Fatalf("remove last admin: %v", err)
 	}
 	if m, _ := s.Memberships.Get(ctx, "a", "t1"); m.Role != domain.RoleAdmin {
@@ -43,7 +43,7 @@ func TestMembers_lastAdmin(t *testing.T) {
 	if _, err := s.ChangeRole(ctx, "t1", "nobody", domain.RoleAdmin); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("change unknown: %v", err)
 	}
-	if err := s.RemoveMember(ctx, "t1", "nobody"); !errors.Is(err, store.ErrNotFound) {
+	if err := s.RemoveMember(ctx, "t1", "nobody", time.Now()); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("remove unknown: %v", err)
 	}
 
@@ -59,10 +59,10 @@ func TestMembers_lastAdmin(t *testing.T) {
 	if m, err := s.ChangeRole(ctx, "t1", "a", domain.RoleCaregiver); err != nil || m.Role != domain.RoleCaregiver {
 		t.Fatalf("demote with another admin: %+v %v", m, err)
 	}
-	if err := s.RemoveMember(ctx, "t1", "c"); !errors.Is(err, store.ErrLastAdmin) {
+	if err := s.RemoveMember(ctx, "t1", "c", time.Now()); !errors.Is(err, store.ErrLastAdmin) {
 		t.Fatalf("c is now the only admin: %v", err)
 	}
-	if err := s.RemoveMember(ctx, "t1", "a"); err != nil {
+	if err := s.RemoveMember(ctx, "t1", "a", time.Now()); err != nil {
 		t.Fatalf("remove caregiver: %v", err)
 	}
 	if _, err := s.Memberships.Get(ctx, "a", "t1"); !errors.Is(err, store.ErrNotFound) {
@@ -81,7 +81,7 @@ func TestMembers_twoAdminsLeavingAtOnceLeaveOne(t *testing.T) {
 		wg.Add(1)
 		go func(i int, id string) {
 			defer wg.Done()
-			errs[i] = l.Stores.RemoveMember(ctx, "t1", id)
+			errs[i] = l.Stores.RemoveMember(ctx, "t1", id, time.Now())
 		}(i, id)
 	}
 	wg.Wait()
@@ -118,7 +118,7 @@ func TestCloseTeam(t *testing.T) {
 	if team, _ := s.Teams.Get(ctx, "t1"); team.Status != domain.TeamActive {
 		t.Fatalf("closed anyway: %+v", team)
 	}
-	if err := s.RemoveMember(ctx, "t1", "c"); err != nil {
+	if err := s.RemoveMember(ctx, "t1", "c", time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	// Receivers, active and archived, each with an entry still to come, one
@@ -218,7 +218,7 @@ func TestMembers_staleIndexAdminIsConfirmedAgainstTheTable(t *testing.T) {
 		t.Fatalf("demote with c still admin: %+v %v", m, err)
 	}
 	// Now c is the only admin; the stale b is no cover.
-	if err := s.RemoveMember(ctx, "t1", "c"); !errors.Is(err, store.ErrLastAdmin) {
+	if err := s.RemoveMember(ctx, "t1", "c", time.Now()); !errors.Is(err, store.ErrLastAdmin) {
 		t.Fatalf("remove the only real admin: %v", err)
 	}
 }
@@ -235,7 +235,7 @@ func TestMembers_targetDeletedMeanwhileIsNotFound(t *testing.T) {
 		return staleAdmin("b")(ctx, st, ms)
 	})()
 
-	if err := s.RemoveMember(ctx, "t1", "b"); !errors.Is(err, store.ErrNotFound) {
+	if err := s.RemoveMember(ctx, "t1", "b", time.Now()); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("remove one already gone: %v", err)
 	}
 }
