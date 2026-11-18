@@ -140,7 +140,7 @@ describe('ApiStack', () => {
     const t = Template.fromStack(apiStack);
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
-    t.resourceCountIs('AWS::ApiGatewayV2::Route', 77);
+    t.resourceCountIs('AWS::ApiGatewayV2::Route', 86);
 
     for (const routeKey of [
       'GET /me',
@@ -205,6 +205,15 @@ describe('ApiStack', () => {
       'POST /v1/receivers/{receiverId}/restore',
       'PUT /v1/receivers/{receiverId}/care-instructions',
       'PUT /v1/receivers/{receiverId}/emergency-contacts',
+      'GET /v1/receivers/{receiverId}/on-duty',
+      'GET /v1/receivers/{receiverId}/assignments',
+      'POST /v1/receivers/{receiverId}/assignments',
+      'PUT /v1/assignments/{assignmentId}',
+      'DELETE /v1/assignments/{assignmentId}',
+      'GET /v1/receivers/{receiverId}/coverage-schedules',
+      'POST /v1/receivers/{receiverId}/coverage-schedules',
+      'PUT /v1/coverage-schedules/{coverageScheduleId}',
+      'DELETE /v1/coverage-schedules/{coverageScheduleId}',
     ]) {
       t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
         RouteKey: routeKey,
@@ -248,6 +257,8 @@ describe('ApiStack', () => {
       'V1_SCHEDULES_TABLE',
       'V1_ENTRIES_TABLE',
       'V1_JOURNAL_NOTES_TABLE',
+      'V1_COVERAGE_SCHEDULES_TABLE',
+      'V1_ASSIGNMENTS_TABLE',
     ]) {
       expect(json).toContain(name);
     }
@@ -262,10 +273,12 @@ describe('ApiStack', () => {
       'V1ScheduleTable',
       'V1EntryTable',
       'V1JournalNoteTable',
+      'V1CoverageScheduleTable',
+      'V1AssignmentTable',
     ]) {
       expect(json).toContain(id);
     }
-    for (const id of ['V1DeviceTable', 'V1AssignmentTable']) {
+    for (const id of ['V1DeviceTable']) {
       expect(json).not.toContain(id);
     }
   });
@@ -301,6 +314,9 @@ describe('ApiStack', () => {
           V1_SCHEDULES_TABLE: Match.anyValue(),
           V1_ENTRIES_TABLE: Match.anyValue(),
           V1_TEAMS_TABLE: Match.anyValue(),
+          V1_MEMBERSHIPS_TABLE: Match.anyValue(),
+          V1_COVERAGE_SCHEDULES_TABLE: Match.anyValue(),
+          V1_ASSIGNMENTS_TABLE: Match.anyValue(),
         }),
       },
     });
@@ -315,7 +331,7 @@ describe('ApiStack', () => {
     t.resourceCountIs('AWS::Events::Rule', 1);
     t.hasOutput('GeneratorFunctionName', {});
 
-    // The generator's policy names only the team, receiver, tracker, schedule and entry tables.
+    // The generator's policy names only the tables it reads or writes.
     const policies = t.findResources('AWS::IAM::Policy');
     const generatorPolicy = Object.entries(policies).find(([id]) =>
       id.startsWith('GeneratorFunctionServiceRoleDefaultPolicy'),
@@ -324,14 +340,17 @@ describe('ApiStack', () => {
     const doc = JSON.stringify(generatorPolicy![1]);
     for (const id of [
       'V1TeamTable',
+      'V1MembershipTable',
       'V1ReceiverTable',
       'V1TrackerTable',
       'V1ScheduleTable',
       'V1EntryTable',
+      'V1CoverageScheduleTable',
+      'V1AssignmentTable',
     ]) {
       expect(doc).toContain(id);
     }
-    for (const id of ['V1UserTable', 'V1MembershipTable', 'V1InvitationTable']) {
+    for (const id of ['V1UserTable', 'V1InvitationTable', 'V1JournalNoteTable']) {
       expect(doc).not.toContain(id);
     }
   });
