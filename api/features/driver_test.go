@@ -111,6 +111,14 @@ func entryKey(n store.TableNames, id string) rowKey {
 	return rowKey{n.Entries, map[string]types.AttributeValue{"entry_id": s(id)}}
 }
 
+func coverageScheduleKey(n store.TableNames, id string) rowKey {
+	return rowKey{n.CoverageSchedules, map[string]types.AttributeValue{"coverage_schedule_id": s(id)}}
+}
+
+func assignmentKey(n store.TableNames, id string) rowKey {
+	return rowKey{n.Assignments, map[string]types.AttributeValue{"assignment_id": s(id)}}
+}
+
 func journalNoteKey(n store.TableNames, id string) rowKey {
 	return rowKey{n.JournalNotes, map[string]types.AttributeValue{"note_id": s(id)}}
 }

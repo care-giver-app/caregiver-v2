@@ -80,6 +80,16 @@ func newInProcess(t *testing.T) *inProcess {
 	mux.Handle("POST /v1/receivers/{receiverId}/restore", authn.Wrap(http.HandlerFunc(rcv.Restore)))
 	mux.Handle("PUT /v1/receivers/{receiverId}/care-instructions", authn.Wrap(http.HandlerFunc(rcv.ChangeCareInstructions)))
 	mux.Handle("PUT /v1/receivers/{receiverId}/emergency-contacts", authn.Wrap(http.HandlerFunc(rcv.ChangeEmergencyContacts)))
+	cov := v1.NewCoverage(local.Stores)
+	mux.Handle("GET /v1/receivers/{receiverId}/on-duty", authn.Wrap(http.HandlerFunc(cov.OnDuty)))
+	mux.Handle("GET /v1/receivers/{receiverId}/assignments", authn.Wrap(http.HandlerFunc(cov.Assignments)))
+	mux.Handle("POST /v1/receivers/{receiverId}/assignments", authn.Wrap(http.HandlerFunc(cov.AddAssignment)))
+	mux.Handle("PUT /v1/assignments/{assignmentId}", authn.Wrap(http.HandlerFunc(cov.ChangeAssignment)))
+	mux.Handle("DELETE /v1/assignments/{assignmentId}", authn.Wrap(http.HandlerFunc(cov.RemoveAssignment)))
+	mux.Handle("GET /v1/receivers/{receiverId}/coverage-schedules", authn.Wrap(http.HandlerFunc(cov.CoverageSchedules)))
+	mux.Handle("POST /v1/receivers/{receiverId}/coverage-schedules", authn.Wrap(http.HandlerFunc(cov.AddCoverageSchedule)))
+	mux.Handle("PUT /v1/coverage-schedules/{coverageScheduleId}", authn.Wrap(http.HandlerFunc(cov.ChangeCoverageSchedule)))
+	mux.Handle("DELETE /v1/coverage-schedules/{coverageScheduleId}", authn.Wrap(http.HandlerFunc(cov.RemoveCoverageSchedule)))
 	return &inProcess{local: local, adapter: httpadapter.NewV2(mux)}
 }
 
