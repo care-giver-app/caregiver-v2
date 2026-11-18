@@ -387,3 +387,62 @@ func (s *EntryStore) CreateIfAbsent(ctx context.Context, e domain.Entry) (bool, 
 	}
 	return err == nil, err
 }
+
+// FutureOpenByReceiver returns the receiver's scheduled entries whose open_at
+// is after now — every occurrence of theirs still to come — oldest first, via
+// the sparse open-index.
+func (s *EntryStore) FutureOpenByReceiver(ctx context.Context, receiverID string, now time.Time) ([]domain.Entry, error) {
+	return queryAll[domain.Entry](ctx, s.client, s.futureOpenByReceiver(receiverID, now))
+}
+
+// futureOpenByReceiver queries the open-index for the receiver's scheduled
+// entries whose open_at is after now.
+func (s *EntryStore) futureOpenByReceiver(receiverID string, now time.Time) *dynamodb.QueryInput {
+	return &dynamodb.QueryInput{
+		TableName:              aws.String(s.table),
+		IndexName:              aws.String(openIndex),
+		KeyConditionExpression: aws.String("receiver_id = :r AND open_at > :now"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":r":   &types.AttributeValueMemberS{Value: receiverID},
+			":now": timeKey(now),
+		},
+		ScanIndexForward: aws.Bool(true),
+	}
+}
+
+// DeleteFutureOpenForReceiver deletes the receiver's scheduled entries whose
+// open_at is after now, across all their trackers, via the open-index — what
+// archiving a receiver, or closing their team, removes. It is
+// DeleteFutureOpenForTracker for every tracker of theirs at once: logged,
+// skipped and already-unrecorded entries stay, each delete is conditional on
+// the entry still being scheduled, and repeating it is safe. It returns how
+// many were deleted.
+func (s *EntryStore) DeleteFutureOpenForReceiver(ctx context.Context, receiverID string, now time.Time) (int, error) {
+	in := s.futureOpenByReceiver(receiverID, now)
+	in.ProjectionExpression = aws.String("entry_id")
+	return s.deleteStillScheduled(ctx, in)
+}
+
+// Retime moves a scheduled entry's occurrence to at — occurrence_at, and with
+// it timeline_at and open_at — keeping occurrence_local. It is conditional on
+// the entry still being scheduled for that local time, and reports whether it
+// moved it: one logged, skipped or deleted meanwhile is left as it is.
+func (s *EntryStore) Retime(ctx context.Context, entryID, occurrenceLocal string, at time.Time) (bool, error) {
+	_, err := s.client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName:                aws.String(s.table),
+		Key:                      entryKey(entryID),
+		UpdateExpression:         aws.String("SET occurrence_at = :at, timeline_at = :at, open_at = :at"),
+		ConditionExpression:      aws.String("#s = :scheduled AND occurrence_local = :local"),
+		ExpressionAttributeNames: map[string]string{"#s": "state"},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":at":        timeKey(at),
+			":scheduled": &types.AttributeValueMemberS{Value: string(domain.EntryScheduled)},
+			":local":     &types.AttributeValueMemberS{Value: occurrenceLocal},
+		},
+	})
+	var ccf *types.ConditionalCheckFailedException
+	if errors.As(err, &ccf) {
+		return false, nil
+	}
+	return err == nil, err
+}

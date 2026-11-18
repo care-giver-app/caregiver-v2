@@ -26,6 +26,9 @@ func put(t *testing.T, l dynamotest.Local, table string, v any) {
 	}
 }
 
+// activeTeam is team t1, open.
+var activeTeam = domain.Team{TeamID: "t1", Name: "Smiths", Status: domain.TeamActive, CreatedBy: "admin"}
+
 func TestGenerate_writesThroughTheStores(t *testing.T) {
 	l := dynamotest.StartLocal(t)
 	ctx := context.Background()
@@ -39,6 +42,7 @@ func TestGenerate_writesThroughTheStores(t *testing.T) {
 	}
 	tr.Fields = []domain.Field{{FieldID: "dose", Type: domain.FieldNumber, Status: domain.FieldActive}}
 	put(t, l, l.Names.Receivers, rc)
+	put(t, l, l.Names.Teams, activeTeam)
 	put(t, l, l.Names.Trackers, tr)
 	put(t, l, l.Names.Schedules, sc)
 
@@ -94,6 +98,7 @@ func TestGenerate_skips(t *testing.T) {
 	sc := domain.Schedule{ScheduleID: "s1", TrackerID: "tr1", ReceiverID: "r1", TeamID: "t1",
 		Rule: domain.Rule{Freq: "weekly", Interval: 1, ByDay: everyDay}, Time: "08:00", StartsOn: "2026-11-08", CreatedAt: now}
 	put(t, l, l.Names.Receivers, rc)
+	put(t, l, l.Names.Teams, activeTeam)
 	put(t, l, l.Names.Trackers, tr)
 	put(t, l, l.Names.Schedules, sc)
 
@@ -108,6 +113,18 @@ func TestGenerate_skips(t *testing.T) {
 			t.Fatalf("%s: %+v err=%v", name, res, err)
 		}
 	}
+
+	// A closed team: what it wrote is taken back.
+	closed := activeTeam
+	closed.Status = domain.TeamArchived
+	put(t, l, l.Names.Teams, closed)
+	if res, err := generate.Generate(ctx, l.Stores, sc, tr, rc, now, now); err != nil || !res.Skipped || res.Written != 0 {
+		t.Fatalf("closed team: %+v err=%v", res, err)
+	}
+	if open, _ := l.Stores.Entries.OpenByReceiver(ctx, "r1", "", now, now.Add(30*24*time.Hour)); len(open) != 0 {
+		t.Fatalf("a closed team's schedule left %d occurrences", len(open))
+	}
+	put(t, l, l.Names.Teams, activeTeam)
 
 	// Removed while generating: what it wrote is taken back.
 	if err := l.Stores.Schedules.MarkRemoved(ctx, "s1", now); err != nil {
@@ -132,6 +149,7 @@ func raceFixture(t *testing.T) (dynamotest.Local, domain.Schedule, domain.Tracke
 		Rule: domain.Rule{Freq: "weekly", Interval: 1, ByDay: everyDay}, Time: "08:00", StartsOn: "2026-11-08",
 		PlannedValues: map[string]any{}, CreatedAt: now, UpdatedAt: now}
 	put(t, l, l.Names.Receivers, rc)
+	put(t, l, l.Names.Teams, activeTeam)
 	put(t, l, l.Names.Trackers, tr)
 	put(t, l, l.Names.Schedules, sc)
 	open := func() []domain.Entry {
@@ -213,6 +231,12 @@ func TestGenerate_pausedOrArchivedWhileRunning(t *testing.T) {
 		"archived": func(l dynamotest.Local, _ domain.Tracker, rc domain.Receiver, _ time.Time) {
 			rc.Status = domain.ReceiverArchived
 			put(t, l, l.Names.Receivers, rc)
+		},
+		"closed": func(l dynamotest.Local, _ domain.Tracker, _ domain.Receiver, _ time.Time) {
+			// CloseTeam's own delete went first, so found nothing.
+			closed := activeTeam
+			closed.Status = domain.TeamArchived
+			put(t, l, l.Names.Teams, closed)
 		},
 		"removed": func(l dynamotest.Local, _ domain.Tracker, _ domain.Receiver, now time.Time) {
 			if err := l.Stores.Schedules.MarkRemoved(ctx, "s1", now); err != nil {

@@ -38,6 +38,7 @@ func newInProcess(t *testing.T) *inProcess {
 	rcv := v1.NewReceivers(local.Stores)
 	trk := v1.NewTrackers(local.Stores)
 	mux.Handle("GET /v1/teams/{teamId}/receivers", authn.Wrap(http.HandlerFunc(rcv.ListByTeam)))
+	mux.Handle("POST /v1/teams/{teamId}/receivers", authn.Wrap(http.HandlerFunc(rcv.Create)))
 	mux.Handle("GET /v1/receivers/{receiverId}/trackers", authn.Wrap(http.HandlerFunc(trk.ListByReceiver)))
 	mux.Handle("POST /v1/receivers/{receiverId}/trackers", authn.Wrap(http.HandlerFunc(trk.Create)))
 	mux.Handle("GET /v1/trackers/{trackerId}", authn.Wrap(http.HandlerFunc(trk.Get)))
@@ -65,6 +66,20 @@ func newInProcess(t *testing.T) *inProcess {
 	mux.Handle("POST /v1/receivers/{receiverId}/journal-notes", authn.Wrap(http.HandlerFunc(home.AddJournalNote)))
 	mux.Handle("PUT /v1/journal-notes/{noteId}", authn.Wrap(http.HandlerFunc(home.ChangeJournalNote)))
 	mux.Handle("DELETE /v1/journal-notes/{noteId}", authn.Wrap(http.HandlerFunc(home.DeleteJournalNote)))
+	mux.Handle("GET /v1/teams/{teamId}", authn.Wrap(http.HandlerFunc(teams.Get)))
+	mux.Handle("POST /v1/teams/{teamId}/close", authn.Wrap(http.HandlerFunc(teams.Close)))
+	mux.Handle("GET /v1/teams/{teamId}/invitations", authn.Wrap(http.HandlerFunc(inv.ListByTeam)))
+	mux.Handle("POST /v1/teams/{teamId}/invitations", authn.Wrap(http.HandlerFunc(inv.Create)))
+	mux.Handle("PUT /v1/teams/{teamId}/members/{userId}", authn.Wrap(http.HandlerFunc(teams.ChangeRole)))
+	mux.Handle("DELETE /v1/teams/{teamId}/members/{userId}", authn.Wrap(http.HandlerFunc(teams.RemoveMember)))
+	mux.Handle("GET /v1/teams/{teamId}/my-notifications", authn.Wrap(http.HandlerFunc(teams.MyNotifications)))
+	mux.Handle("PUT /v1/teams/{teamId}/my-notifications", authn.Wrap(http.HandlerFunc(teams.ChangeMyNotifications)))
+	mux.Handle("GET /v1/receivers/{receiverId}", authn.Wrap(http.HandlerFunc(rcv.Get)))
+	mux.Handle("PUT /v1/receivers/{receiverId}", authn.Wrap(http.HandlerFunc(rcv.Change)))
+	mux.Handle("POST /v1/receivers/{receiverId}/archive", authn.Wrap(http.HandlerFunc(rcv.Archive)))
+	mux.Handle("POST /v1/receivers/{receiverId}/restore", authn.Wrap(http.HandlerFunc(rcv.Restore)))
+	mux.Handle("PUT /v1/receivers/{receiverId}/care-instructions", authn.Wrap(http.HandlerFunc(rcv.ChangeCareInstructions)))
+	mux.Handle("PUT /v1/receivers/{receiverId}/emergency-contacts", authn.Wrap(http.HandlerFunc(rcv.ChangeEmergencyContacts)))
 	return &inProcess{local: local, adapter: httpadapter.NewV2(mux)}
 }
 

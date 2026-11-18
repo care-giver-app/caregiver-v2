@@ -95,6 +95,10 @@ func receiverKey(n store.TableNames, id string) rowKey {
 	return rowKey{n.Receivers, map[string]types.AttributeValue{"receiver_id": s(id)}}
 }
 
+func careInstructionsKey(n store.TableNames, receiverID string) rowKey {
+	return rowKey{n.CareInstructions, map[string]types.AttributeValue{"receiver_id": s(receiverID)}}
+}
+
 func trackerKey(n store.TableNames, id string) rowKey {
 	return rowKey{n.Trackers, map[string]types.AttributeValue{"tracker_id": s(id)}}
 }

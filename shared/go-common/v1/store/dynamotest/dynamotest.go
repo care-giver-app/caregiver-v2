@@ -70,15 +70,16 @@ func StartLocal(t *testing.T) Local {
 	}
 
 	names := store.TableNames{
-		Users:        "test-v1-user",
-		Teams:        "test-v1-team",
-		Memberships:  "test-v1-membership",
-		Invitations:  "test-v1-invitation",
-		Receivers:    "test-v1-receiver",
-		Trackers:     "test-v1-tracker",
-		Schedules:    "test-v1-schedule",
-		Entries:      "test-v1-entry",
-		JournalNotes: "test-v1-journal-note",
+		Users:            "test-v1-user",
+		Teams:            "test-v1-team",
+		Memberships:      "test-v1-membership",
+		Invitations:      "test-v1-invitation",
+		Receivers:        "test-v1-receiver",
+		CareInstructions: "test-v1-care-instructions",
+		Trackers:         "test-v1-tracker",
+		Schedules:        "test-v1-schedule",
+		Entries:          "test-v1-entry",
+		JournalNotes:     "test-v1-journal-note",
 	}
 	createTables(t, ctx, client, names)
 	return Local{Stores: store.New(client, names), Client: client, Names: names}
@@ -150,6 +151,13 @@ func createTables(t *testing.T, ctx context.Context, c *dynamodb.Client, n store
 		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
 			{IndexName: aws.String("team-index"), KeySchema: []types.KeySchemaElement{hash("team_id"), rng("created_at")}, Projection: all},
 		},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:            aws.String(n.CareInstructions),
+		BillingMode:          types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{s("receiver_id")},
+		KeySchema:            []types.KeySchemaElement{hash("receiver_id")},
 	})
 
 	mustCreate(&dynamodb.CreateTableInput{

@@ -14,7 +14,7 @@ import (
 // Summary is what one run did, across every live schedule.
 type Summary struct {
 	Schedules int `json:"schedules"` // live schedules seen
-	Skipped   int `json:"skipped"`   // removed, tracker paused, or receiver archived
+	Skipped   int `json:"skipped"`   // removed, tracker paused, receiver archived, or team closed
 	Failed    int `json:"failed"`
 	Written   int `json:"written"` // entries created
 	Present   int `json:"present"` // entries already there, left as they were
@@ -30,12 +30,27 @@ func Run(ctx context.Context, s *store.Stores, log *slog.Logger, now time.Time) 
 		log.Error("list live schedules failed", "err", err)
 		return sum, fmt.Errorf("list live schedules: %w", err)
 	}
+	// Every schedule's team, in one batched read: a closed team's schedules
+	// are skipped before anything else of theirs is read.
+	teamIDs := make([]string, 0, len(schedules))
+	seen := map[string]bool{}
+	for _, sc := range schedules {
+		if !seen[sc.TeamID] {
+			seen[sc.TeamID] = true
+			teamIDs = append(teamIDs, sc.TeamID)
+		}
+	}
+	teams, err := s.Teams.BatchGet(ctx, teamIDs)
+	if err != nil {
+		log.Error("load teams failed", "err", err)
+		return sum, fmt.Errorf("load teams: %w", err)
+	}
 	trackers := map[string]domain.Tracker{}
 	receivers := map[string]domain.Receiver{}
 	for _, sc := range schedules {
 		sum.Schedules++
 		attrs := []any{"schedule_id", sc.ScheduleID, "tracker_id", sc.TrackerID, "receiver_id", sc.ReceiverID, "team_id", sc.TeamID}
-		res, err := runOne(ctx, s, sc, trackers, receivers, now)
+		res, err := runOne(ctx, s, sc, teams, trackers, receivers, now)
 		if err != nil {
 			sum.Failed++
 			log.Error("schedule failed", append(attrs, "err", err)...)
@@ -57,9 +72,17 @@ func Run(ctx context.Context, s *store.Stores, log *slog.Logger, now time.Time) 
 	return sum, nil
 }
 
-// runOne loads the schedule's tracker and receiver, through the per-run
-// caches, and generates it.
-func runOne(ctx context.Context, s *store.Stores, sc domain.Schedule, trackers map[string]domain.Tracker, receivers map[string]domain.Receiver, now time.Time) (generate.Result, error) {
+// runOne skips the schedule if its team is closed, and otherwise loads its
+// tracker and receiver, through the per-run caches, and generates it.
+func runOne(ctx context.Context, s *store.Stores, sc domain.Schedule, teams map[string]domain.Team,
+	trackers map[string]domain.Tracker, receivers map[string]domain.Receiver, now time.Time) (generate.Result, error) {
+	team, ok := teams[sc.TeamID]
+	if !ok {
+		return generate.Result{}, fmt.Errorf("team %s: %w", sc.TeamID, store.ErrNotFound)
+	}
+	if team.Status == domain.TeamArchived {
+		return generate.Result{Skipped: true}, nil
+	}
 	t, ok := trackers[sc.TrackerID]
 	if !ok {
 		var err error

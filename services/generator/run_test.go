@@ -54,6 +54,7 @@ func TestRun_generatesLiveSchedulesAndRerunsWriteNothing(t *testing.T) {
 	ctx := context.Background()
 	now := utc("2026-11-08T18:00:00Z") // Sunday noon in Chicago
 
+	put(t, l, l.Names.Teams, domain.Team{TeamID: "t1", Name: "Smiths", Status: domain.TeamActive})
 	put(t, l, l.Names.Receivers, domain.Receiver{ReceiverID: "r1", TeamID: "t1", TimeZone: "America/Chicago", Status: domain.ReceiverActive})
 	put(t, l, l.Names.Trackers, domain.Tracker{TrackerID: "active", ReceiverID: "r1", TeamID: "t1", Status: domain.TrackerActive})
 	put(t, l, l.Names.Trackers, domain.Tracker{TrackerID: "paused", ReceiverID: "r1", TeamID: "t1", Status: domain.TrackerPaused})
@@ -103,6 +104,7 @@ func TestRun_continuesPastAFailedScheduleAndReportsIt(t *testing.T) {
 	ctx := context.Background()
 	now := utc("2026-11-08T18:00:00Z")
 
+	put(t, l, l.Names.Teams, domain.Team{TeamID: "t1", Name: "Smiths", Status: domain.TeamActive})
 	put(t, l, l.Names.Receivers, domain.Receiver{ReceiverID: "r1", TeamID: "t1", TimeZone: "America/Chicago", Status: domain.ReceiverActive})
 	put(t, l, l.Names.Trackers, domain.Tracker{TrackerID: "active", ReceiverID: "r1", TeamID: "t1", Status: domain.TrackerActive})
 	put(t, l, l.Names.Schedules, schedule("s-active", "active", now))
@@ -118,5 +120,35 @@ func TestRun_continuesPastAFailedScheduleAndReportsIt(t *testing.T) {
 	}
 	if !strings.Contains(buf.String(), `"msg":"schedule failed"`) || !strings.Contains(buf.String(), `"schedule_id":"s-orphan"`) {
 		t.Fatalf("failure not logged:\n%s", buf.String())
+	}
+}
+
+func TestRun_skipsAClosedTeamsSchedules(t *testing.T) {
+	l := dynamotest.StartLocal(t)
+	ctx := context.Background()
+	now := utc("2026-11-08T18:00:00Z")
+
+	put(t, l, l.Names.Teams, domain.Team{TeamID: "t1", Name: "Smiths", Status: domain.TeamActive})
+	put(t, l, l.Names.Teams, domain.Team{TeamID: "t2", Name: "Joneses", Status: domain.TeamArchived})
+	for _, team := range []string{"t1", "t2"} {
+		r, tr := "r-"+team, "tr-"+team
+		put(t, l, l.Names.Receivers, domain.Receiver{ReceiverID: r, TeamID: team, TimeZone: "America/Chicago", Status: domain.ReceiverActive})
+		put(t, l, l.Names.Trackers, domain.Tracker{TrackerID: tr, ReceiverID: r, TeamID: team, Status: domain.TrackerActive})
+		sc := schedule("s-"+team, tr, now)
+		sc.ReceiverID, sc.TeamID = r, team
+		put(t, l, l.Names.Schedules, sc)
+	}
+
+	log, _ := testLogger()
+	sum, err := Run(ctx, l.Stores, log, now)
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if sum != (Summary{Schedules: 2, Skipped: 1, Written: 6}) {
+		t.Fatalf("summary: %+v", sum)
+	}
+	horizon := now.Add(30 * 24 * time.Hour)
+	if open, err := l.Stores.Entries.OpenByReceiver(ctx, "r-t2", "", now, horizon); err != nil || len(open) != 0 {
+		t.Fatalf("closed team got entries: %d err=%v", len(open), err)
 	}
 }

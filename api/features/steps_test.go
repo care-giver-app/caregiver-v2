@@ -29,12 +29,13 @@ type world struct {
 	n      int
 	care   careWorld
 	home   homeWorld
+	team   teamWorld
 }
 
 func newWorld(d driver, suffix string) *world {
 	return &world{
 		d: d, suffix: suffix, people: map[string]*person{}, teams: map[string]string{}, codes: map[string]string{},
-		care: newCareWorld(),
+		care: newCareWorld(), team: teamWorld{invited: map[string]string{}},
 	}
 }
 
@@ -69,6 +70,7 @@ func (w *world) register(sc *godog.ScenarioContext) {
 
 	w.registerTrackers(sc)
 	w.registerHome(sc)
+	w.registerTeam(sc)
 
 	// Clean up whatever happened: a failed scenario still deletes what it made.
 	// A step's own failure is already recorded; this only adds a cleanup failure.
@@ -454,6 +456,9 @@ func (w *world) redeem(ctx context.Context, p *person, team, code string) error 
 	if w.last.status == http.StatusOK {
 		if id, ok := w.teams[team]; ok {
 			w.track(membershipKey(w.d.db().names, p.userID, id))
+			// A used invitation leaves the team's pending list; wait for its
+			// index to say so before anything reads it (see awaitPending).
+			return w.awaitPending(ctx, id, code, false)
 		}
 	}
 	return nil

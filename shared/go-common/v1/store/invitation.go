@@ -51,3 +51,20 @@ func (s *InvitationStore) ListPendingByEmail(ctx context.Context, email string) 
 		},
 	})
 }
+
+// ListPendingByTeam returns the team's pending invitations, via the
+// team-index. Like ListPendingByEmail it filters on status only; dropping
+// expired ones is the caller's job.
+func (s *InvitationStore) ListPendingByTeam(ctx context.Context, teamID string) ([]domain.Invitation, error) {
+	return queryAll[domain.Invitation](ctx, s.client, &dynamodb.QueryInput{
+		TableName:                aws.String(s.table),
+		IndexName:                aws.String(teamIndex),
+		KeyConditionExpression:   aws.String("team_id = :t"),
+		FilterExpression:         aws.String("#s = :pending"),
+		ExpressionAttributeNames: map[string]string{"#s": "status"},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":t":       &types.AttributeValueMemberS{Value: teamID},
+			":pending": &types.AttributeValueMemberS{Value: string(domain.InvitePending)},
+		},
+	})
+}
