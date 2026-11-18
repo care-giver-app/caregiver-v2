@@ -298,3 +298,38 @@ func RetimeAssignments(ctx context.Context, s *store.Stores, rc domain.Receiver,
 	}
 	return moved, nil
 }
+
+// DeleteFutureCoverage deletes the rule's assignments that start after now and
+// still belong to it — what changing or removing it redraws. It finds them
+// two ways: through the coverage-schedule index, and by the ids the rule as
+// given (before any change) would have made. The index is eventually
+// consistent and may not yet hold rows made a moment ago; the ids are exact
+// for every slot the rule makes from now. Ones changed or removed by hand stay.
+// It returns how many went.
+func DeleteFutureCoverage(ctx context.Context, s *store.Stores, cs domain.CoverageSchedule, rc domain.Receiver, now time.Time) (int, error) {
+	n, err := s.Assignments.DeleteFutureForSchedule(ctx, cs.CoverageScheduleID, now)
+	if err != nil {
+		return n, err
+	}
+	loc, err := time.LoadLocation(rc.TimeZone)
+	if err != nil {
+		return n, fmt.Errorf("receiver %s time zone: %w", rc.ReceiverID, err)
+	}
+	slots, err := ExpandCoverage(cs, loc, now, now)
+	if err != nil {
+		return n, err
+	}
+	for _, sl := range slots {
+		if !sl.StartsAt.After(now) {
+			continue
+		}
+		gone, err := s.Assignments.DeleteIfAttached(ctx, AssignmentID(cs.CoverageScheduleID, sl.Date))
+		if err != nil {
+			return n, err
+		}
+		if gone {
+			n++
+		}
+	}
+	return n, nil
+}

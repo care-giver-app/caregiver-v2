@@ -262,3 +262,25 @@ func TestRetimeAssignments(t *testing.T) {
 		t.Fatalf("repeat moved %d", moved)
 	}
 }
+
+func TestDeleteFutureCoverage_findsRowsTheIndexHasNotCaughtUpWith(t *testing.T) {
+	l, cs, rc := coverageFixture(t)
+	ctx := context.Background()
+	now := cs.CreatedAt
+	if _, err := generate.GenerateCoverage(ctx, l.Stores, cs, rc, now, now); err != nil {
+		t.Fatal(err)
+	}
+	// Stand in for an index lagging the table: the second Tuesday is filed
+	// under another rule there, so only its id can find it.
+	lagging, _ := l.Stores.Assignments.Get(ctx, generate.AssignmentID("cs1", "2026-11-17"))
+	lagging.CoverageScheduleID = "elsewhere"
+	put(t, l, l.Names.Assignments, lagging)
+
+	n, err := generate.DeleteFutureCoverage(ctx, l.Stores, cs, rc, now)
+	if err != nil || n != 2 {
+		t.Fatalf("deleted %d %v", n, err)
+	}
+	if got, _ := l.Stores.Assignments.NotEndedByReceiver(ctx, "r1", now); len(got) != 0 {
+		t.Fatalf("left: %+v", got)
+	}
+}

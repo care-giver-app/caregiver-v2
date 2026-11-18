@@ -526,6 +526,7 @@ func (h *Coverage) ChangeCoverageSchedule(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
+	old := cs
 	cs.UserID, cs.Rule, cs.StartTime, cs.EndTime, cs.EndsOn, cs.UpdatedAt = cw.UserID, cw.Rule, cw.StartTime, cw.EndTime, cw.EndsOn, now
 	ctx := r.Context()
 	stored, err := h.stores.CoverageSchedules.Update(ctx, cs)
@@ -536,7 +537,7 @@ func (h *Coverage) ChangeCoverageSchedule(w http.ResponseWriter, r *http.Request
 		httpx.ServerError(w, r, err, "update failed")
 		return
 	}
-	if _, err := h.stores.Assignments.DeleteFutureForSchedule(ctx, stored.CoverageScheduleID, now); err != nil {
+	if _, err := generate.DeleteFutureCoverage(ctx, h.stores, old, rc, now); err != nil {
 		httpx.ServerError(w, r, err, "update failed")
 		return
 	}
@@ -554,7 +555,7 @@ func (h *Coverage) RemoveCoverageSchedule(w http.ResponseWriter, r *http.Request
 	if c == nil {
 		return
 	}
-	cs, _, ok := h.loadCoverageScheduleToChange(w, r, c, true)
+	cs, rc, ok := h.loadCoverageScheduleToChange(w, r, c, true)
 	if !ok {
 		return
 	}
@@ -564,7 +565,7 @@ func (h *Coverage) RemoveCoverageSchedule(w http.ResponseWriter, r *http.Request
 		httpx.ServerError(w, r, err, "remove failed")
 		return
 	}
-	if _, err := h.stores.Assignments.DeleteFutureForSchedule(ctx, cs.CoverageScheduleID, now); err != nil {
+	if _, err := generate.DeleteFutureCoverage(ctx, h.stores, cs, rc, now); err != nil {
 		httpx.ServerError(w, r, err, "remove failed")
 		return
 	}
