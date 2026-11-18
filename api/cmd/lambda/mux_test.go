@@ -47,6 +47,8 @@ func setTableEnv(t *testing.T) {
 	t.Setenv("V1_SCHEDULES_TABLE", "v1s")
 	t.Setenv("V1_ENTRIES_TABLE", "v1e")
 	t.Setenv("V1_JOURNAL_NOTES_TABLE", "v1jn")
+	t.Setenv("V1_COVERAGE_SCHEDULES_TABLE", "v1cs")
+	t.Setenv("V1_ASSIGNMENTS_TABLE", "v1a")
 	t.Setenv("AWS_REGION", "us-east-2")
 	t.Setenv("AWS_ACCESS_KEY_ID", "x")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "x")
@@ -59,7 +61,7 @@ func TestNewMux_requiresV1TableEnv(t *testing.T) {
 	for _, k := range []string{
 		"V1_USERS_TABLE", "V1_TEAMS_TABLE", "V1_MEMBERSHIPS_TABLE", "V1_INVITATIONS_TABLE",
 		"V1_RECEIVERS_TABLE", "V1_CARE_INSTRUCTIONS_TABLE", "V1_TRACKERS_TABLE", "V1_SCHEDULES_TABLE", "V1_ENTRIES_TABLE",
-		"V1_JOURNAL_NOTES_TABLE",
+		"V1_JOURNAL_NOTES_TABLE", "V1_COVERAGE_SCHEDULES_TABLE", "V1_ASSIGNMENTS_TABLE",
 	} {
 		t.Run(k, func(t *testing.T) {
 			t.Setenv(k, "")
@@ -123,6 +125,15 @@ func TestNewMux_v1RoutesAreRegisteredBehindAuth(t *testing.T) {
 		{http.MethodPost, "/v1/receivers/r1/restore"},
 		{http.MethodPut, "/v1/receivers/r1/care-instructions"},
 		{http.MethodPut, "/v1/receivers/r1/emergency-contacts"},
+		{http.MethodGet, "/v1/receivers/r1/on-duty"},
+		{http.MethodGet, "/v1/receivers/r1/assignments"},
+		{http.MethodPost, "/v1/receivers/r1/assignments"},
+		{http.MethodPut, "/v1/assignments/a1"},
+		{http.MethodDelete, "/v1/assignments/a1"},
+		{http.MethodGet, "/v1/receivers/r1/coverage-schedules"},
+		{http.MethodPost, "/v1/receivers/r1/coverage-schedules"},
+		{http.MethodPut, "/v1/coverage-schedules/cs1"},
+		{http.MethodDelete, "/v1/coverage-schedules/cs1"},
 	} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(rt.method, rt.path, nil))

@@ -138,6 +138,16 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	mux.Handle("POST /v1/receivers/{receiverId}/restore", v1authn.Wrap(http.HandlerFunc(v1rcv.Restore)))
 	mux.Handle("PUT /v1/receivers/{receiverId}/care-instructions", v1authn.Wrap(http.HandlerFunc(v1rcv.ChangeCareInstructions)))
 	mux.Handle("PUT /v1/receivers/{receiverId}/emergency-contacts", v1authn.Wrap(http.HandlerFunc(v1rcv.ChangeEmergencyContacts)))
+	v1cov := v1.NewCoverage(v1Stores)
+	mux.Handle("GET /v1/receivers/{receiverId}/on-duty", v1authn.Wrap(http.HandlerFunc(v1cov.OnDuty)))
+	mux.Handle("GET /v1/receivers/{receiverId}/assignments", v1authn.Wrap(http.HandlerFunc(v1cov.Assignments)))
+	mux.Handle("POST /v1/receivers/{receiverId}/assignments", v1authn.Wrap(http.HandlerFunc(v1cov.AddAssignment)))
+	mux.Handle("PUT /v1/assignments/{assignmentId}", v1authn.Wrap(http.HandlerFunc(v1cov.ChangeAssignment)))
+	mux.Handle("DELETE /v1/assignments/{assignmentId}", v1authn.Wrap(http.HandlerFunc(v1cov.RemoveAssignment)))
+	mux.Handle("GET /v1/receivers/{receiverId}/coverage-schedules", v1authn.Wrap(http.HandlerFunc(v1cov.CoverageSchedules)))
+	mux.Handle("POST /v1/receivers/{receiverId}/coverage-schedules", v1authn.Wrap(http.HandlerFunc(v1cov.AddCoverageSchedule)))
+	mux.Handle("PUT /v1/coverage-schedules/{coverageScheduleId}", v1authn.Wrap(http.HandlerFunc(v1cov.ChangeCoverageSchedule)))
+	mux.Handle("DELETE /v1/coverage-schedules/{coverageScheduleId}", v1authn.Wrap(http.HandlerFunc(v1cov.RemoveCoverageSchedule)))
 
 	return middleware.RequestLogger(log)(mux), nil
 }
@@ -167,21 +177,23 @@ func newStores(ctx context.Context) (*store.Stores, error) {
 
 func newV1Stores(ctx context.Context) (*v1store.Stores, error) {
 	names := v1store.TableNames{
-		Users:            os.Getenv("V1_USERS_TABLE"),
-		Teams:            os.Getenv("V1_TEAMS_TABLE"),
-		Memberships:      os.Getenv("V1_MEMBERSHIPS_TABLE"),
-		Invitations:      os.Getenv("V1_INVITATIONS_TABLE"),
-		Receivers:        os.Getenv("V1_RECEIVERS_TABLE"),
-		CareInstructions: os.Getenv("V1_CARE_INSTRUCTIONS_TABLE"),
-		Trackers:         os.Getenv("V1_TRACKERS_TABLE"),
-		Schedules:        os.Getenv("V1_SCHEDULES_TABLE"),
-		Entries:          os.Getenv("V1_ENTRIES_TABLE"),
-		JournalNotes:     os.Getenv("V1_JOURNAL_NOTES_TABLE"),
+		Users:             os.Getenv("V1_USERS_TABLE"),
+		Teams:             os.Getenv("V1_TEAMS_TABLE"),
+		Memberships:       os.Getenv("V1_MEMBERSHIPS_TABLE"),
+		Invitations:       os.Getenv("V1_INVITATIONS_TABLE"),
+		Receivers:         os.Getenv("V1_RECEIVERS_TABLE"),
+		CareInstructions:  os.Getenv("V1_CARE_INSTRUCTIONS_TABLE"),
+		Trackers:          os.Getenv("V1_TRACKERS_TABLE"),
+		Schedules:         os.Getenv("V1_SCHEDULES_TABLE"),
+		Entries:           os.Getenv("V1_ENTRIES_TABLE"),
+		JournalNotes:      os.Getenv("V1_JOURNAL_NOTES_TABLE"),
+		CoverageSchedules: os.Getenv("V1_COVERAGE_SCHEDULES_TABLE"),
+		Assignments:       os.Getenv("V1_ASSIGNMENTS_TABLE"),
 	}
 	if names.Users == "" || names.Teams == "" || names.Memberships == "" || names.Invitations == "" ||
 		names.Receivers == "" || names.Trackers == "" || names.Schedules == "" || names.Entries == "" ||
-		names.JournalNotes == "" || names.CareInstructions == "" {
-		return nil, fmt.Errorf("all V1_*_TABLE env vars (users, teams, memberships, invitations, receivers, care instructions, trackers, schedules, entries, journal notes) must be set")
+		names.JournalNotes == "" || names.CareInstructions == "" || names.CoverageSchedules == "" || names.Assignments == "" {
+		return nil, fmt.Errorf("all V1_*_TABLE env vars (users, teams, memberships, invitations, receivers, care instructions, trackers, schedules, entries, journal notes, coverage schedules, assignments) must be set")
 	}
 	client, err := v1store.NewClient(ctx, os.Getenv("DYNAMODB_ENDPOINT"))
 	if err != nil {
