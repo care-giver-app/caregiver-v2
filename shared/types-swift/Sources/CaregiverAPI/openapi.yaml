@@ -1642,7 +1642,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/AssignmentEnded' }
+        '409': { $ref: '#/components/responses/AssignmentEndedOrArchived' }
     delete:
       operationId: removeAssignment
       summary: An assignment — Remove (admin only)
@@ -1657,7 +1657,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/AssignmentEnded' }
+        '409': { $ref: '#/components/responses/AssignmentEndedOrArchived' }
   /v1/receivers/{receiverId}/coverage-schedules:
     get:
       operationId: listCoverageSchedules
@@ -1724,6 +1724,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/ReceiverArchived' }
     delete:
       operationId: removeCoverageSchedule
       summary: Remove this coverage schedule? — Remove (admin only)
@@ -1739,6 +1740,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/ReceiverArchived' }
 components:
   securitySchemes:
     bearerAuth:
@@ -2804,10 +2806,11 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-    AssignmentEnded:
+    AssignmentEndedOrArchived:
       description: >
         The assignment has already ended, and stays as it is: it says who was
-        responsible.
+        responsible. Or the care receiver is archived, and everything about
+        them is read-only until an admin restores them.
       content:
         application/json:
           schema:

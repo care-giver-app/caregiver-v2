@@ -191,8 +191,10 @@ Feature: Who covers a care receiver, and when
     Then the answer is 403
 
   # PRD: Definitions → Care team (Their place on the roster goes with the access: the assignments
-  #      still ahead of them are removed, and any coverage schedule that names them ends that day)
-  # PRD: Team (The assignments still ahead of them go with them, for the same reason)
+  #      still ahead of them are removed, one they are partway through ends the moment they go, and
+  #      any coverage schedule that names them ends that day)
+  # PRD: Team (The assignments still ahead of them go with them, and one they are partway through
+  #      ends when they do, for the same reason)
   Scenario Outline: <who> takes their place on the roster with them
     Given "Alex" schedules "Sam" to cover "Grandma" every day from 08:00 to 16:00
     And "Alex" assigns "Sam" to "Grandma" in 3 days from 18:00 to 20:00
@@ -210,13 +212,22 @@ Feature: Who covers a care receiver, and when
       | A caregiver an admin removes from team | Alex |
 
   # PRD: Team → Care receiver (when archived, all of it unchanged but read-only)
-  # Contract: addAssignment and addCoverageSchedule answer 409 ReceiverArchived
-  Scenario: An archived care receiver's roster can be read but not added to
+  # Contract: every roster write answers 409 for an archived care receiver
+  Scenario: An archived care receiver's roster can be read but not changed
     Given "Alex" assigns "Sam" to "Grandma" tomorrow from 08:00 to 16:00
+    And "Alex" schedules "Jordan" to cover "Grandma" every day from 18:00 to 20:00
     And "Alex" archives the care receiver "Grandma"
     When "Alex" assigns "Jordan" to "Grandma" in 2 days from 08:00 to 16:00
     Then the answer is 409
     When "Alex" schedules "Jordan" to cover "Grandma" every day from 08:00 to 16:00
+    Then the answer is 409
+    When "Alex" hands "Sam"'s assignment to "Jordan"
+    Then the answer is 409
+    When "Alex" removes "Sam"'s assignment
+    Then the answer is 409
+    When "Alex" changes "Jordan"'s coverage schedule to every day from 09:00 to 17:00
+    Then the answer is 409
+    When "Alex" removes "Jordan"'s coverage schedule
     Then the answer is 409
     When "Jordan" opens the assignments ahead of "Grandma"
     Then the answer is 200
