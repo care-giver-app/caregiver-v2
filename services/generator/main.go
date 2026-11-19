@@ -42,16 +42,18 @@ func main() {
 }
 
 // newStores builds the v1 stores from the same V1_*_TABLE variables the API
-// reads. The generator touches only schedules, trackers, receivers and entries.
+// reads. The generator touches only teams, schedules, trackers, receivers and
+// entries; it reads teams to skip a closed team's schedules.
 func newStores(ctx context.Context) (*v1store.Stores, error) {
 	names := v1store.TableNames{
+		Teams:     os.Getenv("V1_TEAMS_TABLE"),
 		Receivers: os.Getenv("V1_RECEIVERS_TABLE"),
 		Trackers:  os.Getenv("V1_TRACKERS_TABLE"),
 		Schedules: os.Getenv("V1_SCHEDULES_TABLE"),
 		Entries:   os.Getenv("V1_ENTRIES_TABLE"),
 	}
-	if names.Receivers == "" || names.Trackers == "" || names.Schedules == "" || names.Entries == "" {
-		return nil, fmt.Errorf("V1_RECEIVERS_TABLE, V1_TRACKERS_TABLE, V1_SCHEDULES_TABLE and V1_ENTRIES_TABLE must be set")
+	if names.Teams == "" || names.Receivers == "" || names.Trackers == "" || names.Schedules == "" || names.Entries == "" {
+		return nil, fmt.Errorf("V1_TEAMS_TABLE, V1_RECEIVERS_TABLE, V1_TRACKERS_TABLE, V1_SCHEDULES_TABLE and V1_ENTRIES_TABLE must be set")
 	}
 	// DYNAMODB_ENDPOINT is empty in Lambda (default AWS resolution); set for local/dev.
 	client, err := v1store.NewClient(ctx, os.Getenv("DYNAMODB_ENDPOINT"))

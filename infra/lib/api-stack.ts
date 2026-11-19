@@ -366,7 +366,7 @@ export class ApiStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    const { receiver, tracker, schedule, entry } = props.v1Tables;
+    const { team, receiver, tracker, schedule, entry } = props.v1Tables;
     const fn = new lambda.Function(this, 'GeneratorFunction', {
       functionName: resourceName,
       runtime: lambda.Runtime.PROVIDED_AL2023,
@@ -387,13 +387,16 @@ export class ApiStack extends cdk.Stack {
         V1_TRACKERS_TABLE: tracker.tableName,
         V1_SCHEDULES_TABLE: schedule.tableName,
         V1_ENTRIES_TABLE: entry.tableName,
+        V1_TEAMS_TABLE: team.tableName,
       },
       logGroup,
     });
 
-    // Reads schedules (a scan for the live ones), trackers and receivers;
-    // writes entries (conditional creates, and deletes when a schedule is
-    // removed mid-run) and only generated_through on schedules.
+    // Reads schedules (a scan for the live ones), teams (skipping closed
+    // ones), trackers and receivers; writes entries (conditional creates, and
+    // deletes when a schedule is removed mid-run) and only generated_through
+    // on schedules.
+    team.grantReadData(fn);
     receiver.grantReadData(fn);
     tracker.grantReadData(fn);
     schedule.grantReadData(fn);

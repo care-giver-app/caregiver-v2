@@ -300,6 +300,7 @@ describe('ApiStack', () => {
           V1_TRACKERS_TABLE: Match.anyValue(),
           V1_SCHEDULES_TABLE: Match.anyValue(),
           V1_ENTRIES_TABLE: Match.anyValue(),
+          V1_TEAMS_TABLE: Match.anyValue(),
         }),
       },
     });
@@ -314,17 +315,23 @@ describe('ApiStack', () => {
     t.resourceCountIs('AWS::Events::Rule', 1);
     t.hasOutput('GeneratorFunctionName', {});
 
-    // The generator's policy names only the receiver, tracker, schedule and entry tables.
+    // The generator's policy names only the team, receiver, tracker, schedule and entry tables.
     const policies = t.findResources('AWS::IAM::Policy');
     const generatorPolicy = Object.entries(policies).find(([id]) =>
       id.startsWith('GeneratorFunctionServiceRoleDefaultPolicy'),
     );
     expect(generatorPolicy).toBeDefined();
     const doc = JSON.stringify(generatorPolicy![1]);
-    for (const id of ['V1ReceiverTable', 'V1TrackerTable', 'V1ScheduleTable', 'V1EntryTable']) {
+    for (const id of [
+      'V1TeamTable',
+      'V1ReceiverTable',
+      'V1TrackerTable',
+      'V1ScheduleTable',
+      'V1EntryTable',
+    ]) {
       expect(doc).toContain(id);
     }
-    for (const id of ['V1UserTable', 'V1TeamTable', 'V1MembershipTable', 'V1InvitationTable']) {
+    for (const id of ['V1UserTable', 'V1MembershipTable', 'V1InvitationTable']) {
       expect(doc).not.toContain(id);
     }
   });
