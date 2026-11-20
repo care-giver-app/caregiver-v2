@@ -65,9 +65,18 @@ func (s *Stores) ChangeRole(ctx context.Context, teamID, userID string, role dom
 }
 
 // RemoveMember deletes a member's membership: an admin removing them, or
-// their leaving. It returns ErrNotFound if they are not on the team and
-// ErrLastAdmin if they are its only admin.
-func (s *Stores) RemoveMember(ctx context.Context, teamID, userID string) error {
+// their leaving. Their place on the roster goes with it (ReleaseRoster). It
+// returns ErrNotFound if they are not on the team and ErrLastAdmin if they are
+// its only admin.
+func (s *Stores) RemoveMember(ctx context.Context, teamID, userID string, now time.Time) error {
+	if err := s.removeMembership(ctx, teamID, userID); err != nil {
+		return err
+	}
+	return s.ReleaseRoster(ctx, teamID, userID, now)
+}
+
+// removeMembership deletes the membership, keeping the team's last admin.
+func (s *Stores) removeMembership(ctx context.Context, teamID, userID string) error {
 	return s.changeMember(ctx, teamID, userID, true, func(target domain.Membership) (*types.TransactWriteItem, bool) {
 		return &types.TransactWriteItem{Delete: &types.Delete{
 			TableName:                aws.String(s.names.Memberships),

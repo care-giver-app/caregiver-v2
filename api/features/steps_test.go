@@ -30,12 +30,13 @@ type world struct {
 	care   careWorld
 	home   homeWorld
 	team   teamWorld
+	cov    coverageWorld
 }
 
 func newWorld(d driver, suffix string) *world {
 	return &world{
 		d: d, suffix: suffix, people: map[string]*person{}, teams: map[string]string{}, codes: map[string]string{},
-		care: newCareWorld(), team: teamWorld{invited: map[string]string{}},
+		care: newCareWorld(), team: teamWorld{invited: map[string]string{}}, cov: newCoverageWorld(),
 	}
 }
 
@@ -71,13 +72,14 @@ func (w *world) register(sc *godog.ScenarioContext) {
 	w.registerTrackers(sc)
 	w.registerHome(sc)
 	w.registerTeam(sc)
+	w.registerCoverage(sc)
 
 	// Clean up whatever happened: a failed scenario still deletes what it made.
 	// A step's own failure is already recorded; this only adds a cleanup failure.
 	sc.After(func(ctx context.Context, _ *godog.Scenario, _ error) (context.Context, error) {
 		cctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
-		genErr := w.trackGenerated(cctx)
+		genErr := errors.Join(w.trackGenerated(cctx), w.trackRoster(cctx))
 		if err := errors.Join(genErr, w.d.cleanup(cctx, w.rows, w.order)); err != nil {
 			return ctx, fmt.Errorf("cleanup failed: %w", err)
 		}

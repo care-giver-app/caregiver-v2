@@ -70,16 +70,18 @@ func StartLocal(t *testing.T) Local {
 	}
 
 	names := store.TableNames{
-		Users:            "test-v1-user",
-		Teams:            "test-v1-team",
-		Memberships:      "test-v1-membership",
-		Invitations:      "test-v1-invitation",
-		Receivers:        "test-v1-receiver",
-		CareInstructions: "test-v1-care-instructions",
-		Trackers:         "test-v1-tracker",
-		Schedules:        "test-v1-schedule",
-		Entries:          "test-v1-entry",
-		JournalNotes:     "test-v1-journal-note",
+		Users:             "test-v1-user",
+		Teams:             "test-v1-team",
+		Memberships:       "test-v1-membership",
+		Invitations:       "test-v1-invitation",
+		Receivers:         "test-v1-receiver",
+		CareInstructions:  "test-v1-care-instructions",
+		Trackers:          "test-v1-tracker",
+		Schedules:         "test-v1-schedule",
+		Entries:           "test-v1-entry",
+		JournalNotes:      "test-v1-journal-note",
+		CoverageSchedules: "test-v1-coverage-schedule",
+		Assignments:       "test-v1-assignment",
 	}
 	createTables(t, ctx, client, names)
 	return Local{Stores: store.New(client, names), Client: client, Names: names}
@@ -203,6 +205,27 @@ func createTables(t *testing.T, ctx context.Context, c *dynamodb.Client, n store
 		KeySchema:            []types.KeySchemaElement{hash("note_id")},
 		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
 			{IndexName: aws.String("receiver-time"), KeySchema: []types.KeySchemaElement{hash("receiver_id"), rng("at")}, Projection: all},
+		},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:            aws.String(n.CoverageSchedules),
+		BillingMode:          types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{s("coverage_schedule_id"), s("receiver_id"), s("created_at")},
+		KeySchema:            []types.KeySchemaElement{hash("coverage_schedule_id")},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+			{IndexName: aws.String("receiver-index"), KeySchema: []types.KeySchemaElement{hash("receiver_id"), rng("created_at")}, Projection: all},
+		},
+	})
+
+	mustCreate(&dynamodb.CreateTableInput{
+		TableName:            aws.String(n.Assignments),
+		BillingMode:          types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{s("assignment_id"), s("receiver_id"), s("coverage_schedule_id"), s("starts_at")},
+		KeySchema:            []types.KeySchemaElement{hash("assignment_id")},
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+			{IndexName: aws.String("receiver-time"), KeySchema: []types.KeySchemaElement{hash("receiver_id"), rng("starts_at")}, Projection: all},
+			{IndexName: aws.String("coverage-schedule-index"), KeySchema: []types.KeySchemaElement{hash("coverage_schedule_id"), rng("starts_at")}, Projection: all},
 		},
 	})
 }

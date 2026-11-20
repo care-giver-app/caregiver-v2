@@ -215,7 +215,8 @@ func (h *Receivers) Get(w http.ResponseWriter, r *http.Request) {
 
 // Change serves PUT /v1/receivers/{receiverId} (Edit care receiver). Admins
 // only. A new time zone keeps the receiver's routines at their wall-clock
-// times: every scheduled entry still to come is re-resolved in it.
+// times: every scheduled entry still to come, and every assignment not yet
+// begun, is re-resolved in it.
 func (h *Receivers) Change(w http.ResponseWriter, r *http.Request) {
 	c := requireCaller(w, r)
 	if c == nil {
@@ -250,8 +251,12 @@ func (h *Receivers) Change(w http.ResponseWriter, r *http.Request) {
 		httpx.ServerError(w, r, err, "re-resolving scheduled entries failed", "receiver_id", rc.ReceiverID)
 		return
 	}
-	// PR2: re-resolve the receiver's assignments still to come in the new zone
-	// the same way, keeping their local start and end times.
+	// Their assignments not yet begun move the same way, keeping their local
+	// start and end.
+	if _, err := generate.RetimeAssignments(ctx, h.stores, rc, h.now().UTC()); err != nil {
+		httpx.ServerError(w, r, err, "re-resolving assignments failed", "receiver_id", rc.ReceiverID)
+		return
+	}
 	httpx.WriteJSON(w, http.StatusOK, careReceiverView(rc))
 }
 
@@ -285,8 +290,9 @@ func (h *Receivers) Archive(w http.ResponseWriter, r *http.Request) {
 }
 
 // Restore serves POST /v1/receivers/{receiverId}/restore. Admins only. Each
-// tracker not paused generates its schedules again from now; nothing that came
-// due while they were archived is made after the fact. Restoring one already
+// tracker not paused generates its schedules again from now, and each live
+// coverage schedule its assignments; nothing that came due while they were
+// archived is made after the fact. Restoring one already
 // active is a 204.
 func (h *Receivers) Restore(w http.ResponseWriter, r *http.Request) {
 	c := requireCaller(w, r)
@@ -326,6 +332,14 @@ func (h *Receivers) Restore(w http.ResponseWriter, r *http.Request) {
 			for _, sc := range scs {
 				generateFromNow(ctx, h.stores, sc, t, rc, now)
 			}
+		}
+		rules, err := h.stores.CoverageSchedules.ListLiveByReceiver(ctx, rc.ReceiverID)
+		if err != nil {
+			httpx.ServerError(w, r, err, "coverage schedule load failed")
+			return
+		}
+		for _, cs := range rules {
+			generateCoverageFromNow(ctx, h.stores, cs, rc, now)
 		}
 	}
 	w.WriteHeader(http.StatusNoContent)

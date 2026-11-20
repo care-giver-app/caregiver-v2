@@ -47,6 +47,8 @@ export interface ApiStackProps extends cdk.StackProps {
     schedule: dynamodb.ITable;
     entry: dynamodb.ITable;
     'journal-note': dynamodb.ITable;
+    'coverage-schedule': dynamodb.ITable;
+    assignment: dynamodb.ITable;
   };
 }
 
@@ -139,6 +141,8 @@ export class ApiStack extends cdk.Stack {
       schedule,
       entry,
       'journal-note': journalNote,
+      'coverage-schedule': coverageSchedule,
+      assignment,
     } = props.v1Tables;
     for (const table of [
       user,
@@ -151,6 +155,8 @@ export class ApiStack extends cdk.Stack {
       schedule,
       entry,
       journalNote,
+      coverageSchedule,
+      assignment,
     ]) {
       table.grantReadWriteData(this.apiFunction);
     }
@@ -164,6 +170,8 @@ export class ApiStack extends cdk.Stack {
     this.apiFunction.addEnvironment('V1_SCHEDULES_TABLE', schedule.tableName);
     this.apiFunction.addEnvironment('V1_ENTRIES_TABLE', entry.tableName);
     this.apiFunction.addEnvironment('V1_JOURNAL_NOTES_TABLE', journalNote.tableName);
+    this.apiFunction.addEnvironment('V1_COVERAGE_SCHEDULES_TABLE', coverageSchedule.tableName);
+    this.apiFunction.addEnvironment('V1_ASSIGNMENTS_TABLE', assignment.tableName);
 
     // AppConfig actions: `StartConfigurationSession` is a control-plane call that
     // doesn't accept a resource ARN, and `GetLatestConfiguration` operates on
@@ -326,6 +334,15 @@ export class ApiStack extends cdk.Stack {
       { path: '/v1/receivers/{receiverId}/restore', methods: [apigw.HttpMethod.POST] },
       { path: '/v1/receivers/{receiverId}/care-instructions', methods: [apigw.HttpMethod.PUT] },
       { path: '/v1/receivers/{receiverId}/emergency-contacts', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/receivers/{receiverId}/on-duty', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/receivers/{receiverId}/assignments', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/receivers/{receiverId}/assignments', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/assignments/{assignmentId}', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/assignments/{assignmentId}', methods: [apigw.HttpMethod.DELETE] },
+      { path: '/v1/receivers/{receiverId}/coverage-schedules', methods: [apigw.HttpMethod.GET] },
+      { path: '/v1/receivers/{receiverId}/coverage-schedules', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/coverage-schedules/{coverageScheduleId}', methods: [apigw.HttpMethod.PUT] },
+      { path: '/v1/coverage-schedules/{coverageScheduleId}', methods: [apigw.HttpMethod.DELETE] },
     ];
     for (const route of authedRoutes) {
       httpApi.addRoutes({
@@ -366,7 +383,16 @@ export class ApiStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    const { team, receiver, tracker, schedule, entry } = props.v1Tables;
+    const {
+      team,
+      membership,
+      receiver,
+      tracker,
+      schedule,
+      entry,
+      'coverage-schedule': coverageSchedule,
+      assignment,
+    } = props.v1Tables;
     const fn = new lambda.Function(this, 'GeneratorFunction', {
       functionName: resourceName,
       runtime: lambda.Runtime.PROVIDED_AL2023,
@@ -388,20 +414,28 @@ export class ApiStack extends cdk.Stack {
         V1_SCHEDULES_TABLE: schedule.tableName,
         V1_ENTRIES_TABLE: entry.tableName,
         V1_TEAMS_TABLE: team.tableName,
+        V1_MEMBERSHIPS_TABLE: membership.tableName,
+        V1_COVERAGE_SCHEDULES_TABLE: coverageSchedule.tableName,
+        V1_ASSIGNMENTS_TABLE: assignment.tableName,
       },
       logGroup,
     });
 
-    // Reads schedules (a scan for the live ones), teams (skipping closed
-    // ones), trackers and receivers; writes entries (conditional creates, and
-    // deletes when a schedule is removed mid-run) and only generated_through
-    // on schedules.
+    // Reads schedules and coverage schedules (a scan for the live ones), teams
+    // (skipping closed ones), memberships (a rule's caregiver still on the
+    // team), trackers and receivers; writes entries and assignments
+    // (conditional creates, and deletes when a rule changes mid-run) and only
+    // generated_through on schedules and coverage schedules.
     team.grantReadData(fn);
+    membership.grantReadData(fn);
     receiver.grantReadData(fn);
     tracker.grantReadData(fn);
     schedule.grantReadData(fn);
     schedule.grant(fn, 'dynamodb:UpdateItem');
     entry.grantReadWriteData(fn);
+    coverageSchedule.grantReadData(fn);
+    coverageSchedule.grant(fn, 'dynamodb:UpdateItem');
+    assignment.grantReadWriteData(fn);
 
     new events.Rule(this, 'GeneratorDailySchedule', {
       ruleName: `${resourceName}-daily`,

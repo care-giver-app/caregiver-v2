@@ -69,8 +69,8 @@ after them. Every care receiver, tracker, and entry belongs to exactly one care 
 
 A caregiver joins by invitation and may leave at any time; leaving takes away the access and not the
 record, so every entry and journal note they wrote stays exactly where it was, under their name.
-Their place on the roster goes with the access: the assignments still ahead of them are removed, and
-any coverage schedule that names them ends that day, so the team sees that time as uncovered rather
+Their place on the roster goes with the access: the assignments still ahead of them are removed, one
+they are partway through ends the moment they go, and any coverage schedule that names them ends that day, so the team sees that time as uncovered rather
 than trusting it to someone who can no longer open the app. The assignments already past stay, still
 saying who was responsible. A team always has at least one admin, and nothing anyone does may leave it without one — the last
 admin cannot demote themselves, leave the team, or close their account until someone else has been
@@ -2121,7 +2121,7 @@ receiver, or make a tracker again, and nothing inside the app can undo it.
 Leaving takes away the access, not the record. A caregiver who leaves a team, or is removed from one,
 keeps nothing and loses nothing: every entry and journal note they wrote stays where it is, under
 their name, exactly as it does when a caregiver closes their account. The assignments still ahead
-of them go with them, for the same reason.
+of them go with them, and one they are partway through ends when they do, for the same reason.
 
 **The teams you belong to.** Every care team, its care receivers, and the way into a new one.
 

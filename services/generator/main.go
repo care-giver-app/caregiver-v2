@@ -1,6 +1,7 @@
 // Command generator is the daily occurrence generator (docs/adr/0012-*, "The
 // generator"). EventBridge invokes it once a day; for every live schedule it
-// tops up the scheduled entries through generate.Horizon. It can also be
+// tops up the scheduled entries, and for every live coverage schedule the
+// assignments, through generate.Horizon. It can also be
 // invoked by hand (aws lambda invoke) and returns the run's Summary.
 package main
 
@@ -42,18 +43,23 @@ func main() {
 }
 
 // newStores builds the v1 stores from the same V1_*_TABLE variables the API
-// reads. The generator touches only teams, schedules, trackers, receivers and
-// entries; it reads teams to skip a closed team's schedules.
+// reads. The generator touches teams, memberships, receivers, trackers,
+// schedules, entries, coverage schedules and assignments.
 func newStores(ctx context.Context) (*v1store.Stores, error) {
 	names := v1store.TableNames{
-		Teams:     os.Getenv("V1_TEAMS_TABLE"),
-		Receivers: os.Getenv("V1_RECEIVERS_TABLE"),
-		Trackers:  os.Getenv("V1_TRACKERS_TABLE"),
-		Schedules: os.Getenv("V1_SCHEDULES_TABLE"),
-		Entries:   os.Getenv("V1_ENTRIES_TABLE"),
+		Teams:             os.Getenv("V1_TEAMS_TABLE"),
+		Memberships:       os.Getenv("V1_MEMBERSHIPS_TABLE"),
+		Receivers:         os.Getenv("V1_RECEIVERS_TABLE"),
+		Trackers:          os.Getenv("V1_TRACKERS_TABLE"),
+		Schedules:         os.Getenv("V1_SCHEDULES_TABLE"),
+		Entries:           os.Getenv("V1_ENTRIES_TABLE"),
+		CoverageSchedules: os.Getenv("V1_COVERAGE_SCHEDULES_TABLE"),
+		Assignments:       os.Getenv("V1_ASSIGNMENTS_TABLE"),
 	}
-	if names.Teams == "" || names.Receivers == "" || names.Trackers == "" || names.Schedules == "" || names.Entries == "" {
-		return nil, fmt.Errorf("V1_TEAMS_TABLE, V1_RECEIVERS_TABLE, V1_TRACKERS_TABLE, V1_SCHEDULES_TABLE and V1_ENTRIES_TABLE must be set")
+	if names.Teams == "" || names.Memberships == "" || names.Receivers == "" || names.Trackers == "" ||
+		names.Schedules == "" || names.Entries == "" || names.CoverageSchedules == "" || names.Assignments == "" {
+		return nil, fmt.Errorf("V1_TEAMS_TABLE, V1_MEMBERSHIPS_TABLE, V1_RECEIVERS_TABLE, V1_TRACKERS_TABLE, V1_SCHEDULES_TABLE, " +
+			"V1_ENTRIES_TABLE, V1_COVERAGE_SCHEDULES_TABLE and V1_ASSIGNMENTS_TABLE must be set")
 	}
 	// DYNAMODB_ENDPOINT is empty in Lambda (default AWS resolution); set for local/dev.
 	client, err := v1store.NewClient(ctx, os.Getenv("DYNAMODB_ENDPOINT"))

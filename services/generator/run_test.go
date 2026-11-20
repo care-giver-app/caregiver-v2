@@ -152,3 +152,64 @@ func TestRun_skipsAClosedTeamsSchedules(t *testing.T) {
 		t.Fatalf("closed team got entries: %d err=%v", len(open), err)
 	}
 }
+
+func coverageSchedule(id, receiverID, teamID, userID string, now time.Time) domain.CoverageSchedule {
+	return domain.CoverageSchedule{
+		CoverageScheduleID: id, ReceiverID: receiverID, TeamID: teamID, UserID: userID,
+		Rule: domain.Rule{Freq: domain.FreqWeekly, Interval: 1, ByDay: []string{"TU"}}, StartTime: "08:00", EndTime: "16:00",
+		StartsOn: "2026-11-08", CreatedBy: "admin", CreatedAt: now, UpdatedAt: now,
+	}
+}
+
+func TestRun_topsUpLiveCoverageSchedules(t *testing.T) {
+	l := dynamotest.StartLocal(t)
+	ctx := context.Background()
+	now := utc("2026-11-08T18:00:00Z") // Sunday noon in Chicago
+
+	put(t, l, l.Names.Teams, domain.Team{TeamID: "t1", Name: "Smiths", Status: domain.TeamActive})
+	put(t, l, l.Names.Teams, domain.Team{TeamID: "t2", Name: "Joneses", Status: domain.TeamArchived})
+	for _, rc := range []domain.Receiver{
+		{ReceiverID: "r1", TeamID: "t1", TimeZone: "America/Chicago", Status: domain.ReceiverActive},
+		{ReceiverID: "r-arch", TeamID: "t1", TimeZone: "America/Chicago", Status: domain.ReceiverArchived},
+		{ReceiverID: "r-t2", TeamID: "t2", TimeZone: "America/Chicago", Status: domain.ReceiverActive},
+	} {
+		put(t, l, l.Names.Receivers, rc)
+	}
+	put(t, l, l.Names.Memberships, domain.NewMembership("cg", "t1", domain.RoleCaregiver, now))
+	put(t, l, l.Names.Memberships, domain.NewMembership("cg", "t2", domain.RoleCaregiver, now))
+	put(t, l, l.Names.CoverageSchedules, coverageSchedule("live", "r1", "t1", "cg", now))
+	put(t, l, l.Names.CoverageSchedules, coverageSchedule("archived", "r-arch", "t1", "cg", now))
+	put(t, l, l.Names.CoverageSchedules, coverageSchedule("closed", "r-t2", "t2", "cg", now))
+	put(t, l, l.Names.CoverageSchedules, coverageSchedule("left", "r1", "t1", "gone", now))
+	ended := coverageSchedule("ended", "r1", "t1", "cg", now)
+	ended.EndsOn = "2026-11-07"
+	put(t, l, l.Names.CoverageSchedules, ended)
+	removed := coverageSchedule("removed", "r1", "t1", "cg", now)
+	removed.RemovedAt = &now
+	put(t, l, l.Names.CoverageSchedules, removed)
+	put(t, l, l.Names.CoverageSchedules, coverageSchedule("orphan", "missing", "t1", "cg", now))
+
+	log, buf := testLogger()
+	sum, err := Run(ctx, l.Stores, log, now)
+	if err == nil || !strings.Contains(buf.String(), `"coverage_schedule_id":"orphan"`) {
+		t.Fatalf("want the orphan reported: %v\n%s", err, buf.String())
+	}
+	if sum != (Summary{CoverageSchedules: 6, CoverageSkipped: 4, CoverageFailed: 1, AssignmentsWritten: 2}) {
+		t.Fatalf("first run: %+v", sum)
+	}
+	if got, _ := l.Stores.CoverageSchedules.Get(ctx, "live"); got.GeneratedThrough != "2026-11-17" {
+		t.Fatalf("generated_through: %q", got.GeneratedThrough)
+	}
+	sum, _ = Run(ctx, l.Stores, log, now)
+	if sum.AssignmentsWritten != 0 || sum.AssignmentsPresent != 2 {
+		t.Fatalf("re-run: %+v", sum)
+	}
+	for _, r := range []string{"r-arch", "r-t2"} {
+		if got, _ := l.Stores.Assignments.NotEndedByReceiver(ctx, r, now); len(got) != 0 {
+			t.Fatalf("%s got assignments: %+v", r, got)
+		}
+	}
+	if got, _ := l.Stores.Assignments.NotEndedByReceiver(ctx, "r1", now); len(got) != 2 {
+		t.Fatalf("r1: %+v", got)
+	}
+}

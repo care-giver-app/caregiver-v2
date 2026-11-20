@@ -2012,8 +2012,8 @@ export interface components {
         'application/json': components['schemas']['Error'];
       };
     };
-    /** @description The assignment has already ended, and stays as it is: it says who was responsible. */
-    AssignmentEnded: {
+    /** @description The assignment has already ended, and stays as it is: it says who was responsible. Or the care receiver is archived, and everything about them is read-only until an admin restores them. */
+    AssignmentEndedOrArchived: {
       headers: {
         [name: string]: unknown;
       };
@@ -4199,7 +4199,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
-      409: components['responses']['AssignmentEnded'];
+      409: components['responses']['AssignmentEndedOrArchived'];
     };
   };
   removeAssignment: {
@@ -4223,7 +4223,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
-      409: components['responses']['AssignmentEnded'];
+      409: components['responses']['AssignmentEndedOrArchived'];
     };
   };
   listCoverageSchedules: {
@@ -4310,6 +4310,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      409: components['responses']['ReceiverArchived'];
     };
   };
   removeCoverageSchedule: {
@@ -4333,6 +4334,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      409: components['responses']['ReceiverArchived'];
     };
   };
 }

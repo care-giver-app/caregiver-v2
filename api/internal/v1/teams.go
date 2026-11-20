@@ -211,7 +211,10 @@ func (h *Teams) RemoveMember(w http.ResponseWriter, r *http.Request) {
 	if !requireTeamRole(w, r, h.stores, c, team.TeamID, userID != c.UserID) {
 		return
 	}
-	switch err := h.stores.RemoveMember(r.Context(), team.TeamID, userID); {
+	// Their place on the roster goes with them: their assignments still ahead
+	// on this team are removed and any coverage schedule naming them ends
+	// today (ADR 0012, Membership, amended in the Team endpoints gate).
+	switch err := h.stores.RemoveMember(r.Context(), team.TeamID, userID, h.now().UTC()); {
 	case err == nil:
 	case errors.Is(err, store.ErrLastAdmin):
 		httpx.WriteError(w, http.StatusConflict, msgLastAdmin)
@@ -223,9 +226,6 @@ func (h *Teams) RemoveMember(w http.ResponseWriter, r *http.Request) {
 		httpx.ServerError(w, r, err, "remove failed")
 		return
 	}
-	// PR2: free their place on the roster — delete their assignments still
-	// ahead on this team and end any coverage schedule naming them today
-	// (ADR 0012, Membership, amended in the Team endpoints gate).
 	w.WriteHeader(http.StatusNoContent)
 }
 
