@@ -49,6 +49,9 @@ final class ActiveReceiverModel {
         /// team the caregiver is an admin of, else their first team — and `canManage`
         /// whether they are its admin.
         case noReceivers(team: Account.Team, canManage: Bool)
+        /// On no care team at all: they left their last one on Team, which says so and
+        /// offers the ways in. The next launch takes them to Join a care team (PRD "Team").
+        case noTeam
         case failed(AppError)
     }
 
@@ -56,7 +59,8 @@ final class ActiveReceiverModel {
     /// Every non-archived receiver across the caregiver's teams, alphabetically.
     private(set) var receivers: [TeamedReceiver] = []
 
-    let account: Account
+    /// The caregiver's teams as last known; Team hands over a new one when they change.
+    private(set) var account: Account
     private let service: TrackersService
     private let store: LastReceiverStore
 
@@ -129,6 +133,15 @@ final class ActiveReceiverModel {
         }
     }
 
+    /// Team changed the caregiver's teams — joined, created, left or closed one — so the
+    /// choice is made again from the teams they are on now. Unchanged teams change nothing.
+    func adopt(_ account: Account) async {
+        guard account.teams != self.account.teams else { return }
+        self.account = account
+        phase = .loading
+        await load()
+    }
+
     private func settle() {
         guard let chosen = Self.choose(from: receivers, remembered: store.read(accountKey)) else {
             // The first team they can add someone to, so Home offers Add a care receiver;
@@ -136,8 +149,7 @@ final class ActiveReceiverModel {
             if let team = account.teams.first(where: { $0.role == "admin" }) ?? account.teams.first {
                 phase = .noReceivers(team: team, canManage: team.role == "admin")
             } else {
-                // `.v1Ready` always has a team; nothing true can be said without one.
-                phase = .failed(.unknown)
+                phase = .noTeam
             }
             return
         }

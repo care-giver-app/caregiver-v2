@@ -136,6 +136,11 @@ on the Delgados' team. The same invitation is the one waiting on Join a care tea
 on the Team frames so that promote/demote has something to act on; the `Needs an admin` frame is the
 single exception and shows Dana as a caregiver, because its whole point is Trevor being the last admin.
 
+**Johnson Family roster** (added 2026-11-19 with the Team build, matching Figma 450:3660): Ana
+Johnson (admin) · Ben Johnson (caregiver) · Dana (caregiver) · Trevor (You · caregiver). It is the
+caregiver's-eye Care team, so nothing in it is Trevor's to change but his own row. The Figma frames name
+the Delgado inviter "Luis Delgado"; **Lucia** above stays canonical, and the build uses her.
+
 **This section exists because the Team pass initially invented a second fixture set** (Michele /
 Sherman family / Ryan / Kate) without checking this spec, which is the exact drift the file was
 written to prevent. Bind new frames here first.

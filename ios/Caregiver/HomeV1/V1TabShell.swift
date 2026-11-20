@@ -1,8 +1,10 @@
 import SwiftUI
 
 /// The signed-in `/v1` app: four tabs and the ⊕ button, driven by `StrideTabBar` (PRD
-/// "The tab bar"). Home holds the one `/v1` navigation stack; Insights, Team and Settings
-/// are named placeholders until their areas are built on this path. Every way into Quick
+/// "The tab bar"). Home holds the one `/v1` navigation stack and Team its own; Insights
+/// and Settings are named placeholders until their areas are built on this path. Team is
+/// where the caregiver's teams change while signed in, so the account Home chooses from
+/// follows Team's (`TeamListModel.account`), and picking a receiver there lands on Home. Every way into Quick
 /// log — ⊕, Home's empty day, Entry detail, Tracker detail — goes through one presenter
 /// (`V1QuickLog` into `QuickLogPresenter`), which also tells the screens beneath when a
 /// run has saved something (`v1QuickLogRuns`). Edits and deletes on Entry detail and
@@ -12,6 +14,7 @@ struct V1TabShell: View {
     let account: Account
     let trackers: TrackersService
     let home: HomeService
+    let team: TeamService
     let onSignOut: () async -> Void
     @Binding var path: [V1Route]
 
@@ -20,16 +23,27 @@ struct V1TabShell: View {
     /// Edits and deletes on Entry detail and Journal note, which Home reflects.
     @State private var homeWrites = HomeWriteLog()
     @State private var receiver: ActiveReceiverModel
+    @State private var teamList: TeamListModel
 
-    init(account: Account, trackers: TrackersService, home: HomeService,
+    init(account: Account, trackers: TrackersService, home: HomeService, team: TeamService,
          store: LastReceiverStore = .standard,
          onSignOut: @escaping () async -> Void, path: Binding<[V1Route]>) {
         self.account = account
         self.trackers = trackers
         self.home = home
+        self.team = team
         self.onSignOut = onSignOut
         _path = path
         _receiver = State(initialValue: ActiveReceiverModel(account: account, service: trackers, store: store))
+        _teamList = State(initialValue: TeamListModel(account: account, service: team))
+    }
+
+    /// Picking or adding a care receiver on Team: their Home, as the active one, with Home's
+    /// stack emptied so nothing pushed for the last receiver stays under the new one's name.
+    private func pick(_ r: TeamReceiver) {
+        selectedTab = .home
+        path = []
+        Task { await receiver.choose(r.id) }
     }
 
     /// The tab bar. See `StrideTabBar.reservedHeight` for why it is an overlay.
@@ -40,7 +54,7 @@ struct V1TabShell: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack(path: $path) {
-                HomeV1View(receiver: receiver, home: home, trackers: trackers)
+                HomeV1View(receiver: receiver, home: home, trackers: trackers, team: team)
                     .v1Destinations(service: trackers, home: home)
                     .strideTabBarClearance()
                     .toolbar(.hidden, for: .tabBar)
@@ -67,12 +81,9 @@ struct V1TabShell: View {
             }
             .tag(StrideTab.insights)
 
-            NavigationStack {
-                V1Placeholder(title: "Team", line: "Team isn't built on this path yet.")
-                    .strideTabBarClearance()
-                    .toolbar(.hidden, for: .tabBar)
-            }
-            .tag(StrideTab.team)
+            TeamTabV1(model: teamList, service: team, activeReceiverID: receiver.active?.receiver.id,
+                      onPick: pick)
+                .tag(StrideTab.team)
 
             NavigationStack {
                 V1Placeholder(title: "Settings", line: "Settings isn't built on this path yet.") {
@@ -86,6 +97,10 @@ struct V1TabShell: View {
         // Drawn over the tabs, not inset: pushed screens never see a container's inset,
         // so every screen clears the bar itself (`strideTabBarClearance`).
         .overlay(alignment: .bottom) { tabBar.ignoresSafeArea(.keyboard) }
+        // Joined, created, left or closed a team on Team: Home chooses again from the teams now.
+        .onChange(of: teamList.account) { _, account in
+            Task { await receiver.adopt(account) }
+        }
         .sheet(item: $quickLog.sheet, onDismiss: {
             // Add tracker in Quick log's place made one: push it on Home's stack now the sheet is down.
             guard let created = quickLog.takeCreated() else { return }
@@ -248,8 +263,9 @@ struct V1PushedPlaceholder: View {
 #if DEBUG
 #Preview("Tabs") {
     @Previewable @State var path: [V1Route] = []
-    V1TabShell(account: HomeFixtures.trevor, trackers: HomeFixtures.trackersService(),
-               home: HomeFixtures.service(), store: .inMemory(), onSignOut: {}, path: $path)
+    V1TabShell(account: TeamFixtures.trevor, trackers: HomeFixtures.trackersService(),
+               home: HomeFixtures.service(), team: TeamFixtures.service(), store: .inMemory(),
+               onSignOut: {}, path: $path)
 }
 
 #Preview("Quick log, no one to record for") {

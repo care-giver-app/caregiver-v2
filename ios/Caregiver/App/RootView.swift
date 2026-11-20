@@ -34,7 +34,7 @@ struct RootView: View {
                 .tint(Theme.Colors.accent)
             case .v1Ready(let account):
                 V1TabShell(account: account, trackers: .live(session.api), home: .live(session.api),
-                           onSignOut: { v1Path = []; await session.signOut() }, path: $v1Path)
+                           team: .live(session.api), onSignOut: { v1Path = []; await session.signOut() }, path: $v1Path)
                     // A change of teams chooses the active care receiver afresh, and the
                     // screens pushed for the old one go with it.
                     .id(Self.v1TeamsKey(session.state))
