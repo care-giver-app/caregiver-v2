@@ -18,13 +18,6 @@ struct ScheduleSheet: View {
         self.onFinished = onFinished
     }
 
-    /// Figma's week runs Sunday first.
-    private static let week: [ScheduleWeekday] = [.su, .mo, .tu, .we, .th, .fr, .sa]
-    private static let dayLetters: [ScheduleWeekday: String] = [.su: "S", .mo: "M", .tu: "T", .we: "W",
-                                                                 .th: "T", .fr: "F", .sa: "S"]
-    private static let dayNames: [ScheduleWeekday: String] = [.su: "Sunday", .mo: "Monday", .tu: "Tuesday",
-                                                               .we: "Wednesday", .th: "Thursday",
-                                                               .fr: "Friday", .sa: "Saturday"]
     static let blank = "Left for whoever logs it"
 
     var body: some View {
@@ -138,28 +131,8 @@ struct ScheduleSheet: View {
     private var days: some View {
         VStack(alignment: .leading, spacing: 0) {
             heading("Days").padding(.top, Theme.Spacing.md)
-            HStack(spacing: 0) {
-                ForEach(Array(Self.week.enumerated()), id: \.offset) { i, day in
-                    if i > 0 { Spacer(minLength: 4) }
-                    dayButton(day)
-                }
-            }
+            StrideWeekdayPicker(selected: model.draft.days) { model.toggle($0) }
         }
-    }
-
-    private func dayButton(_ day: ScheduleWeekday) -> some View {
-        let on = model.draft.days.contains(day)
-        return Button { model.toggle(day) } label: {
-            Text(Self.dayLetters[day] ?? "")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(on ? Color.white : Theme.Colors.textSecondary)
-                .frame(width: 40, height: 40)
-                .background { Circle().fill(on ? Theme.Colors.accent : Theme.Colors.surface) }
-                .overlay { Circle().stroke(on ? Theme.Colors.accent : Theme.Colors.border, lineWidth: 1) }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Self.dayNames[day] ?? "")
-        .accessibilityAddTraits(on ? .isSelected : [])
     }
 
     private var repeatsAndTime: some View {

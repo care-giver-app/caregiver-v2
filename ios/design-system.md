@@ -15,13 +15,14 @@ for that.
 
 ## Inputs & forms
 
-| Component           | Used for                                                                          |
-| ------------------- | --------------------------------------------------------------------------------- |
-| `StrideField`       | A single-line text or secure entry field (email, name, password).                 |
-| `StrideCodeInput`   | A 6-digit confirmation/verification code entry.                                   |
-| `StrideDatePicker`  | Picking a date and/or time.                                                       |
-| `StrideCalendarDay` | One day in a month calendar: plain, today, disabled, or part of a picked stretch. |
-| `StrideToggleStyle` | The on/off switch look for a system `Toggle`.                                     |
+| Component             | Used for                                                                          |
+| --------------------- | --------------------------------------------------------------------------------- |
+| `StrideField`         | A single-line text or secure entry field (email, name, password).                 |
+| `StrideCodeInput`     | A 6-digit confirmation/verification code entry.                                   |
+| `StrideDatePicker`    | Picking a date and/or time.                                                       |
+| `StrideCalendarDay`   | One day in a month calendar: plain, today, disabled, or part of a picked stretch. |
+| `StrideToggleStyle`   | The on/off switch look for a system `Toggle`.                                     |
+| `StrideWeekdayPicker` | Seven weekday circles, Sunday first, for a rule's days (schedules, coverage).     |
 
 ## Cards & list rows
 
@@ -40,6 +41,7 @@ for that.
 | `StrideSelectTile`     | A selectable tile in a picker grid (e.g. choosing a tracker to log).                            |
 | `StrideComingUpBanner` | A tappable banner surfacing the single soonest upcoming scheduled item.                         |
 | `StrideInvitationRow`  | An invitation waiting for your email — care team, who invited you, and Accept.                  |
+| `StrideCoverageRow`    | Who is on duty for a care receiver right now, and until when (Home's header, Care receiver).    |
 
 ## Navigation & structure
 
