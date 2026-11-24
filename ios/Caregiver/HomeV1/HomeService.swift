@@ -140,6 +140,9 @@ struct HomeService: Sendable {
     var changeJournalNote: @Sendable (_ noteID: String, _ note: NoteWrite) async throws -> JournalNoteInfo
         = { _, _ in throw Unstubbed() }
     var deleteJournalNote: @Sendable (_ noteID: String) async throws -> Void = { _ in throw Unstubbed() }
+    /// Who is on duty for the receiver right now: every assignment covering this moment,
+    /// empty when nobody is — which is also every team that keeps no roster.
+    var onDuty: @Sendable (_ receiverID: String) async throws -> [AssignmentInfo] = { _ in throw Unstubbed() }
 
     struct Unstubbed: Error {}
 
@@ -199,7 +202,13 @@ struct HomeService: Sendable {
                 case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
                 }
             }
-        ).withWrites(client)
+        ).withWrites(client).withOnDuty(client)
+    }
+
+    private func withOnDuty(_ client: Client) -> HomeService {
+        var s = self
+        s.onDuty = { receiverID in try await TeamService.onDuty(client, receiverID) }
+        return s
     }
 }
 

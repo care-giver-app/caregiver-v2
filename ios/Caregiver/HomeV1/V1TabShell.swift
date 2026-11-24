@@ -46,6 +46,18 @@ struct V1TabShell: View {
         Task { await receiver.choose(r.id) }
     }
 
+    /// A care receiver was renamed, moved zone, archived or restored on Care receiver: Home
+    /// chooses again from the receivers now (an archived one is never chosen), and Team reads
+    /// its lists again.
+    private var receiverChanged: V1ReceiverChanged {
+        V1ReceiverChanged { [receiver, teamList] in
+            Task {
+                await receiver.load()
+                await teamList.load()
+            }
+        }
+    }
+
     /// The tab bar. See `StrideTabBar.reservedHeight` for why it is an overlay.
     private var tabBar: some View {
         StrideTabBar(selection: $selectedTab) { quickLog.open(.pick, receiver: receiver.active?.receiver) }
@@ -55,7 +67,7 @@ struct V1TabShell: View {
         TabView(selection: $selectedTab) {
             NavigationStack(path: $path) {
                 HomeV1View(receiver: receiver, home: home, trackers: trackers, team: team)
-                    .v1Destinations(service: trackers, home: home)
+                    .v1Destinations(service: trackers, home: home, team: team)
                     .strideTabBarClearance()
                     .toolbar(.hidden, for: .tabBar)
             }
@@ -72,6 +84,7 @@ struct V1TabShell: View {
             })
             .environment(\.v1HomeWrites, homeWrites)
             .environment(\.v1PopToHome, V1PopToHome { [path = $path] in path.wrappedValue = [] })
+            .environment(\.v1ReceiverChanged, receiverChanged)
             .tag(StrideTab.home)
 
             NavigationStack {
@@ -83,6 +96,7 @@ struct V1TabShell: View {
 
             TeamTabV1(model: teamList, service: team, activeReceiverID: receiver.active?.receiver.id,
                       onPick: pick)
+                .environment(\.v1ReceiverChanged, receiverChanged)
                 .tag(StrideTab.team)
 
             NavigationStack {
@@ -227,35 +241,6 @@ struct QuickLogNoReceiverSheet: View {
     var body: some View {
         V1Placeholder(title: "Quick log", line: QuickLogText.noReceiver) {
             StrideButton(title: "Close", style: .secondary) { dismiss() }
-        }
-    }
-}
-
-/// A named stand-in for a pushed screen not yet built on the `/v1` path, with the
-/// stack's ‹ Back.
-struct V1PushedPlaceholder: View {
-    let title: String
-    let subtitle: String?
-    let line: String
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(line)
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.Colors.textSecondary)
-            Spacer()
-        }
-        .padding(Theme.Spacing.lg)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .strideBackground()
-        .toolbar(.visible, for: .navigationBar)
-        .strideBackButton()
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                StrideNavTitle(title: title, subtitle: subtitle)
-            }
         }
     }
 }

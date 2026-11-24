@@ -280,6 +280,8 @@ enum HomeFixtures {
             }
         )
         service.addWriteStubs(fail: fail)
+        // Figma 436:3226: Trevor on duty for Eleanor until 4:00 PM.
+        service.onDuty = { id in id == eleanor.id ? [TeamFixtures.trevorNow] : [] }
         return service
     }
 }
