@@ -163,8 +163,9 @@ struct CareTeamV1View: View {
         if model.opens(member) {
             Button {
                 if model.isMe(member) {
-                    // Your own row offers leaving and nothing else (PRD).
-                    if model.tryLeave() { exit = .leave }
+                    // Your own row offers leaving and nothing else — closing, for the
+                    // last caregiver on the team (PRD).
+                    if let kind = model.exitKind() { exit = kind }
                 } else {
                     acting = member
                 }
@@ -270,11 +271,7 @@ struct CareTeamV1View: View {
     /// Leave this care team — or, for the last caregiver on it, Close this care team (PRD).
     private var exitRow: some View {
         Button {
-            if model.isLastCaregiver {
-                exit = .close
-            } else if model.tryLeave() {
-                exit = .leave
-            }
+            if let kind = model.exitKind() { exit = kind }
         } label: {
             Text(model.isLastCaregiver ? TeamText.close : TeamText.leave)
                 .font(.system(size: 16, weight: .medium))

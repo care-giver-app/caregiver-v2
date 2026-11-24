@@ -290,6 +290,20 @@ final class CareTeamModelTests: XCTestCase {
         XCTAssertFalse(m.isLastCaregiver)
     }
 
+    func testYourOwnRowAsTheLastCaregiverOffersClosingNotTheOnlyAdminRefusal() async {
+        let m = model(Fixed.detail([Fixed.me]))
+        await m.load()
+        XCTAssertEqual(m.exitKind(), .close)
+        XCTAssertFalse(m.leaveRefused)
+    }
+
+    func testTheOnlyAdminWithOthersIsRefusedAnExit() async {
+        let m = model(Fixed.detail([Fixed.me, Fixed.marcus]))
+        await m.load()
+        XCTAssertNil(m.exitKind())
+        XCTAssertTrue(m.leaveRefused)
+    }
+
     func testTheLastCaregiverClosesRatherThanLeaves() async {
         let m = model(Fixed.detail([Fixed.me]))
         await m.load()

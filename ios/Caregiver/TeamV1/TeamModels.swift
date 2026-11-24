@@ -380,6 +380,17 @@ final class CareTeamModel {
         return true
     }
 
+    /// Where your way out of the team goes, from your own row or the exit row: the last
+    /// caregiver on it closes it, since nobody is left to hand it to; anyone else leaves,
+    /// unless they are the only admin, who is refused with the reason (PRD). Nil when refused.
+    func exitKind() -> LeaveTeamModel.Kind? {
+        if isLastCaregiver {
+            leaveRefused = false
+            return .close
+        }
+        return tryLeave() ? .leave : nil
+    }
+
     /// The server refused Leave because they are the only admin — the roster changed
     /// since it was read — so say so and read it again.
     func leaveWasRefused() async {
