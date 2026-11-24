@@ -103,7 +103,8 @@ final class Session {
                     email: account.caregiver.email,
                     teams: account.teams.map {
                         Account.Team(teamID: $0.teamId, name: $0.name, role: $0.role.rawValue)
-                    }
+                    },
+                    userID: account.caregiver.userId
                 )
             },
             fetchFlags: {

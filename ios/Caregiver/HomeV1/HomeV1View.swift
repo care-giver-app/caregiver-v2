@@ -7,9 +7,12 @@ import SwiftUI
 struct HomeV1View: View {
     let receiver: ActiveReceiverModel
     let trackers: TrackersService
+    /// Add care receiver's calls; nil in previews that never raise it.
+    let team: TeamService?
 
     @State private var model: HomeModel
-    @State private var isAddingReceiver = false
+    /// The team Add care receiver is raised for.
+    @State private var addingTo: Account.Team?
     @State private var isAddingTracker = false
     /// The tracker Add tracker just made, pushed once its sheet is gone.
     @State private var created: String?
@@ -20,9 +23,10 @@ struct HomeV1View: View {
     @Environment(\.v1HomeWrites) private var homeWrites
 
     init(receiver: ActiveReceiverModel, home: HomeService, trackers: TrackersService,
-         model: HomeModel? = nil) {
+         team: TeamService? = nil, model: HomeModel? = nil) {
         self.receiver = receiver
         self.trackers = trackers
+        self.team = team
         _model = State(initialValue: model ?? HomeModel(home: home, trackers: trackers))
     }
 
@@ -35,6 +39,11 @@ struct HomeV1View: View {
                 StrideErrorState(message: error.message) { Task { await receiver.retry() } }
             case .noReceivers(let team, let canManage):
                 noReceivers(team: team, canManage: canManage)
+            case .noTeam:
+                // Left their last care team on Team, which offers the ways in; the next
+                // launch takes them to Join a care team (PRD "Team"). What Home says
+                // meanwhile is not in the PRD, so it says only that.
+                V1Placeholder(title: "Home", line: HomeText.noTeamLine)
             case .active(let active):
                 content(active)
                     // A new receiver starts over on today; reappearing refreshes in place.
@@ -56,7 +65,16 @@ struct HomeV1View: View {
             guard let write = writes.last else { return }
             Task { await model.reflect(write) }
         }
-        .sheet(isPresented: $isAddingReceiver) { AddCareReceiverPlaceholderSheet() }
+        .sheet(item: $addingTo) { team in
+            if let service = self.team {
+                // Add receiver lands on the new receiver's Home, as the active one (PRD).
+                AddCareReceiverSheet(team: team, service: service) { added in
+                    Task { await receiver.choose(added.id) }
+                }
+            } else {
+                AddCareReceiverPlaceholderSheet()
+            }
+        }
         .sheet(isPresented: $isAddingTracker, onDismiss: {
             // Pushed only once the sheet is down, so the push lands on the stack beneath it.
             guard let id = created, let r = model.receiver else { return }
@@ -404,7 +422,7 @@ struct HomeV1View: View {
                 emptyCard(icon: "person.2", title: HomeText.noReceiversTitle,
                           line: canManage ? HomeText.noReceiversAdminLine : HomeText.noReceiversCaregiverLine) {
                     if canManage {
-                        StrideButton(title: "Add a care receiver") { isAddingReceiver = true }
+                        StrideButton(title: "Add a care receiver") { addingTo = team }
                     }
                 }
             }
@@ -495,7 +513,8 @@ private enum HomePreview {
         trackersService.listTrackers = { _ in trackers }
         let active = ActiveReceiverModel(account: account, service: trackersService, store: .inMemory())
         return NavigationStack {
-            HomeV1View(receiver: active, home: home, trackers: trackersService, model: model)
+            HomeV1View(receiver: active, home: home, trackers: trackersService, team: TeamFixtures.service(),
+                       model: model)
                 .v1Destinations(service: trackersService, home: home)
         }
     }

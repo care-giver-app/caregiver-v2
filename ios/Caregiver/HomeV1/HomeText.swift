@@ -14,6 +14,8 @@ enum HomeText {
     static let noReceiversTitle = "No one to look after yet"
     static let noReceiversAdminLine = "Add the person this team cares for to start keeping their record."
     static let noReceiversCaregiverLine = "Waiting on an admin to add a care receiver."
+    /// On no care team at all, having left their last one on Team.
+    static let noTeamLine = "You’re not on a care team. Team has the ways into one."
 
     static let allClearTitle = "Nothing needs attention"
     static let allClearLine = "Every tracker is in range and up to date."
