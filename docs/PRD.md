@@ -2140,7 +2140,9 @@ with nowhere to be tells the second family to work it out themselves.
 A caregiver who leaves their last care team stays on Team, which says they are on no care team and
 offers the same ways in that Join a care team does: any invitation waiting for them, an invite code
 to paste, and a team of their own. They are already standing on the screen that does this, and
-sending them elsewhere would only be a second screen saying the same thing. The next launch takes
+sending them elsewhere would only be a second screen saying the same thing. Home, until then, says
+only that they are on no care team and that Team has the ways into one, because it has no receiver
+to show and nothing of its own to offer. The next launch takes
 them to Join a care team, as it would anyone with no team.
 
 **One care team.** Who is on it, who has been asked, and what it tells you about.
@@ -2150,11 +2152,13 @@ in the pending list with its code beside it, and copying that code is the next t
 The code stays copyable for as long as the invitation goes unused, so an admin who sent it to the
 wrong place can send it again without asking anyone to start over.
 
-The actions on a caregiver sit on that caregiver's row, since every one of them is about a particular
-person and a screen-level Manage button would make an admin say who twice. A caregiver acting on
-their own row is offered leaving and nothing else — the roster is the team's business and your own
-membership is yours. What the last admin is refused, they are refused here, with the reason rather
-than a greyed-out row, because a control that is simply dead teaches nothing.
+The actions on a caregiver sit on that caregiver's row, since every one of them is about a
+particular person and a screen-level Manage button would make an admin say who twice. A caregiver
+acting on their own row is offered leaving and nothing else — the roster is the team's business and
+your own membership is yours. The last caregiver on a team is offered closing it instead, since
+nobody is left to hand it to and telling them to make someone else an admin would be advice they
+cannot take. What the last admin is refused, they are refused here, with the reason rather than a
+greyed-out row, because a control that is simply dead teaches nothing.
 
 **Team notification settings** is where this team's reminders and alerts are chosen. Settings holds
 the channels — push, email, or neither, once for the account — and this holds the subject matter,
@@ -2310,6 +2314,9 @@ caregiver.
       as: sheet
     - action: your own row
       to: Leave this care team?
+      as: sheet
+    - action: your own row, when you are the last caregiver on it
+      to: Close this care team?
       as: sheet
     - action: Team notification settings
       to: Team notification settings
