@@ -117,6 +117,40 @@ struct TeamService: Sendable {
     var changeNotifications: @Sendable (_ teamID: String, _ choices: TeamNotificationChoices) async throws
         -> TeamNotificationChoices = { _, _ in throw Unstubbed() }
 
+    // Care receiver (`CareReceiverService.swift`). Every member reads; admins write, and
+    // an archived receiver's writes answer `.refused`.
+
+    var careReceiver: @Sendable (_ receiverID: String) async throws -> CareReceiverInfo = { _ in throw Unstubbed() }
+    var changeReceiver: @Sendable (_ receiverID: String, _ name: String, _ zone: TimeZone) async throws
+        -> ReceiverWriteOutcome<TeamReceiver> = { _, _, _ in throw Unstubbed() }
+    var archiveReceiver: @Sendable (_ receiverID: String) async throws -> Void = { _ in throw Unstubbed() }
+    var restoreReceiver: @Sendable (_ receiverID: String) async throws -> Void = { _ in throw Unstubbed() }
+    /// An empty body clears them.
+    var changeInstructions: @Sendable (_ receiverID: String, _ body: String) async throws
+        -> ReceiverWriteOutcome<CareReceiverInfo> = { _, _ in throw Unstubbed() }
+    /// The whole list, in order, replacing the one there.
+    var changeContacts: @Sendable (_ receiverID: String, _ contacts: [EmergencyContactWrite]) async throws
+        -> ReceiverWriteOutcome<CareReceiverInfo> = { _, _ in throw Unstubbed() }
+    /// Every assignment covering this moment; empty when nobody is on duty.
+    var onDuty: @Sendable (_ receiverID: String) async throws -> [AssignmentInfo] = { _ in throw Unstubbed() }
+    /// Every assignment not yet ended, soonest first.
+    var assignments: @Sendable (_ receiverID: String) async throws -> [AssignmentInfo] = { _ in throw Unstubbed() }
+    var addAssignment: @Sendable (_ receiverID: String, _ write: AssignmentWrite) async throws
+        -> ReceiverWriteOutcome<AssignmentInfo> = { _, _ in throw Unstubbed() }
+    var changeAssignment: @Sendable (_ assignmentID: String, _ write: AssignmentWrite) async throws
+        -> ReceiverWriteOutcome<AssignmentInfo> = { _, _ in throw Unstubbed() }
+    var removeAssignment: @Sendable (_ assignmentID: String) async throws -> ReceiverWriteOutcome<Done>
+        = { _ in throw Unstubbed() }
+    /// Rules not removed, ended or not.
+    var coverageSchedules: @Sendable (_ receiverID: String) async throws -> [CoverageScheduleInfo]
+        = { _ in throw Unstubbed() }
+    var addCoverage: @Sendable (_ receiverID: String, _ write: CoverageScheduleWrite) async throws
+        -> ReceiverWriteOutcome<CoverageScheduleInfo> = { _, _ in throw Unstubbed() }
+    var changeCoverage: @Sendable (_ scheduleID: String, _ write: CoverageScheduleWrite) async throws
+        -> ReceiverWriteOutcome<CoverageScheduleInfo> = { _, _ in throw Unstubbed() }
+    var removeCoverage: @Sendable (_ scheduleID: String) async throws -> ReceiverWriteOutcome<Done>
+        = { _ in throw Unstubbed() }
+
     struct Unstubbed: Error {}
 
     static func live(_ client: Client) -> TeamService {
@@ -262,7 +296,7 @@ struct TeamService: Sendable {
                 case .undocumented(let status, _): throw AppError.forStatus(status, serverMessage: nil)
                 }
             }
-        )
+        ).withReceiver(client)
     }
 }
 
