@@ -2127,15 +2127,18 @@ of them go with them, and one they are partway through ends when they do, for th
 
 Tapping a receiver opens them, because tapping a person's name asks about that person — the same
 reason Home's header leads to the care receiver rather than here. Switching is a button of its own
-on the row: **Switch** makes that receiver the active one and lands on their Home, because pressing
-it is a caregiver saying that is who they want to look at. The active receiver's row says **Active**
-where the button would be, rather than offering a switch that would do nothing — and that label is
-the only place outside Home that says whose Home the caregiver is looking at. Adding a receiver
-makes them active and lands on their Home for the same reason, and a new receiver with no trackers
-is met by the Trackers list offering the first, which is where that story already continues.
-Creating a care team stays on Team instead: a team made a moment ago has no receivers and no
-caregivers but the one who made it, so there is nothing to land on yet, and the row it becomes is
-the thing to act on next.
+on the row: **Switch** makes that receiver the active one and leaves the caregiver where they are,
+with **Active** moving to that row, because Team is where a caregiver weighing their receivers
+already is, and sending them away would only make them come back to switch again. Home's own stack
+goes back to its top at the same moment, so the Home tab never shows one receiver's screens under
+another's name. The active receiver's row says **Active** where the button would be, rather than
+offering a switch that would do nothing — and that label is the only place outside Home that says
+whose Home the caregiver is looking at. Adding a receiver makes them active and lands on their Home,
+because a receiver added a moment ago is the one a caregiver means to set up next, and a new
+receiver with no trackers is met by the Trackers list offering the first, which is where that story
+already continues. Creating a care team stays on Team instead: a team made a moment ago has no
+receivers and no caregivers but the one who made it, so there is nothing to land on yet, and the row
+it becomes is the thing to act on next.
 
 Invitations waiting for a caregiver's address appear here whatever teams they already belong to, and
 an invite code is pasted here rather than only at the door. Being invited to a second team is the
@@ -2230,8 +2233,10 @@ caregiver.
       as: push
     - action: Switch, on a care receiver's row
       when: that receiver is not the active one
-      to: Home, with that receiver now active
-      as: root
+      to: >
+        Team, with that receiver now active and marked Active, and Home's stack
+        back at its top
+      as: stays
     - action: a care team
       to: Care team
       as: push
@@ -2258,11 +2263,6 @@ caregiver.
     the caregiver belongs to no care team — Team says so, and offers any
     invitation waiting for them, an invite code to paste, and creating a care
     team
-  open:
-    - >
-      whether switching care receivers discards the Home tab's pushed stack.
-      `root` is the only reading that does not leave a caregiver looking at
-      another receiver's trackers, but the PRD does not say so outright
 
 - screen: Create a care team
   kind: sheet
@@ -2656,9 +2656,6 @@ caregiver.
 - **What a former teammate looks like on the roster is undescribed.** Entries keep the name of a
   caregiver who left, the way they keep the name of one who closed their account, but nothing says
   whether the team can still see who that was, or whether they read as a former caregiver here too.
-- **Whether switching care receivers resets the Home tab is not stated.** If the pushed stack
-  survives, a caregiver who switches while reading one receiver's Trackers is left looking at
-  another receiver's trackers under the first one's name.
 - **What a time-zone change does to care it moves into the past is unstated.** Changing a care
   receiver's time zone keeps their routines at their wall-clock times, so a move east can put
   something still ahead behind the clock: today's 8:00 dose, moved to 8:00 in a zone where it is

@@ -12,6 +12,7 @@ enum TeamText {
     static let createTeam = "Create a care team"
     static let addReceiver = "Add care receiver"
     static let active = "Active"
+    static let switchReceiver = "Switch"
     static let invitationsFailed = "Couldn't load your invitations."
     static let receiversFailed = "Couldn't load this team's care receivers."
     static let teamFailed = "Couldn't load your care teams."
