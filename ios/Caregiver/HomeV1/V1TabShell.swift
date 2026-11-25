@@ -40,8 +40,15 @@ struct V1TabShell: View {
 
     /// Picking or adding a care receiver on Team: their Home, as the active one, with Home's
     /// stack emptied so nothing pushed for the last receiver stays under the new one's name.
+    /// A receiver just added: active, and their Home is where setting them up starts (PRD "Team").
     private func pick(_ r: TeamReceiver) {
         selectedTab = .home
+        switchTo(r)
+    }
+
+    /// Switch on Team: the caregiver stays where they are, and Home's stack goes back to its
+    /// top so it never shows one receiver's screens under another's name (PRD "Team").
+    private func switchTo(_ r: TeamReceiver) {
         path = []
         Task { await receiver.choose(r.id) }
     }
@@ -95,7 +102,7 @@ struct V1TabShell: View {
             .tag(StrideTab.insights)
 
             TeamTabV1(model: teamList, service: team, activeReceiverID: receiver.active?.receiver.id,
-                      onPick: pick)
+                      onSwitch: switchTo, onAdded: pick)
                 .environment(\.v1ReceiverChanged, receiverChanged)
                 .tag(StrideTab.team)
 

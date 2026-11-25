@@ -11,20 +11,22 @@ enum TeamRoute: Hashable {
 }
 
 /// The Team tab on the `/v1` path: Team at the root of its own stack, with the screens it
-/// pushes. `onPick` takes a care receiver to their Home, as the active one — from a row's
-/// Switch button or a receiver just added (PRD "Team").
+/// pushes. `onSwitch` makes a receiver active and stays on Team; `onAdded` makes a receiver
+/// just added active and takes them to their Home (PRD "Team").
 struct TeamTabV1: View {
     let model: TeamListModel
     let service: TeamService
     /// The care receiver Home is about, marked Active on their row.
     let activeReceiverID: String?
-    let onPick: (TeamReceiver) -> Void
+    let onSwitch: (TeamReceiver) -> Void
+    let onAdded: (TeamReceiver) -> Void
 
     @State private var path: [TeamRoute] = []
 
     var body: some View {
         NavigationStack(path: $path) {
-            TeamV1View(model: model, service: service, activeReceiverID: activeReceiverID, onPick: onPick)
+            TeamV1View(model: model, service: service, activeReceiverID: activeReceiverID,
+                       onSwitch: onSwitch, onAdded: onAdded)
                 .navigationDestination(for: TeamRoute.self) { route in
                     Group {
                         switch route {
@@ -55,7 +57,8 @@ struct TeamV1View: View {
     let model: TeamListModel
     let service: TeamService
     let activeReceiverID: String?
-    let onPick: (TeamReceiver) -> Void
+    let onSwitch: (TeamReceiver) -> Void
+    let onAdded: (TeamReceiver) -> Void
 
     @State private var isCreating = false
     @State private var addingTo: Account.Team?
@@ -106,7 +109,7 @@ struct TeamV1View: View {
         .sheet(item: $addingTo) { team in
             AddCareReceiverSheet(team: team, service: service) { receiver in
                 // Lands on the new receiver's Home, as the active one (PRD).
-                onPick(receiver)
+                onAdded(receiver)
                 Task { await model.load() }
             }
         }
@@ -161,7 +164,7 @@ struct TeamV1View: View {
     }
 
     /// The row opens Care receiver; Switch, on every row but the active one, makes that
-    /// receiver active and lands on their Home. The active row says Active instead (PRD "Team";
+    /// receiver active and stays here, Active moving to their row. The active row says Active instead (PRD "Team";
     /// Figma 450:3287). Two links either side of the button, so Switch is never swallowed by a
     /// row-wide link.
     private func receiverRow(_ receiver: TeamReceiver) -> some View {
@@ -180,7 +183,7 @@ struct TeamV1View: View {
             if isActive {
                 TeamBadge(label: TeamText.active).accessibilityHidden(true)
             } else {
-                Button { onPick(receiver) } label: {
+                Button { onSwitch(receiver) } label: {
                     Text(TeamText.switchReceiver)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Theme.Colors.accent)
@@ -191,7 +194,7 @@ struct TeamV1View: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Switch to \(receiver.name)")
-                .accessibilityHint("Shows their Home")
+                .accessibilityHint("Makes them the receiver Home is about")
             }
             NavigationLink(value: TeamRoute.careReceiver(receiver)) {
                 TeamChevron().frame(width: 18, height: 34).contentShape(Rectangle())
@@ -344,7 +347,8 @@ private enum TeamPreview {
         let service = service ?? TeamFixtures.service(account: account)
         let model = TeamListModel(account: account, service: service)
         if pasting { model.startPasting() }
-        return TeamTabV1(model: model, service: service, activeReceiverID: HomeFixtures.eleanor.id) { _ in }
+        return TeamTabV1(model: model, service: service, activeReceiverID: HomeFixtures.eleanor.id,
+                          onSwitch: { _ in }, onAdded: { _ in })
     }
 }
 
