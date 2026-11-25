@@ -6,12 +6,13 @@ import SwiftUI
 enum TeamRoute: Hashable {
     case careTeam(Account.Team)
     case notifications(Account.Team)
-    /// Care receiver, from a receiver's chevron or Care team's archived list.
+    /// Care receiver, from a receiver's row or Care team's archived list.
     case careReceiver(TeamReceiver)
 }
 
 /// The Team tab on the `/v1` path: Team at the root of its own stack, with the screens it
-/// pushes. `onPick` takes a care receiver to their Home, as the active one (PRD "Team").
+/// pushes. `onPick` takes a care receiver to their Home, as the active one — from a row's
+/// Switch button or a receiver just added (PRD "Team").
 struct TeamTabV1: View {
     let model: TeamListModel
     let service: TeamService
@@ -159,30 +160,46 @@ struct TeamV1View: View {
         .teamCard()
     }
 
-    /// The row picks the receiver; its chevron opens Care receiver (PRD).
+    /// The row opens Care receiver; Switch, on every row but the active one, makes that
+    /// receiver active and lands on their Home. The active row says Active instead (PRD "Team";
+    /// Figma 450:3287). Two links either side of the button, so Switch is never swallowed by a
+    /// row-wide link.
     private func receiverRow(_ receiver: TeamReceiver) -> some View {
-        HStack(spacing: 12) {
-            Button { onPick(receiver) } label: {
+        let isActive = receiver.id == activeReceiverID
+        return HStack(spacing: 12) {
+            NavigationLink(value: TeamRoute.careReceiver(receiver)) {
                 HStack(spacing: 12) {
                     TeamMonogram(name: receiver.name)
                     TeamRowText(title: receiver.name, detail: TeamText.zoneName(receiver.timeZone))
-                    if receiver.id == activeReceiverID {
-                        TeamBadge(label: TeamText.active)
-                    }
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityHint("Shows their Home")
+            .accessibilityValue(isActive ? TeamText.active : "")
+            .accessibilityHint("Shows who they are and who is caring for them")
+            if isActive {
+                TeamBadge(label: TeamText.active).accessibilityHidden(true)
+            } else {
+                Button { onPick(receiver) } label: {
+                    Text(TeamText.switchReceiver)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.accent)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .overlay { RoundedRectangle(cornerRadius: 8).stroke(Theme.Colors.accent, lineWidth: 1) }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Switch to \(receiver.name)")
+                .accessibilityHint("Shows their Home")
+            }
             NavigationLink(value: TeamRoute.careReceiver(receiver)) {
-                TeamChevron().frame(width: 34, height: 34).contentShape(Rectangle())
+                TeamChevron().frame(width: 18, height: 34).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("About \(receiver.name)")
+            .accessibilityHidden(true)
         }
-        .padding(.leading, 14)
-        .padding(.trailing, 6)
-        .padding(.vertical, 12)
+        .teamRow()
     }
 
     // MARK: No care teams
