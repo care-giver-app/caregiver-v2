@@ -22,7 +22,7 @@ func TestMe(t *testing.T) {
 
 	t.Run("new user has empty teams array", func(t *testing.T) {
 		rec := get("u-new")
-		want := `{"caregiver":{"user_id":"u-new","email":"u-new@x.com","name":"Name u-new"},"teams":[]}`
+		want := `{"caregiver":{"user_id":"u-new","email":"u-new@x.com","name":"Name u-new","email_notifications":true},"teams":[]}`
 		if rec.Code != http.StatusOK || strings.TrimSpace(rec.Body.String()) != want {
 			t.Fatalf("code=%d body=%s", rec.Code, rec.Body.String())
 		}

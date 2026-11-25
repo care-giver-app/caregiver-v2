@@ -28,6 +28,8 @@ type caller struct {
 	UserID string
 	Email  string // normalized; empty when the token carries none
 	Name   string // from the user row, not the current token
+	// EmailNotifications is the account's email channel, from the user row.
+	EmailNotifications bool
 }
 
 type callerKey struct{}
@@ -95,7 +97,7 @@ func (m *Authenticator) Wrap(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(withCaller(ctx, &caller{UserID: c.Sub, Email: email, Name: u.Name})))
+		next.ServeHTTP(w, r.WithContext(withCaller(ctx, &caller{UserID: c.Sub, Email: email, Name: u.Name, EmailNotifications: u.EmailNotifications})))
 	})
 }
 

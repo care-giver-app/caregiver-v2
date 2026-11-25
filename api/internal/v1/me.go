@@ -18,6 +18,8 @@ type caregiverView struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
 	Name   string `json:"name"`
+
+	EmailNotifications bool `json:"email_notifications"`
 }
 
 type myAccount struct {
@@ -52,7 +54,7 @@ func (h *Me) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return ms[i].TeamID < ms[j].TeamID
 	})
 	resp := myAccount{
-		Caregiver: caregiverView{UserID: c.UserID, Email: c.Email, Name: c.Name},
+		Caregiver: caregiverView{UserID: c.UserID, Email: c.Email, Name: c.Name, EmailNotifications: c.EmailNotifications},
 		Teams:     make([]teamMembership, 0, len(ms)),
 	}
 	for _, m := range ms {
