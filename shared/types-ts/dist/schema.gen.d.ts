@@ -1445,11 +1445,13 @@ export interface components {
         };
         SoleAdminOf: {
             message: string;
-            teams: components['schemas']['TeamRef'][];
+            teams: components['schemas']['SoleAdminTeam'][];
         };
-        TeamRef: {
+        SoleAdminTeam: {
             team_id: string;
             name: string;
+            /** @description The caller is the only one on this team, so there is nobody to promote: the team has to be closed first, from Care team. */
+            alone: boolean;
         };
         FeedbackRequest: {
             /** @enum {string} */
@@ -3052,7 +3054,7 @@ export interface operations {
             400: components['responses']['BadRequest'];
             401: components['responses']['Unauthorized'];
             403: components['responses']['WrongPassword'];
-            /** @description The caller is the only admin of these care teams. Promote someone first. */
+            /** @description The caller is the only admin of these care teams. Promote someone first — or, on a team they are alone on, close it first. */
             409: {
                 headers: {
                     [name: string]: unknown;

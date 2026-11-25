@@ -34,7 +34,7 @@ const (
 	msgWrongPassword   = "the password is not right"
 	msgTooManyAttempts = "too many tries in a short time; try again later"
 	msgEmailInUse      = "another account already uses that address"
-	msgSoleAdmin       = "you are the only admin of these care teams; promote someone else first"
+	msgSoleAdmin       = "you are the only admin of these care teams; promote someone else first, or close a team you are alone on"
 )
 
 // Change serves PATCH /v1/me: the caller's name, and whether the app may
@@ -170,14 +170,16 @@ func (h *Account) StartEmailChange(w http.ResponseWriter, r *http.Request) {
 
 // soleAdminOf is the SoleAdminOf schema.
 type soleAdminOf struct {
-	Message string    `json:"message"`
-	Teams   []teamRef `json:"teams"`
+	Message string          `json:"message"`
+	Teams   []soleAdminTeam `json:"teams"`
 }
 
-// teamRef is the TeamRef schema.
-type teamRef struct {
+// soleAdminTeam is the SoleAdminTeam schema. Alone means nobody else is on the
+// team, so there is nobody to promote and it has to be closed first.
+type soleAdminTeam struct {
 	TeamID string `json:"team_id"`
 	Name   string `json:"name"`
+	Alone  bool   `json:"alone"`
 }
 
 // Close serves POST /v1/me/close: with the password, the account is closed.
@@ -227,7 +229,7 @@ func (h *Account) Close(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(sole) > 0 {
-			writeSoleAdmin(w, sole)
+			h.writeSoleAdmin(w, r, sole)
 			return
 		}
 		if !h.leaveEveryTeam(w, r, c) {
@@ -266,7 +268,7 @@ func (h *Account) leaveEveryTeam(w http.ResponseWriter, r *http.Request, c *call
 				httpx.ServerError(w, r, terr, "team load failed")
 				return false
 			}
-			writeSoleAdmin(w, []domain.Team{team})
+			h.writeSoleAdmin(w, r, []domain.Team{team})
 			return false
 		default:
 			httpx.ServerError(w, r, err, "leaving a team failed", "team_id", m.TeamID)
@@ -276,10 +278,15 @@ func (h *Account) leaveEveryTeam(w http.ResponseWriter, r *http.Request, c *call
 	return true
 }
 
-func writeSoleAdmin(w http.ResponseWriter, teams []domain.Team) {
-	refs := make([]teamRef, 0, len(teams))
+func (h *Account) writeSoleAdmin(w http.ResponseWriter, r *http.Request, teams []domain.Team) {
+	refs := make([]soleAdminTeam, 0, len(teams))
 	for _, t := range teams {
-		refs = append(refs, teamRef{TeamID: t.TeamID, Name: t.Name})
+		members, err := h.stores.Memberships.ListByTeam(r.Context(), t.TeamID)
+		if err != nil {
+			httpx.ServerError(w, r, err, "team load failed", "team_id", t.TeamID)
+			return
+		}
+		refs = append(refs, soleAdminTeam{TeamID: t.TeamID, Name: t.Name, Alone: len(members) <= 1})
 	}
 	httpx.WriteJSON(w, http.StatusConflict, soleAdminOf{Message: msgSoleAdmin, Teams: refs})
 }

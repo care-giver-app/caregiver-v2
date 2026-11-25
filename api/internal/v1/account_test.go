@@ -233,7 +233,7 @@ func TestAccount_Close(t *testing.T) {
 		join(t, s, "sam", "t-other", domain.RoleCaregiver)
 
 		rec := closeAs(h, false, `{"password":"right"}`)
-		want := `{"message":"` + msgSoleAdmin + `","teams":[{"team_id":"t-sole","name":"Alpha"},{"team_id":"t-alone","name":"Zeta"}]}`
+		want := `{"message":"` + msgSoleAdmin + `","teams":[{"team_id":"t-sole","name":"Alpha","alone":false},{"team_id":"t-alone","name":"Zeta","alone":true}]}`
 		if rec.Code != http.StatusConflict || strings.TrimSpace(rec.Body.String()) != want {
 			t.Fatalf("refusal: %d %s", rec.Code, rec.Body.String())
 		}

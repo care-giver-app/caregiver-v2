@@ -30,6 +30,8 @@ func (w *world) registerSettings(sc *godog.ScenarioContext) {
 	sc.Step(`^"([^"]*)" has tried a wrong password (\d+) times$`, w.triedWrongPassword)
 	sc.Step(`^"([^"]*)" can no longer sign in$`, w.canNoLongerSignIn)
 	sc.Step(`^the answer is 409, naming `+quoted+` as the care teams to promote someone on first$`, w.soleAdminNames)
+	sc.Step(`^it asks to promote someone first on "([^"]*)"$`, func(team string) error { return w.soleAdminAlone(team, false) })
+	sc.Step(`^it asks to close "([^"]*)" first, since nobody else is on it$`, func(team string) error { return w.soleAdminAlone(team, true) })
 
 	sc.Step(`^"([^"]*)" sends (a bug report|a suggestion|feedback) reading "([^"]*)"( anonymously)?$`, w.sendsFeedback)
 	sc.Step(`^"([^"]*)" sends feedback with no message$`, w.sendsEmptyFeedback)
@@ -201,6 +203,33 @@ func (w *world) canNoLongerSignIn(ctx context.Context, label string) error {
 		return w.unexpected(fmt.Sprintf("%q to be refused (401)", label))
 	}
 	return nil
+}
+
+// soleAdminAlone checks one named team in the last 409: alone means the
+// caregiver is the only one on it, so the app asks for it to be closed first.
+func (w *world) soleAdminAlone(team string, alone bool) error {
+	got, err := decodeLast[struct {
+		Teams []struct {
+			TeamID string `json:"team_id"`
+			Alone  bool   `json:"alone"`
+		} `json:"teams"`
+	}](w)
+	if err != nil {
+		return err
+	}
+	id, err := w.teamID(team)
+	if err != nil {
+		return err
+	}
+	for _, t := range got.Teams {
+		if t.TeamID == id {
+			if t.Alone != alone {
+				return w.unexpected(fmt.Sprintf("%q with alone=%v", team, alone))
+			}
+			return nil
+		}
+	}
+	return w.unexpected(fmt.Sprintf("%q named in the 409", team))
 }
 
 func (w *world) soleAdminNames(list string) error {

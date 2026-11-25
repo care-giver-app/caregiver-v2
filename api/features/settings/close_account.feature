@@ -55,11 +55,15 @@ Feature: Closing an account
   # PRD: Settings (An account cannot be closed while it is a care team's only admin. The screen names
   #      the team and asks for someone else to be promoted first)
   # PRD: Settings → Close your account (when you are a care team's only admin → refused with the team
-  #      named)
+  #      named, asking to promote someone first, or to close the team first when you are alone on it)
+  # PRD: Settings (A caregiver who is alone on a team has nobody to promote, so for that team the
+  #      screen asks them to close it first instead)
   Scenario: The only admin is refused, with every such team named
     Given "Alex" has created the care team "Hillside"
     When "Alex" closes their account with their password
     Then the answer is 409, naming "Hillside" and "Riverside" as the care teams to promote someone on first
+    And it asks to promote someone first on "Riverside"
+    And it asks to close "Hillside" first, since nobody else is on it
     And "Alex" belongs to "Riverside" as an admin
     And "Alex" belongs to "Hillside" as an admin
 
