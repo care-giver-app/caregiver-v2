@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -253,4 +254,47 @@ func (s *Stores) deleteTeamFutureOpen(ctx context.Context, teamID string, now ti
 		}
 	}
 	return nil
+}
+
+// SoleAdminOf returns the active teams on which the user is the only admin,
+// by name: the teams an account may not be closed while it belongs to. A
+// team the user is alone on counts, since they are its only admin too. Like
+// ChangeRole and RemoveMember it trusts another admin only once a strongly
+// consistent read confirms them.
+func (s *Stores) SoleAdminOf(ctx context.Context, userID string) ([]domain.Team, error) {
+	ms, err := s.Memberships.ListByUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(ms))
+	for _, m := range ms {
+		if m.Role == domain.RoleAdmin {
+			ids = append(ids, m.TeamID)
+		}
+	}
+	teams, err := s.Teams.BatchGet(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	var out []domain.Team
+	for _, id := range ids {
+		t, ok := teams[id]
+		if !ok || t.Status != domain.TeamActive {
+			continue
+		}
+		other, err := s.otherAdmin(ctx, id, userID)
+		if err != nil {
+			return nil, err
+		}
+		if other == "" {
+			out = append(out, t)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Name != out[j].Name {
+			return out[i].Name < out[j].Name
+		}
+		return out[i].TeamID < out[j].TeamID
+	})
+	return out, nil
 }

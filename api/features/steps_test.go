@@ -18,19 +18,20 @@ import (
 // world is one scenario's state: who is in it, the care teams and invite
 // codes it made, and the last answer the API gave.
 type world struct {
-	d      driver
-	suffix string
-	people map[string]*person
-	order  []*person
-	teams  map[string]string // care team name as written in the feature → team_id
-	codes  map[string]string // care team name → the invite code most recently made for it
-	last   answer
-	rows   []rowKey
-	n      int
-	care   careWorld
-	home   homeWorld
-	team   teamWorld
-	cov    coverageWorld
+	d        driver
+	suffix   string
+	people   map[string]*person
+	order    []*person
+	teams    map[string]string // care team name as written in the feature → team_id
+	codes    map[string]string // care team name → the invite code most recently made for it
+	last     answer
+	rows     []rowKey
+	n        int
+	care     careWorld
+	home     homeWorld
+	team     teamWorld
+	cov      coverageWorld
+	settings settingsWorld
 }
 
 func newWorld(d driver, suffix string) *world {
@@ -73,6 +74,7 @@ func (w *world) register(sc *godog.ScenarioContext) {
 	w.registerHome(sc)
 	w.registerTeam(sc)
 	w.registerCoverage(sc)
+	w.registerSettings(sc)
 
 	// Clean up whatever happened: a failed scenario still deletes what it made.
 	// A step's own failure is already recorded; this only adds a cleanup failure.

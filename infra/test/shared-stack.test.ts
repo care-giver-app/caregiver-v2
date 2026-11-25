@@ -113,7 +113,11 @@ describe('SharedStack', () => {
       stage: 'dev',
     });
     const t = Template.fromStack(stack);
-    t.hasResourceProperties('AWS::Cognito::UserPool', { UserPoolName: 'caregiver-dev' });
+    t.hasResourceProperties('AWS::Cognito::UserPool', {
+      UserPoolName: 'caregiver-dev',
+      // Change email keeps the old address in force until the new one is confirmed.
+      UserAttributeUpdateSettings: { AttributesRequireVerificationBeforeUpdate: ['email'] },
+    });
     t.resourceCountIs('AWS::Cognito::UserPoolClient', 1);
     t.hasResourceProperties('AWS::Cognito::UserPoolClient', {
       PreventUserExistenceErrors: 'ENABLED',

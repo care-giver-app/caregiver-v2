@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"os"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	cip "github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
+
 	"github.com/care-giver-app/caregiver-v2/api/internal/handlers"
 	"github.com/care-giver-app/caregiver-v2/api/internal/middleware"
 	v1 "github.com/care-giver-app/caregiver-v2/api/internal/v1"
@@ -149,7 +153,48 @@ func newMux(cfg config.Config, log *slog.Logger) (http.Handler, error) {
 	mux.Handle("PUT /v1/coverage-schedules/{coverageScheduleId}", v1authn.Wrap(http.HandlerFunc(v1cov.ChangeCoverageSchedule)))
 	mux.Handle("DELETE /v1/coverage-schedules/{coverageScheduleId}", v1authn.Wrap(http.HandlerFunc(v1cov.RemoveCoverageSchedule)))
 
+	settings, err := newSettings(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	v1acct := v1.NewAccount(v1Stores, settings.identity)
+	mux.Handle("PATCH /v1/me", v1authn.Wrap(http.HandlerFunc(v1acct.Change)))
+	mux.Handle("POST /v1/me/email", v1authn.Wrap(http.HandlerFunc(v1acct.StartEmailChange)))
+	// Served to a closed account too, so a close stopped partway can finish.
+	mux.Handle("POST /v1/me/close", v1authn.WrapClosing(http.HandlerFunc(v1acct.Close)))
+	// No API Gateway authorizer here: the token is optional, so it is verified
+	// in-process when there is one, and a request without one is anonymous.
+	v1bearer := v1.NewBearerAuthenticator(v1Stores, settings.verifier)
+	mux.Handle("POST /v1/feedback", v1bearer.WrapOptional(v1.NewFeedback(settings.feedback)))
+
 	return middleware.RequestLogger(log)(mux), nil
+}
+
+// settings is what the Settings routes need beyond the tables: the identity
+// provider, a verifier for the one route without the gateway's authorizer,
+// and where feedback goes.
+type settings struct {
+	identity v1.IdentityProvider
+	verifier *v1.TokenVerifier
+	feedback v1.FeedbackSender
+}
+
+func newSettings(ctx context.Context) (settings, error) {
+	poolID, clientID := os.Getenv("COGNITO_USER_POOL_ID"), os.Getenv("COGNITO_APP_CLIENT_ID")
+	topic := os.Getenv("V1_FEEDBACK_TOPIC_ARN")
+	region := os.Getenv("AWS_REGION")
+	if poolID == "" || clientID == "" || topic == "" || region == "" {
+		return settings{}, fmt.Errorf("COGNITO_USER_POOL_ID, COGNITO_APP_CLIENT_ID, V1_FEEDBACK_TOPIC_ARN and AWS_REGION must all be set")
+	}
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return settings{}, err
+	}
+	return settings{
+		identity: v1.NewCognitoIdentity(cip.NewFromConfig(cfg), poolID, clientID),
+		verifier: v1.NewCognitoVerifier(region, poolID, clientID),
+		feedback: v1.NewSNSFeedbackSender(sns.NewFromConfig(cfg), topic),
+	}, nil
 }
 
 func newStores(ctx context.Context) (*store.Stores, error) {

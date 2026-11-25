@@ -1446,11 +1446,13 @@ export interface components {
     };
     SoleAdminOf: {
       message: string;
-      teams: components['schemas']['TeamRef'][];
+      teams: components['schemas']['SoleAdminTeam'][];
     };
-    TeamRef: {
+    SoleAdminTeam: {
       team_id: string;
       name: string;
+      /** @description The caller is the only one on this team, so there is nobody to promote: the team has to be closed first, from Care team. */
+      alone: boolean;
     };
     FeedbackRequest: {
       /** @enum {string} */
@@ -2125,7 +2127,7 @@ export interface components {
         'application/json': components['schemas']['Error'];
       };
     };
-    /** @description Too many tries in a short time. The identity provider's own limit for a password; a per-caller limit for feedback. Try again later. */
+    /** @description Too many tries in a short time. The identity provider's own limit for a password; for feedback, a limit on the route shared by everyone sending, since an anonymous sender cannot be told apart. Try again later. */
     TooManyAttempts: {
       headers: {
         [name: string]: unknown;
@@ -3053,7 +3055,7 @@ export interface operations {
       400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['WrongPassword'];
-      /** @description The caller is the only admin of these care teams. Promote someone first. */
+      /** @description The caller is the only admin of these care teams. Promote someone first — or, on a team they are alone on, close it first. */
       409: {
         headers: {
           [name: string]: unknown;

@@ -21,6 +21,9 @@ import (
 
 type claims struct {
 	Sub, Email, Name string
+	// EmailVerified is the token's email_verified claim as sent ("true" or
+	// "false"), or empty when the token carries none.
+	EmailVerified string
 }
 
 // caller is the signed-in caregiver, as resolved by the Authenticator.
@@ -30,6 +33,9 @@ type caller struct {
 	Name   string // from the user row, not the current token
 	// EmailNotifications is the account's email channel, from the user row.
 	EmailNotifications bool
+	// Closed is set only on the one route that serves a closed account
+	// (WrapClosing): finishing a close that stopped partway.
+	Closed bool
 }
 
 type callerKey struct{}
@@ -52,11 +58,40 @@ type Authenticator struct {
 	extract func(*http.Request) (claims, bool)
 }
 
+// NewAuthenticator reads the claims API Gateway's JWT authorizer verified.
 func NewAuthenticator(s *store.Stores) *Authenticator {
 	return &Authenticator{stores: s, now: time.Now, extract: claimsFromRequest}
 }
 
-func (m *Authenticator) Wrap(next http.Handler) http.Handler {
+// NewBearerAuthenticator verifies the request's bearer token itself, for a
+// route served without the API Gateway authorizer.
+func NewBearerAuthenticator(s *store.Stores, v *TokenVerifier) *Authenticator {
+	return &Authenticator{stores: s, now: time.Now, extract: v.claimsFromBearer}
+}
+
+// Wrap requires a signed-in caregiver with an open account.
+func (m *Authenticator) Wrap(next http.Handler) http.Handler { return m.wrap(next, false) }
+
+// WrapClosing is Wrap that also lets a closed account through, marked Closed.
+// Only Close account is served this way: a close that removed the account's
+// row but not its sign-in can then be finished by trying again.
+func (m *Authenticator) WrapClosing(next http.Handler) http.Handler { return m.wrap(next, true) }
+
+// WrapOptional serves a request without an Authorization header as nobody —
+// no caller, and nothing about the caller added to the logger — and any other
+// as Wrap does, so a token that is there but does not verify is a 401.
+func (m *Authenticator) WrapOptional(next http.Handler) http.Handler {
+	signedIn := m.wrap(next, false)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := m.extract(r); !ok && r.Header.Get("Authorization") == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		signedIn.ServeHTTP(w, r)
+	})
+}
+
+func (m *Authenticator) wrap(next http.Handler, allowClosed bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c, ok := m.extract(r)
 		if !ok || c.Sub == "" {
@@ -92,12 +127,25 @@ func (m *Authenticator) Wrap(next http.Handler) http.Handler {
 			return
 		}
 		// A closed account is never silently reused.
-		if u.Status == domain.UserClosed {
+		closed := u.Status == domain.UserClosed
+		if closed && !allowClosed {
 			httpx.WriteError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+		// The address follows the identity provider: Change email is confirmed
+		// there, and the first request whose token carries the new address
+		// copies it onto the row (ADR 0012, User, amended in the Settings
+		// endpoints gate). Only a differing, verified address costs a write.
+		if !closed && email != "" && email != u.Email && c.EmailVerified != "false" {
+			if err := m.stores.Users.SetEmail(ctx, c.Sub, email); err != nil {
+				// Not fatal: the next request tries again.
+				logger.FromContext(ctx).Warn("email sync failed", "err", err)
+			}
+		}
 
-		next.ServeHTTP(w, r.WithContext(withCaller(ctx, &caller{UserID: c.Sub, Email: email, Name: u.Name, EmailNotifications: u.EmailNotifications})))
+		next.ServeHTTP(w, r.WithContext(withCaller(ctx, &caller{
+			UserID: c.Sub, Email: email, Name: u.Name, EmailNotifications: u.EmailNotifications, Closed: closed,
+		})))
 	})
 }
 
@@ -107,7 +155,7 @@ func claimsFromRequest(r *http.Request) (claims, bool) {
 		return claims{}, false
 	}
 	cl := reqCtx.Authorizer.JWT.Claims
-	return claims{Sub: cl["sub"], Email: cl["email"], Name: claimName(cl)}, true
+	return claims{Sub: cl["sub"], Email: cl["email"], Name: claimName(cl), EmailVerified: cl["email_verified"]}, true
 }
 
 func claimName(cl map[string]string) string {

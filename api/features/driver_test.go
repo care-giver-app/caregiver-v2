@@ -20,6 +20,8 @@ type person struct {
 	email  string
 	userID string // the Cognito sub (dev) or a synthesized one (in-process)
 	token  string // the Cognito ID token (dev only)
+	// password is what they sign in with, for Change email and Close account.
+	password string
 }
 
 // answer is what the API said.

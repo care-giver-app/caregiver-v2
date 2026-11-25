@@ -19,8 +19,10 @@ import (
 // Lambda adapter production uses. A request is built as the API Gateway event
 // the JWT authorizer would hand the Lambda, so the real claim extraction runs.
 type inProcess struct {
-	local   dynamotest.Local
-	adapter *httpadapter.HandlerAdapterV2
+	local    dynamotest.Local
+	adapter  *httpadapter.HandlerAdapterV2
+	identity *fakeIdentity
+	feedback *fakeFeedback
 }
 
 func newInProcess(t *testing.T) *inProcess {
@@ -90,11 +92,22 @@ func newInProcess(t *testing.T) *inProcess {
 	mux.Handle("POST /v1/receivers/{receiverId}/coverage-schedules", authn.Wrap(http.HandlerFunc(cov.AddCoverageSchedule)))
 	mux.Handle("PUT /v1/coverage-schedules/{coverageScheduleId}", authn.Wrap(http.HandlerFunc(cov.ChangeCoverageSchedule)))
 	mux.Handle("DELETE /v1/coverage-schedules/{coverageScheduleId}", authn.Wrap(http.HandlerFunc(cov.RemoveCoverageSchedule)))
-	return &inProcess{local: local, adapter: httpadapter.NewV2(mux)}
+	identity, feedback := newFakeIdentity(), &fakeFeedback{}
+	acct := v1.NewAccount(local.Stores, identity)
+	mux.Handle("PATCH /v1/me", authn.Wrap(http.HandlerFunc(acct.Change)))
+	mux.Handle("POST /v1/me/email", authn.Wrap(http.HandlerFunc(acct.StartEmailChange)))
+	mux.Handle("POST /v1/me/close", authn.WrapClosing(http.HandlerFunc(acct.Close)))
+	// Production verifies a feedback token in-process (no gateway authorizer);
+	// here the claims arrive as the authorizer would pass them, and a request
+	// without them is anonymous just the same.
+	mux.Handle("POST /v1/feedback", authn.WrapOptional(v1.NewFeedback(feedback)))
+	return &inProcess{local: local, adapter: httpadapter.NewV2(mux), identity: identity, feedback: feedback}
 }
 
 func (d *inProcess) newPerson(_ context.Context, p *person) error {
 	p.userID = "features-" + uuid.NewString()
+	p.password = "pw-" + p.userID
+	d.identity.add(p)
 	return nil
 }
 
@@ -122,7 +135,7 @@ func (d *inProcess) call(ctx context.Context, p *person, method, path string, bo
 		// What the API Gateway JWT authorizer passes on from a verified ID token.
 		ev.RequestContext.Authorizer = &events.APIGatewayV2HTTPRequestContextAuthorizerDescription{
 			JWT: &events.APIGatewayV2HTTPRequestContextAuthorizerJWTDescription{
-				Claims: map[string]string{"sub": p.userID, "email": p.email, "name": p.label},
+				Claims: map[string]string{"sub": p.userID, "email": p.email, "email_verified": "true", "name": p.label},
 			},
 		}
 	}

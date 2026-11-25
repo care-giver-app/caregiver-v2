@@ -140,7 +140,7 @@ describe('ApiStack', () => {
     const t = Template.fromStack(apiStack);
     t.resourceCountIs('AWS::ApiGatewayV2::Authorizer', 1);
     t.hasResourceProperties('AWS::ApiGatewayV2::Authorizer', { AuthorizerType: 'JWT' });
-    t.resourceCountIs('AWS::ApiGatewayV2::Route', 86);
+    t.resourceCountIs('AWS::ApiGatewayV2::Route', 90);
 
     for (const routeKey of [
       'GET /me',
@@ -214,18 +214,104 @@ describe('ApiStack', () => {
       'POST /v1/receivers/{receiverId}/coverage-schedules',
       'PUT /v1/coverage-schedules/{coverageScheduleId}',
       'DELETE /v1/coverage-schedules/{coverageScheduleId}',
+      'PATCH /v1/me',
+      'POST /v1/me/email',
+      'POST /v1/me/close',
     ]) {
       t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
         RouteKey: routeKey,
         AuthorizationType: 'JWT',
       });
     }
-    for (const routeKey of ['GET /health', 'GET /flags']) {
+    // Send feedback takes a token or none, so the Lambda verifies it, not the gateway.
+    for (const routeKey of ['GET /health', 'GET /flags', 'POST /v1/feedback']) {
       t.hasResourceProperties('AWS::ApiGatewayV2::Route', {
         RouteKey: routeKey,
         AuthorizationType: 'NONE',
       });
     }
+  });
+
+  test('settings: feedback topic, throttled anonymous route, scoped Cognito admin calls', () => {
+    const app = new cdk.App();
+    const env = { account: '123456789012', region: 'us-east-2' };
+    const shared = new SharedStack(app, 'CaregiverDev-Shared', { env, stage: 'dev' });
+    const apiStack = new ApiStack(app, 'CaregiverDev-Api', {
+      env,
+      stage: 'dev',
+      version: '0.0.0',
+      appConfigApplicationId: 'app',
+      appConfigEnvironmentId: 'envid',
+      appConfigProfileId: 'prof',
+      userPool: shared.userPool,
+      userPoolClient: shared.userPoolClient,
+      tables: shared.tables,
+      v1Tables: shared.v1Tables,
+    });
+    const t = Template.fromStack(apiStack);
+    t.hasResourceProperties('AWS::SNS::Topic', { TopicName: 'caregiver-dev-feedback' });
+    t.hasResourceProperties('AWS::SNS::Subscription', {
+      Protocol: 'email',
+      Endpoint: 'support@caretosher.com',
+    });
+    t.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: {
+        Variables: Match.objectLike({
+          V1_FEEDBACK_TOPIC_ARN: Match.anyValue(),
+          COGNITO_USER_POOL_ID: Match.anyValue(),
+          COGNITO_APP_CLIENT_ID: Match.anyValue(),
+        }),
+      },
+    });
+    // The function's role has outgrown one inline policy, so CDK spills statements into
+    // managed overflow policies: look in both.
+    const statements = [
+      ...Object.values(t.findResources('AWS::IAM::Policy')),
+      ...Object.values(t.findResources('AWS::IAM::ManagedPolicy')),
+    ].flatMap(
+      (p) => p.Properties.PolicyDocument.Statement as { Action: unknown; Resource: unknown }[],
+    );
+    const cognitoAdmin = statements.filter((st) => JSON.stringify(st.Action).includes('cognito'));
+    expect(cognitoAdmin).toHaveLength(1);
+    expect(cognitoAdmin[0].Action).toEqual([
+      'cognito-idp:AdminInitiateAuth',
+      'cognito-idp:AdminUpdateUserAttributes',
+      'cognito-idp:AdminDeleteUser',
+    ]);
+    expect(JSON.stringify(cognitoAdmin[0].Resource)).toMatch(/UserPool/);
+    const publish = statements.filter((st) => JSON.stringify(st.Action).includes('sns:Publish'));
+    expect(publish).toHaveLength(1);
+    expect(JSON.stringify(publish[0].Resource)).toMatch(/FeedbackTopic/);
+    t.hasResourceProperties('AWS::ApiGatewayV2::Stage', {
+      StageName: '$default',
+      RouteSettings: {
+        'POST /v1/feedback': { ThrottlingBurstLimit: 5, ThrottlingRateLimit: 1 },
+      },
+    });
+  });
+
+  test('prod feedback also goes to the support address', () => {
+    const app = new cdk.App();
+    const env = { account: '123456789012', region: 'us-east-2' };
+    const shared = new SharedStack(app, 'CaregiverProd-Shared', { env, stage: 'prod' });
+    const apiStack = new ApiStack(app, 'CaregiverProd-Api', {
+      env,
+      stage: 'prod',
+      version: '0.0.0',
+      appConfigApplicationId: 'app',
+      appConfigEnvironmentId: 'envid',
+      appConfigProfileId: 'prof',
+      userPool: shared.userPool,
+      userPoolClient: shared.userPoolClient,
+      tables: shared.tables,
+      v1Tables: shared.v1Tables,
+    });
+    const t = Template.fromStack(apiStack);
+    t.hasResourceProperties('AWS::SNS::Topic', { TopicName: 'caregiver-prod-feedback' });
+    t.hasResourceProperties('AWS::SNS::Subscription', {
+      Protocol: 'email',
+      Endpoint: 'support@caretosher.com',
+    });
   });
 
   test('gives the API the getting-in, trackers, home and team v1 tables and no others', () => {

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/config"
@@ -49,6 +50,9 @@ func setTableEnv(t *testing.T) {
 	t.Setenv("V1_JOURNAL_NOTES_TABLE", "v1jn")
 	t.Setenv("V1_COVERAGE_SCHEDULES_TABLE", "v1cs")
 	t.Setenv("V1_ASSIGNMENTS_TABLE", "v1a")
+	t.Setenv("COGNITO_USER_POOL_ID", "us-east-2_pool")
+	t.Setenv("COGNITO_APP_CLIENT_ID", "client")
+	t.Setenv("V1_FEEDBACK_TOPIC_ARN", "arn:aws:sns:us-east-2:000000000000:feedback")
 	t.Setenv("AWS_REGION", "us-east-2")
 	t.Setenv("AWS_ACCESS_KEY_ID", "x")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "x")
@@ -134,12 +138,51 @@ func TestNewMux_v1RoutesAreRegisteredBehindAuth(t *testing.T) {
 		{http.MethodPost, "/v1/receivers/r1/coverage-schedules"},
 		{http.MethodPut, "/v1/coverage-schedules/cs1"},
 		{http.MethodDelete, "/v1/coverage-schedules/cs1"},
+		{http.MethodPatch, "/v1/me"},
+		{http.MethodPost, "/v1/me/email"},
+		{http.MethodPost, "/v1/me/close"},
 	} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(rt.method, rt.path, nil))
 		if rec.Code != http.StatusUnauthorized {
 			t.Fatalf("%s %s: code=%d", rt.method, rt.path, rec.Code)
 		}
+	}
+}
+
+func TestNewMux_requiresSettingsEnv(t *testing.T) {
+	setAppConfigEnv(t)
+	setTableEnv(t)
+	for _, k := range []string{"COGNITO_USER_POOL_ID", "COGNITO_APP_CLIENT_ID", "V1_FEEDBACK_TOPIC_ARN"} {
+		t.Run(k, func(t *testing.T) {
+			t.Setenv(k, "")
+			if _, err := newMux(config.Config{Service: "api", Stage: "dev", Version: "0"}, testLogger()); err == nil {
+				t.Fatalf("expected error when %s is empty", k)
+			}
+		})
+	}
+}
+
+// Feedback has no gateway authorizer: a token that does not verify is a 401
+// from the in-process check, and one without a token reaches validation.
+func TestNewMux_feedbackTokenIsOptional(t *testing.T) {
+	setAppConfigEnv(t)
+	setTableEnv(t)
+	h, err := newMux(config.Config{Service: "api", Stage: "dev", Version: "0"}, testLogger())
+	if err != nil {
+		t.Fatalf("newMux: %v", err)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v1/feedback", strings.NewReader(`{}`)))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("anonymous: code=%d", rec.Code)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/v1/feedback", strings.NewReader(`{}`))
+	req.Header.Set("Authorization", "Bearer not-a-token")
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("bad token: code=%d", rec.Code)
 	}
 }
 

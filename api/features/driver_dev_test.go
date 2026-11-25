@@ -73,6 +73,7 @@ func newDevDriver(t *testing.T) *devDriver {
 
 func (d *devDriver) newPerson(ctx context.Context, p *person) error {
 	password := "Feat-" + strings.ReplaceAll(p.email, "@", "-") + "-aA1"
+	p.password = password
 	created, err := d.cognito.AdminCreateUser(ctx, &cip.AdminCreateUserInput{
 		UserPoolId:    aws.String(d.poolID),
 		Username:      aws.String(p.email),
@@ -157,9 +158,10 @@ func (d *devDriver) cleanup(ctx context.Context, rows []rowKey, _ []*person) err
 		}
 	}
 	for _, u := range d.createdUsers {
+		var gone *ciptypes.UserNotFoundException
 		if _, err := d.cognito.AdminDeleteUser(ctx, &cip.AdminDeleteUserInput{
 			UserPoolId: aws.String(d.poolID), Username: aws.String(u),
-		}); err != nil {
+		}); err != nil && !errors.As(err, &gone) { // a closed account's is gone already
 			errs = append(errs, fmt.Errorf("cognito admin-delete-user %s: %w", u, err))
 		}
 	}
