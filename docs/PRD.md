@@ -2741,7 +2741,9 @@ phone should not be closable by whoever picks it up.
 An account cannot be closed while it is a care team's only admin. The screen names the team and asks
 for someone else to be promoted first, on the same reasoning that stops that caregiver leaving: a
 team nobody can manage is one no caregiver can be added to, and closing an account is not a way to
-put a family in it.
+put a family in it. A caregiver who is alone on a team has nobody to promote, so for that team the
+screen asks them to close it first instead — from that care team, where closing it says what it
+takes with it — because a request they cannot carry out is not an answer.
 
 Closing an account leaves every care team the way leaving does. The assignments still ahead of
 the caregiver go, and a coverage schedule naming them ends that day, so the team sees that time as
@@ -2972,7 +2974,8 @@ because they say who was responsible.
       be closable by whoever picks it up
     - >
       when you are a care team's only admin, that team named and a request to
-      promote someone else first
+      promote someone else first — or, when you are the only one on it, a
+      request to close that team first
   exits:
     - action: Close my account
       to: Close this account?
@@ -2984,7 +2987,9 @@ because they say who was responsible.
       to: Close your account, saying to try again later
       as: stays
     - action: Close my account, when you are a care team's only admin
-      to: Close your account, refused with the team named
+      to: >
+        Close your account, refused with the team named, asking to promote
+        someone first, or to close the team first when you are alone on it
       as: stays
 
 - screen: Close this account?
