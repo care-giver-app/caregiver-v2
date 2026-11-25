@@ -2125,12 +2125,17 @@ of them go with them, and one they are partway through ends when they do, for th
 
 **The teams you belong to.** Every care team, its care receivers, and the way into a new one.
 
-Picking a receiver makes them the active one and lands on their Home, because picking one is a
-caregiver saying that is who they want to look at. Adding one does the same for the same reason — and
-a new receiver with no trackers is met by the Trackers list offering the first, which is where that
-story already continues. Creating a care team stays on Team instead: a team made a moment ago has no
-receivers and no caregivers but the one who made it, so there is nothing to land on yet, and the row
-it becomes is the thing to act on next.
+Tapping a receiver opens them, because tapping a person's name asks about that person — the same
+reason Home's header leads to the care receiver rather than here. Switching is a button of its own
+on the row: **Switch** makes that receiver the active one and lands on their Home, because pressing
+it is a caregiver saying that is who they want to look at. The active receiver's row says **Active**
+where the button would be, rather than offering a switch that would do nothing — and that label is
+the only place outside Home that says whose Home the caregiver is looking at. Adding a receiver
+makes them active and lands on their Home for the same reason, and a new receiver with no trackers
+is met by the Trackers list offering the first, which is where that story already continues.
+Creating a care team stays on Team instead: a team made a moment ago has no receivers and no
+caregivers but the one who made it, so there is nothing to land on yet, and the row it becomes is
+the thing to act on next.
 
 Invitations waiting for a caregiver's address appear here whatever teams they already belong to, and
 an invite code is pasted here rather than only at the door. Being invited to a second team is the
@@ -2167,12 +2172,12 @@ and how involved they are does.
 
 **One care receiver.** Everything about the person that is not an entry.
 
-Care receiver is reached two ways — the chevron on a receiver's row here, and Home's header, which
-is where a caregiver already is when they need it. It is where the standing knowledge about a person
-lives, and it is one screen rather than three because a caregiver who needs it needs all of it: what
-the instructions say, who to call, and who is meant to be there. The instructions carry who last
-changed them and when right on the screen, so a caregiver reading at 2am can tell standing orders
-from something written a year ago. Emergency contacts are rows with a phone number that dials, not a
+Care receiver is reached two ways — a receiver's row here, and Home's header, which is where a
+caregiver already is when they need it. It is where the standing knowledge about a person lives, and
+it is one screen rather than three because a caregiver who needs it needs all of it: what the
+instructions say, who to call, and who is meant to be there. The instructions carry who last changed
+them and when right on the screen, so a caregiver reading at 2am can tell standing orders from
+something written a year ago. Emergency contacts are rows with a phone number that dials, not a
 paragraph to read a number out of. Every caregiver reads all of it; only admins change any of it.
 
 A receiver added five minutes ago has none of this yet, and neither does one whose team coordinates
@@ -2213,17 +2218,20 @@ caregiver.
     receiver is switched on
   contains:
     - each care team the caregiver belongs to, and their role in it
-    - each team's care receivers, archived ones aside
+    - >
+      each team's care receivers, archived ones aside, with the active one
+      marked Active and every other one offering Switch
     - invitations waiting for your email, each with its team and who invited you
     - paste an invite code
     - create a care team
   exits:
     - action: a care receiver
-      to: Home, with that receiver now active
-      as: root
-    - action: the chevron on a care receiver's row
       to: Care receiver
       as: push
+    - action: Switch, on a care receiver's row
+      when: that receiver is not the active one
+      to: Home, with that receiver now active
+      as: root
     - action: a care team
       to: Care team
       as: push
@@ -2437,10 +2445,9 @@ caregiver.
 - screen: Care receiver
   kind: push
   scope: >
-    one care receiver. Reached two ways — the chevron on their row in Team, and
-    Home's header. One screen rather than three, because a caregiver who needs
-    it needs all of it: what the instructions say, who to call, and who is meant
-    to be there
+    one care receiver. Reached two ways — their row in Team, and Home's header.
+    One screen rather than three, because a caregiver who needs it needs all of
+    it: what the instructions say, who to call, and who is meant to be there
   contains:
     - their name, time zone, and care team
     - >
