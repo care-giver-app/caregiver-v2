@@ -14,7 +14,7 @@ import (
 )
 
 func asCaller(r *http.Request, userID, email, name string) *http.Request {
-	return r.WithContext(withCaller(r.Context(), &caller{UserID: userID, Email: email, Name: name}))
+	return r.WithContext(withCaller(r.Context(), &caller{UserID: userID, Email: email, Name: name, EmailNotifications: true}))
 }
 
 func jsonRequest(method, path, body string) *http.Request {

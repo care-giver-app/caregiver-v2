@@ -85,6 +85,13 @@ is until the new app is ready, then moves in one planned step.
 stays so every entry pointing at it resolves to "a former caregiver". Dropping `email` also drops the
 row from `email-index`.
 
+_Amended in the Settings endpoints gate:_ closing also leaves every team the way leaving does (each
+membership deleted, with its assignments still ahead and its coverage schedules ending that day) and
+deletes the identity-provider user, so the address can sign up again as a new account with a new
+`user_id` — the old row is never reused. `email` follows the identity provider: Change email is
+confirmed there, and the first request whose verified token carries a different address copies it
+onto the row. `name` belongs to the row; the token's name is read only when the row is created.
+
 **Device** (`device`, PK `user_id`, SK `device_id`) — `push_token`, `platform`, `updated_at`. Where
 push is delivered; one row per installed app. New.
 
@@ -195,6 +202,9 @@ slot again; nothing reads it otherwise.
 tie to it.
 
 **Not stored:** alerts (pending open question 3), the last-viewed receiver (per device), feedback.
+Feedback is published to a per-stage SNS topic whose only subscriber is the support mailbox
+(_amended in the Settings endpoints gate_); an anonymous message is sent without a token, so the API
+never learns who sent it.
 
 ### The generator
 

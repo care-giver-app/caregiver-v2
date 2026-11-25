@@ -66,7 +66,7 @@ private final class Count: @unchecked Sendable {
 final class TeamServiceMappingTests: XCTestCase {
     func testTheAccountCarriesTheCaregiversIDForTheirOwnRow() {
         let account = Account(S.MyAccount(
-            caregiver: .init(userId: "sub-1", email: "t@example.com", name: "Trevor"),
+            caregiver: .init(userId: "sub-1", email: "t@example.com", name: "Trevor", emailNotifications: true),
             teams: [.init(teamId: "riverside", name: "The Riverside Group", role: .admin)]))
         XCTAssertEqual(account.userID, "sub-1")
         XCTAssertEqual(account.teams, [Account.Team(teamID: "riverside", name: "The Riverside Group", role: "admin")])

@@ -562,6 +562,101 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/MyAccount' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      operationId: changeMyAccount
+      summary: Change name, and email notifications on or off
+      description: >
+        The caller's own name — what every entry and journal note they write is
+        signed with — and whether the app may reach them by email. Push is the
+        phone's, not stored. Fields left out are unchanged. An email address
+        confirmed through Change email is copied onto the account by the first
+        request made with a token carrying it, so it is not set here.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangeMyAccountRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Caregiver' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /v1/me/email:
+    post:
+      operationId: startEmailChange
+      summary: Change email — Send code
+      description: >
+        Checks the current password, then asks for the new address, which is sent
+        a code. The address does not change until the code is confirmed (in the
+        app, against the identity provider); until then the old one still signs
+        in and still receives everything. Sending again sends a new code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangeEmailRequest' }
+      responses:
+        '204': { description: Code sent to the new address }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WrongPassword' }
+        '409': { $ref: '#/components/responses/EmailInUse' }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+  /v1/me/close:
+    post:
+      operationId: closeMyAccount
+      summary: Close this account? — Close account
+      description: >
+        Checks the password, then closes the account: the name and address are
+        removed and the caller can no longer sign in, while every entry and
+        journal note they wrote stays, attributed to a former caregiver. Each
+        care team is left as leaving leaves it — their assignments still ahead
+        are removed and any coverage schedule naming them ends today. Refused,
+        naming the teams, while the caller is any care team's only admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CloseAccountRequest' }
+      responses:
+        '204': { description: Closed }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WrongPassword' }
+        '409':
+          description: >
+            The caller is the only admin of these care teams. Promote someone
+            first.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SoleAdminOf' }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+  /v1/feedback:
+    post:
+      operationId: sendFeedback
+      summary: Send feedback
+      description: >
+        One message to the people behind the app; nothing is kept. Sent with a
+        token, it goes with the caller's name and address so a reply can come by
+        email. Sent without one, it is anonymous: nothing that identifies the
+        caregiver goes with it or is logged with it. The version and device go
+        either way.
+      security:
+        - {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FeedbackRequest' }
+      responses:
+        '202': { description: Sent }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
   /v1/teams:
     post:
       operationId: createTeam
@@ -2037,11 +2132,54 @@ components:
     # --- /v1 ---------------------------------------------------------------
     Caregiver:
       type: object
-      required: [user_id, email, name]
+      required: [user_id, email, name, email_notifications]
       properties:
         user_id: { type: string, description: Cognito sub }
         email: { type: string, format: email }
         name: { type: string }
+        email_notifications:
+          type: boolean
+          description: Whether the app may reach this caregiver by email. On until changed.
+    ChangeMyAccountRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        email_notifications: { type: boolean }
+    ChangeEmailRequest:
+      type: object
+      required: [current_password, new_email]
+      properties:
+        current_password: { type: string, minLength: 1 }
+        new_email: { type: string, format: email }
+    CloseAccountRequest:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string, minLength: 1 }
+    SoleAdminOf:
+      type: object
+      required: [message, teams]
+      properties:
+        message: { type: string }
+        teams:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/TeamRef' }
+    TeamRef:
+      type: object
+      required: [team_id, name]
+      properties:
+        team_id: { type: string }
+        name: { type: string }
+    FeedbackRequest:
+      type: object
+      required: [kind, message, app_version, device]
+      properties:
+        kind: { type: string, enum: [bug, suggestion, other] }
+        message: { type: string, minLength: 1, maxLength: 5000 }
+        app_version: { type: string, maxLength: 50, description: 'e.g. "1.4.0 (212)"' }
+        device: { type: string, maxLength: 100, description: 'e.g. "iPhone 15, iOS 26.1"' }
     TeamMembership:
       type: object
       required: [team_id, name, role]
@@ -2802,6 +2940,26 @@ components:
       description: >
         The care receiver is archived, and everything about them is read-only
         until an admin restores them.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    WrongPassword:
+      description: The password is not right.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    EmailInUse:
+      description: Another account already uses that address.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyAttempts:
+      description: >
+        Too many tries in a short time. The identity provider's own limit for a
+        password; a per-caller limit for feedback. Try again later.
       content:
         application/json:
           schema:

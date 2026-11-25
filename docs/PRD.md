@@ -2743,6 +2743,11 @@ for someone else to be promoted first, on the same reasoning that stops that car
 team nobody can manage is one no caregiver can be added to, and closing an account is not a way to
 put a family in it.
 
+Closing an account leaves every care team the way leaving does. The assignments still ahead of
+the caregiver go, and a coverage schedule naming them ends that day, so the team sees that time as
+uncovered rather than trusting it to someone who can no longer sign in. The ones already past stay,
+because they say who was responsible.
+
 #### Screens
 
 ```yaml
@@ -2868,6 +2873,12 @@ put a family in it.
     - action: Send code, with a current password that is not right
       to: Change email, saying the password is not right
       as: stays
+    - action: Send code, with an address another account already uses
+      to: Change email, saying that address is already in use
+      as: stays
+    - action: Send code, after too many wrong passwords in a short time
+      to: Change email, saying to try again later
+      as: stays
     - action: Confirm
       to: Settings
       as: back
@@ -2894,11 +2905,12 @@ put a family in it.
     - action: Save, with a current password that is not right
       to: Change password, saying the current password is not right
       as: stays
+    - action: Save, after too many wrong passwords in a short time
+      to: Change password, saying to try again later
+      as: stays
     - action: Cancel
       to: Settings
       as: back
-  open:
-    - whether attempts at the current password are limited
 
 - screen: Notifications
   kind: push
@@ -2965,6 +2977,12 @@ put a family in it.
     - action: Close my account
       to: Close this account?
       as: sheet
+    - action: Close my account, with a password that is not right
+      to: Close your account, saying the password is not right
+      as: stays
+    - action: Close my account, after too many wrong passwords in a short time
+      to: Close your account, saying to try again later
+      as: stays
     - action: Close my account, when you are a care team's only admin
       to: Close your account, refused with the team named
       as: stays
@@ -2989,13 +3007,6 @@ put a family in it.
   reading, a dose, or a care receiver's name into the message, and it leaves the app for wherever
   feedback is read. Nothing says whether the sheet warns against this, or what the privacy policy
   promises about it.
-- **Whether attempts at the current password are limited is unstated.** Change email and Change
-  password both ask for it and both say plainly when it is wrong, which is right for someone already
-  signed in — but nothing says how many tries a borrowed phone gets before the sheets stop asking.
-- **Whether closing an account frees its place on the roster is unstated.** A caregiver who leaves a
-  team, or is removed, takes their assignments still ahead and their coverage schedules with them, so
-  the team sees that time as uncovered. Nothing says the same happens when they close their account
-  instead, which would leave the roster trusting future days to someone who can no longer sign in.
 
 ### Insights
 

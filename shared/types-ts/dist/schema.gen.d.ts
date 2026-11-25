@@ -374,6 +374,70 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Change name, and email notifications on or off
+         * @description The caller's own name — what every entry and journal note they write is signed with — and whether the app may reach them by email. Push is the phone's, not stored. Fields left out are unchanged. An email address confirmed through Change email is copied onto the account by the first request made with a token carrying it, so it is not set here.
+         */
+        patch: operations['changeMyAccount'];
+        trace?: never;
+    };
+    '/v1/me/email': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change email — Send code
+         * @description Checks the current password, then asks for the new address, which is sent a code. The address does not change until the code is confirmed (in the app, against the identity provider); until then the old one still signs in and still receives everything. Sending again sends a new code.
+         */
+        post: operations['startEmailChange'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/me/close': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close this account? — Close account
+         * @description Checks the password, then closes the account: the name and address are removed and the caller can no longer sign in, while every entry and journal note they wrote stays, attributed to a former caregiver. Each care team is left as leaving leaves it — their assignments still ahead are removed and any coverage schedule naming them ends today. Refused, naming the teams, while the caller is any care team's only admin.
+         */
+        post: operations['closeMyAccount'];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    '/v1/feedback': {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send feedback
+         * @description One message to the people behind the app; nothing is kept. Sent with a token, it goes with the caller's name and address so a reply can come by email. Sent without one, it is anonymous: nothing that identifies the caregiver goes with it or is logged with it. The version and device go either way.
+         */
+        post: operations['sendFeedback'];
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -1364,6 +1428,37 @@ export interface components {
             /** Format: email */
             email: string;
             name: string;
+            /** @description Whether the app may reach this caregiver by email. On until changed. */
+            email_notifications: boolean;
+        };
+        ChangeMyAccountRequest: {
+            name?: string;
+            email_notifications?: boolean;
+        };
+        ChangeEmailRequest: {
+            current_password: string;
+            /** Format: email */
+            new_email: string;
+        };
+        CloseAccountRequest: {
+            password: string;
+        };
+        SoleAdminOf: {
+            message: string;
+            teams: components['schemas']['TeamRef'][];
+        };
+        TeamRef: {
+            team_id: string;
+            name: string;
+        };
+        FeedbackRequest: {
+            /** @enum {string} */
+            kind: 'bug' | 'suggestion' | 'other';
+            message: string;
+            /** @description e.g. "1.4.0 (212)" */
+            app_version: string;
+            /** @description e.g. "iPhone 15, iOS 26.1" */
+            device: string;
         };
         TeamMembership: {
             team_id: string;
@@ -2004,6 +2099,33 @@ export interface components {
         };
         /** @description The care receiver is archived, and everything about them is read-only until an admin restores them. */
         ReceiverArchived: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description The password is not right. */
+        WrongPassword: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description Another account already uses that address. */
+        EmailInUse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                'application/json': components['schemas']['Error'];
+            };
+        };
+        /** @description Too many tries in a short time. The identity provider's own limit for a password; a per-caller limit for feedback. Try again later. */
+        TooManyAttempts: {
             headers: {
                 [name: string]: unknown;
             };
@@ -2852,6 +2974,119 @@ export interface operations {
                 };
             };
             401: components['responses']['Unauthorized'];
+        };
+    };
+    changeMyAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['ChangeMyAccountRequest'];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['Caregiver'];
+                };
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+        };
+    };
+    startEmailChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['ChangeEmailRequest'];
+            };
+        };
+        responses: {
+            /** @description Code sent to the new address */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['WrongPassword'];
+            409: components['responses']['EmailInUse'];
+            429: components['responses']['TooManyAttempts'];
+        };
+    };
+    closeMyAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['CloseAccountRequest'];
+            };
+        };
+        responses: {
+            /** @description Closed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            403: components['responses']['WrongPassword'];
+            /** @description The caller is the only admin of these care teams. Promote someone first. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    'application/json': components['schemas']['SoleAdminOf'];
+                };
+            };
+            429: components['responses']['TooManyAttempts'];
+        };
+    };
+    sendFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                'application/json': components['schemas']['FeedbackRequest'];
+            };
+        };
+        responses: {
+            /** @description Sent */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components['responses']['BadRequest'];
+            401: components['responses']['Unauthorized'];
+            429: components['responses']['TooManyAttempts'];
         };
     };
     createTeam: {
