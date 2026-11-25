@@ -319,6 +319,9 @@ export class SharedStack extends cdk.Stack {
       selfSignUpEnabled: true,
       signInAliases: { email: true },
       autoVerify: { email: true },
+      // Change email: the old address keeps signing in and receiving mail until
+      // the code sent to the new one is confirmed.
+      keepOriginal: { email: true },
       standardAttributes: {
         email: { required: true, mutable: true },
         fullname: { required: false, mutable: true },

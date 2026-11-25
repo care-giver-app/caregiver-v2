@@ -7,6 +7,8 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as sns from 'aws-cdk-lib/aws-sns';
+import * as snsSubscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as eventsTargets from 'aws-cdk-lib/aws-events-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
@@ -16,6 +18,9 @@ import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers
 import * as path from 'node:path';
 import { execSync } from 'node:child_process';
 import type { Stage } from './shared-stack';
+
+/** Where Send feedback goes, in both stages: the address the app shows as text. */
+const supportEmail = 'support@caretosher.com';
 
 export interface ApiStackProps extends cdk.StackProps {
   stage: Stage;
@@ -172,6 +177,29 @@ export class ApiStack extends cdk.Stack {
     this.apiFunction.addEnvironment('V1_JOURNAL_NOTES_TABLE', journalNote.tableName);
     this.apiFunction.addEnvironment('V1_COVERAGE_SCHEDULES_TABLE', coverageSchedule.tableName);
     this.apiFunction.addEnvironment('V1_ASSIGNMENTS_TABLE', assignment.tableName);
+
+    // Settings: Change email and Close account check the password and change or
+    // delete the account in the user pool; Send feedback publishes to a topic
+    // whose one subscriber is the support address. Nothing sent is kept.
+    this.apiFunction.addEnvironment('COGNITO_USER_POOL_ID', props.userPool.userPoolId);
+    this.apiFunction.addEnvironment('COGNITO_APP_CLIENT_ID', props.userPoolClient.userPoolClientId);
+    this.apiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          'cognito-idp:AdminInitiateAuth',
+          'cognito-idp:AdminUpdateUserAttributes',
+          'cognito-idp:AdminDeleteUser',
+        ],
+        resources: [props.userPool.userPoolArn],
+      }),
+    );
+    const feedbackTopic = new sns.Topic(this, 'FeedbackTopic', {
+      topicName: `caregiver-${props.stage}-feedback`,
+      displayName: 'CareToSher feedback',
+    });
+    feedbackTopic.addSubscription(new snsSubscriptions.EmailSubscription(supportEmail));
+    feedbackTopic.grantPublish(this.apiFunction);
+    this.apiFunction.addEnvironment('V1_FEEDBACK_TOPIC_ARN', feedbackTopic.topicArn);
 
     // AppConfig actions: `StartConfigurationSession` is a control-plane call that
     // doesn't accept a resource ARN, and `GetLatestConfiguration` operates on
@@ -343,6 +371,9 @@ export class ApiStack extends cdk.Stack {
       { path: '/v1/receivers/{receiverId}/coverage-schedules', methods: [apigw.HttpMethod.POST] },
       { path: '/v1/coverage-schedules/{coverageScheduleId}', methods: [apigw.HttpMethod.PUT] },
       { path: '/v1/coverage-schedules/{coverageScheduleId}', methods: [apigw.HttpMethod.DELETE] },
+      { path: '/v1/me', methods: [apigw.HttpMethod.PATCH] },
+      { path: '/v1/me/email', methods: [apigw.HttpMethod.POST] },
+      { path: '/v1/me/close', methods: [apigw.HttpMethod.POST] },
     ];
     for (const route of authedRoutes) {
       httpApi.addRoutes({
@@ -352,6 +383,23 @@ export class ApiStack extends cdk.Stack {
         authorizer,
       });
     }
+
+    // Send feedback takes a token or none, so API Gateway's authorizer, which
+    // refuses a request without one, cannot guard it: the Lambda verifies a
+    // token itself when there is one. Its own throttle keeps the anonymous
+    // route from being a way to flood the support inbox.
+    const [feedbackRoute] = httpApi.addRoutes({
+      path: '/v1/feedback',
+      methods: [apigw.HttpMethod.POST],
+      integration: lambdaIntegration,
+    });
+    const defaultStage = httpApi.defaultStage?.node.defaultChild as apigw.CfnStage;
+    // RouteSettings is untyped JSON, passed to CloudFormation as written.
+    defaultStage.addPropertyOverride('RouteSettings', {
+      'POST /v1/feedback': { ThrottlingBurstLimit: 5, ThrottlingRateLimit: 1 },
+    });
+    // The stage names the route by its key, which must exist first.
+    defaultStage.addDependency(feedbackRoute.node.defaultChild as apigw.CfnRoute);
 
     new cdk.CfnOutput(this, 'HttpApiUrl', { value: httpApi.apiEndpoint });
     new cdk.CfnOutput(this, 'ApiCustomUrl', { value: `https://${apiDomainName}` });
