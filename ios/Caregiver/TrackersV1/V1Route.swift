@@ -14,7 +14,7 @@ enum V1Route: Hashable {
     case trackers(TeamReceiver, filter: TrackerListFilter = .active)
     case tracker(id: String, receiver: TeamReceiver)
     case schedules(trackerID: String, trackerName: String, receiver: TeamReceiver)
-    /// Care receiver — a Team-area screen, a named placeholder on this path for now.
+    /// Care receiver, from Home's header (PRD "Home").
     case careReceiver(TeamReceiver)
     /// Entry detail, from Home, Coming up, or Tracker detail's entries.
     case entry(id: String, receiver: TeamReceiver)
@@ -24,8 +24,9 @@ enum V1Route: Hashable {
 }
 
 extension View {
-    /// Registers every `V1Route` destination. Apply once, at the stack's root.
-    func v1Destinations(service: TrackersService, home: HomeService) -> some View {
+    /// Registers every `V1Route` destination. Apply once, at the stack's root. `team` is
+    /// Care receiver's; previews that never push it may leave it unstubbed.
+    func v1Destinations(service: TrackersService, home: HomeService, team: TeamService = TeamService()) -> some View {
         navigationDestination(for: V1Route.self) { route in
             Group {
                 switch route {
@@ -37,8 +38,7 @@ extension View {
                     SchedulesV1View(trackerID: trackerID, trackerName: trackerName, receiver: receiver,
                                     service: service)
                 case .careReceiver(let receiver):
-                    V1PushedPlaceholder(title: receiver.name, subtitle: "Care receiver",
-                                        line: "Care receiver is part of Team, which isn't built on this path yet.")
+                    CareReceiverV1View(receiver: receiver, service: team)
                 case .entry(let id, let receiver):
                     EntryDetailV1View(entryID: id, receiver: receiver, home: home)
                 case .journalNote(let id, let receiver):

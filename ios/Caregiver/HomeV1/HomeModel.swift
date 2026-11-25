@@ -57,6 +57,10 @@ final class HomeModel {
     private var summaryGeneration = 0
     /// Bumped by each timeline read (a refresh's or a day step's), for the same reason.
     private var dayGeneration = 0
+    /// Who is on duty right now (PRD "Home"): shown only when someone is, since a team that
+    /// keeps no roster sees nothing there. Best effort — a read that fails keeps what was
+    /// known rather than failing Home.
+    private(set) var onDuty: [AssignmentInfo] = []
     /// A refresh failed; what was showing stays.
     private(set) var refreshFailed = false
     /// The instant relative times are said against, taken afresh on every load.
@@ -123,6 +127,7 @@ final class HomeModel {
         attention = []
         comingUp = []
         trackers = []
+        onDuty = []
         fields = [:]
         refreshFailed = false
         day = LocalDay(clock(), zone: receiver.timeZone)
@@ -220,11 +225,14 @@ final class HomeModel {
         async let comingUpResult = Self.capture { try await home.comingUp(id, Self.sectionLimit) }
         async let trackersResult = Self.capture { try await trackersService.listTrackers(id) }
         async let dayResult = Self.capture { try await home.dayTimeline(id, shown) }
+        async let onDutyResult = Self.capture { try await home.onDuty(id) }
         let (a, c, t, d) = await (attentionResult, comingUpResult, trackersResult, dayResult)
+        let o = await onDutyResult
 
         guard self.receiver?.id == id else { return }
         if summaryGen == summaryGeneration {
             applySummary(a, c, t)
+            if case .success(let now) = o { onDuty = now }
         }
         await apply(d, for: shown, receiverID: id, generation: dayGen)
     }

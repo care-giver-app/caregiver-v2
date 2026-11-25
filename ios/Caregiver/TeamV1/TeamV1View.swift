@@ -6,7 +6,7 @@ import SwiftUI
 enum TeamRoute: Hashable {
     case careTeam(Account.Team)
     case notifications(Account.Team)
-    /// Care receiver — built in the next part of the Team area; a named placeholder until then.
+    /// Care receiver, from a receiver's chevron or Care team's archived list.
     case careReceiver(TeamReceiver)
 }
 
@@ -36,8 +36,7 @@ struct TeamTabV1: View {
                         case .notifications(let team):
                             TeamNotificationsV1View(team: team, service: service)
                         case .careReceiver(let receiver):
-                            V1PushedPlaceholder(title: receiver.name, subtitle: "Care receiver",
-                                                line: "Care receiver isn't built on this path yet.")
+                            CareReceiverV1View(receiver: receiver, service: service)
                         }
                     }
                     // Pushed screens don't inherit the stack's inset, so each clears the bar itself.

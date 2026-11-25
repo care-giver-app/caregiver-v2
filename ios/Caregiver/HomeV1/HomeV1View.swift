@@ -3,7 +3,8 @@ import SwiftUI
 /// Home on the `/v1` path (PRD "Home"; Figma section 1 · Home 436:3225): the active care
 /// receiver with their team, what needs attention, what is coming up, and one day of the
 /// timeline. Every push goes on the one `/v1` stack as a `V1Route`; ⊕ and the empty day's
-/// offers open Quick log through `V1QuickLog`. Who is on duty waits on the Team area.
+/// offers open Quick log through `V1QuickLog`. Who is on duty sits under the header when
+/// someone is.
 struct HomeV1View: View {
     let receiver: ActiveReceiverModel
     let trackers: TrackersService
@@ -114,7 +115,10 @@ struct HomeV1View: View {
         let r = active.receiver
         return ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                header(active)
+                VStack(alignment: .leading, spacing: 12) {
+                    header(active)
+                    onDuty(r)
+                }
                 if model.refreshFailed {
                     StrideAlertBanner(message: "Couldn't refresh Home.")
                 }
@@ -185,6 +189,20 @@ struct HomeV1View: View {
                 .background { Capsule().fill(Theme.Colors.accentTint) }
             }
             .buttonStyle(.plain)
+        }
+    }
+
+    /// Figma 436:3228: who is on duty right now, one row each since assignments can overlap.
+    /// A coordination signal only; a team that keeps no roster sees nothing (PRD "Home").
+    @ViewBuilder
+    private func onDuty(_ r: TeamReceiver) -> some View {
+        if !model.onDuty.isEmpty {
+            let now = LocalDateTime(model.now, zone: r.timeZone)
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(model.onDuty) { a in
+                    StrideCoverageRow(title: TeamText.onDuty(a.caregiverName), detail: TeamText.until(a.ends, now: now))
+                }
+            }
         }
     }
 
@@ -515,7 +533,7 @@ private enum HomePreview {
         return NavigationStack {
             HomeV1View(receiver: active, home: home, trackers: trackersService, team: TeamFixtures.service(),
                        model: model)
-                .v1Destinations(service: trackersService, home: home)
+                .v1Destinations(service: trackersService, home: home, team: TeamFixtures.service())
         }
     }
 }
