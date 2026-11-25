@@ -2125,7 +2125,7 @@ export interface components {
         'application/json': components['schemas']['Error'];
       };
     };
-    /** @description Too many tries in a short time. The identity provider's own limit for a password; a per-caller limit for feedback. Try again later. */
+    /** @description Too many tries in a short time. The identity provider's own limit for a password; for feedback, a limit on the route shared by everyone sending, since an anonymous sender cannot be told apart. Try again later. */
     TooManyAttempts: {
       headers: {
         [name: string]: unknown;
