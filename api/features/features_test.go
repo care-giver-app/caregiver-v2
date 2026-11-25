@@ -16,11 +16,16 @@ import (
 
 func TestFeatures(t *testing.T) {
 	var d driver
+	// Scenarios tagged @inprocess need what only the in-process driver can do —
+	// read the code a new address was sent, or see the feedback that went out —
+	// or would send real mail from dev. Dev skips them.
+	tags := ""
 	switch target := os.Getenv("FEATURES_TARGET"); target {
 	case "", "inprocess":
 		d = newInProcess(t)
 	case "dev":
 		d = newDevDriver(t)
+		tags = "~@inprocess"
 	default:
 		t.Fatalf("FEATURES_TARGET=%q: want empty (in-process) or dev", target)
 	}
@@ -41,6 +46,7 @@ func TestFeatures(t *testing.T) {
 			Format:   "pretty",
 			Paths:    []string{"."}, // every area folder under features/, so a new one is never skipped
 			Strict:   true,          // an undefined or pending step fails the run
+			Tags:     tags,
 			TestingT: t,
 		},
 	}
