@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The signed-in `/v1` app: four tabs and the ⊕ button, driven by `StrideTabBar` (PRD
-/// "The tab bar"). Home holds the one `/v1` navigation stack and Team its own; Insights
-/// and Settings are named placeholders until their areas are built on this path. Team is
+/// "The tab bar"). Home, Team and Settings each hold their own navigation stack; Insights
+/// is a named placeholder while it is deferred. Team is
 /// where the caregiver's teams change while signed in, so the account Home chooses from
 /// follows Team's (`TeamListModel.account`), and picking a receiver there lands on Home. Every way into Quick
 /// log — ⊕, Home's empty day, Entry detail, Tracker detail — goes through one presenter
@@ -24,9 +24,11 @@ struct V1TabShell: View {
     @State private var homeWrites = HomeWriteLog()
     @State private var receiver: ActiveReceiverModel
     @State private var teamList: TeamListModel
+    @State private var settings: SettingsModel
 
     init(account: Account, trackers: TrackersService, home: HomeService, team: TeamService,
-         store: LastReceiverStore = .standard,
+         settings: SettingsService, store: LastReceiverStore = .standard,
+         settingsDevice: SettingsDevice = SettingsDevice(), settingsAuth: SettingsAuth = .amplify,
          onSignOut: @escaping () async -> Void, path: Binding<[V1Route]>) {
         self.account = account
         self.trackers = trackers
@@ -36,6 +38,8 @@ struct V1TabShell: View {
         _path = path
         _receiver = State(initialValue: ActiveReceiverModel(account: account, service: trackers, store: store))
         _teamList = State(initialValue: TeamListModel(account: account, service: team))
+        _settings = State(initialValue: SettingsModel(account: account, service: settings, auth: settingsAuth,
+                                                      device: settingsDevice))
     }
 
     /// Picking or adding a care receiver on Team: their Home, as the active one, with Home's
@@ -106,14 +110,10 @@ struct V1TabShell: View {
                 .environment(\.v1ReceiverChanged, receiverChanged)
                 .tag(StrideTab.team)
 
-            NavigationStack {
-                V1Placeholder(title: "Settings", line: "Settings isn't built on this path yet.") {
-                    SignOutButton(onSignOut: onSignOut)
-                }
-                .strideTabBarClearance()
-                .toolbar(.hidden, for: .tabBar)
-            }
-            .tag(StrideTab.settings)
+            // Team notification settings lives with each team: Notifications' row goes to Team.
+            SettingsTabV1(model: settings, onSignOut: onSignOut,
+                          onTeamNotifications: { selectedTab = .team })
+                .tag(StrideTab.settings)
         }
         // Drawn over the tabs, not inset: pushed screens never see a container's inset,
         // so every screen clears the bar itself (`strideTabBarClearance`).
@@ -173,20 +173,6 @@ struct V1Placeholder<Actions: View>: View {
 extension V1Placeholder where Actions == EmptyView {
     init(title: String, line: String) {
         self.init(title: title, line: line) { EmptyView() }
-    }
-}
-
-/// Signs out, once: a second tap while the first is in flight does nothing.
-private struct SignOutButton: View {
-    let onSignOut: () async -> Void
-    @State private var isSigningOut = false
-
-    var body: some View {
-        StrideButton(title: "Sign out", style: .secondary, isLoading: isSigningOut) {
-            guard !isSigningOut else { return }
-            isSigningOut = true
-            Task { await onSignOut() }
-        }
     }
 }
 
@@ -256,7 +242,8 @@ struct QuickLogNoReceiverSheet: View {
 #Preview("Tabs") {
     @Previewable @State var path: [V1Route] = []
     V1TabShell(account: TeamFixtures.trevor, trackers: HomeFixtures.trackersService(),
-               home: HomeFixtures.service(), team: TeamFixtures.service(), store: .inMemory(),
+               home: HomeFixtures.service(), team: TeamFixtures.service(), settings: SettingsFixtures.service(),
+               store: .inMemory(), settingsDevice: SettingsFixtures.device(), settingsAuth: SettingsAuth(),
                onSignOut: {}, path: $path)
 }
 
