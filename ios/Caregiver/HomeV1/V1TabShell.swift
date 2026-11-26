@@ -122,6 +122,14 @@ struct V1TabShell: View {
         .onChange(of: teamList.account) { _, account in
             Task { await receiver.adopt(account) }
         }
+        // Renamed in Settings: rosters, coverage and entries carry the name, so Home and Team
+        // read again rather than showing the old one until the next sign-in.
+        .onChange(of: settings.account.name) { _, _ in
+            Task {
+                await teamList.refreshAccount()
+                await receiver.load()
+            }
+        }
         .sheet(item: $quickLog.sheet, onDismiss: {
             // Add tracker in Quick log's place made one: push it on Home's stack now the sheet is down.
             guard let created = quickLog.takeCreated() else { return }
