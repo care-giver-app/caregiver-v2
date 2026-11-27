@@ -96,7 +96,8 @@ awaiting approval · `approved` merged to `main`.
 | `infra/`                                  | AWS CDK (TypeScript). `lib/{shared,api,observability,billing}-stack.ts`, `bin/app.ts`.            |
 | `ios/`                                    | The iOS client. `ios/design-system.md` catalogs existing components; `ios/fixtures.md` is the one |
 |                                           | canonical persona/roster/tracker set — bind every Figma frame and SwiftUI preview to it.          |
-| `web/`                                    | Web client. Not started, and out of scope until iOS matches the PRD.                              |
+| `web/`                                    | `web/site/`: static pages for caretosher.com (privacy, terms, support), served by `WebStack`.     |
+|                                           | The web client is not started; when it is, it must keep those three URLs.                         |
 
 Go module paths are all `github.com/care-giver-app/caregiver-v2/...`. `api` has a `replace` for
 `go-common`.
