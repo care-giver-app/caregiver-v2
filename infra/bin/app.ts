@@ -5,6 +5,7 @@ import { SharedStack } from '../lib/shared-stack';
 import { ApiStack } from '../lib/api-stack';
 import { ObservabilityStack } from '../lib/observability-stack';
 import { BillingStack } from '../lib/billing-stack';
+import { WebStack } from '../lib/web-stack';
 
 const app = new cdk.App();
 
@@ -39,6 +40,12 @@ new ObservabilityStack(app, `${prefix}-Observability`, {
   apiFunction: api.apiFunction,
   generatorFunction: api.generatorFunction,
   alarmTopic: shared.alarmTopic,
+});
+
+// WebStack MUST be in us-east-1: CloudFront only takes certificates from there.
+new WebStack(app, `${prefix}-Web`, {
+  env: { account: env.account, region: 'us-east-1' },
+  stage,
 });
 
 if (stage === 'prod') {
