@@ -18,7 +18,7 @@
     "lint": "echo 'no lint'"
   },
   "dependencies": {
-    "openapi-fetch": "^0.13.0"
+    "openapi-fetch": "^0.17.0"
   },
   "devDependencies": {
     "openapi-typescript": "^7.4.1",
