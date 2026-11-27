@@ -124,10 +124,10 @@ describe('SharedStack', () => {
     });
   });
 
-  test('v1_api is on in dev and off in prod, and the schema requires it', () => {
+  test('v1_api is on in every stage, and the schema requires it', () => {
     for (const [stage, enabled] of [
       ['dev', true],
-      ['prod', false],
+      ['prod', true],
     ] as const) {
       const app = new cdk.App();
       const stack = new SharedStack(
