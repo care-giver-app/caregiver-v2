@@ -72,7 +72,7 @@ awaiting approval · `approved` merged to `main`.
 | Trackers   | approved       | approved | approved  | approved |
 | Home       | approved       | approved | approved  | approved |
 | Team       | approved       | approved | approved  | approved |
-| Settings   | approved       | approved | approved  | —        |
+| Settings   | approved       | approved | approved  | approved |
 | Insights   | deferred       | deferred | deferred  | —        |
 
 **Data model pass:** approved — `docs/adr/0012-target-data-model.md` (gates every Endpoints cell above)
