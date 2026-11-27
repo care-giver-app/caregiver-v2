@@ -4,20 +4,19 @@ package dynamotest
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/care-giver-app/caregiver-v2/shared/go-common/internal/dynamolocal"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/v1/store"
 )
 
 // Start launches DynamoDB Local, creates the v1 tables (with GSIs), and
-// returns Stores wired to it. The container is terminated via t.Cleanup.
+// returns Stores wired to it. Every test in the binary shares one container;
+// the tables are this test's own.
 func Start(t *testing.T) *store.Stores {
 	t.Helper()
 	return StartLocal(t).Stores
@@ -37,28 +36,7 @@ func StartLocal(t *testing.T) Local {
 	t.Helper()
 	ctx := context.Background()
 
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "amazon/dynamodb-local:2.5.2",
-			ExposedPorts: []string{"8000/tcp"},
-			WaitingFor:   wait.ForHTTP("/").WithPort("8000/tcp").WithStatusCodeMatcher(func(int) bool { return true }),
-		},
-		Started: true,
-	})
-	if err != nil {
-		t.Fatalf("start dynamodb-local: %v", err)
-	}
-	t.Cleanup(func() { _ = container.Terminate(ctx) })
-
-	host, err := container.Host(ctx)
-	if err != nil {
-		t.Fatalf("host: %v", err)
-	}
-	port, err := container.MappedPort(ctx, "8000")
-	if err != nil {
-		t.Fatalf("port: %v", err)
-	}
-	endpoint := fmt.Sprintf("http://%s:%s", host, port.Port())
+	endpoint := dynamolocal.Endpoint(t)
 
 	t.Setenv("AWS_ACCESS_KEY_ID", "local")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "local")
@@ -69,19 +47,20 @@ func StartLocal(t *testing.T) Local {
 		t.Fatalf("client: %v", err)
 	}
 
+	p := dynamolocal.Prefix()
 	names := store.TableNames{
-		Users:             "test-v1-user",
-		Teams:             "test-v1-team",
-		Memberships:       "test-v1-membership",
-		Invitations:       "test-v1-invitation",
-		Receivers:         "test-v1-receiver",
-		CareInstructions:  "test-v1-care-instructions",
-		Trackers:          "test-v1-tracker",
-		Schedules:         "test-v1-schedule",
-		Entries:           "test-v1-entry",
-		JournalNotes:      "test-v1-journal-note",
-		CoverageSchedules: "test-v1-coverage-schedule",
-		Assignments:       "test-v1-assignment",
+		Users:             p + "test-v1-user",
+		Teams:             p + "test-v1-team",
+		Memberships:       p + "test-v1-membership",
+		Invitations:       p + "test-v1-invitation",
+		Receivers:         p + "test-v1-receiver",
+		CareInstructions:  p + "test-v1-care-instructions",
+		Trackers:          p + "test-v1-tracker",
+		Schedules:         p + "test-v1-schedule",
+		Entries:           p + "test-v1-entry",
+		JournalNotes:      p + "test-v1-journal-note",
+		CoverageSchedules: p + "test-v1-coverage-schedule",
+		Assignments:       p + "test-v1-assignment",
 	}
 	createTables(t, ctx, client, names)
 	return Local{Stores: store.New(client, names), Client: client, Names: names}
