@@ -18,7 +18,7 @@ jobs:
     name: Lint + TS check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -36,7 +36,7 @@ jobs:
     name: Go lint + test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24'
@@ -65,7 +65,7 @@ jobs:
     name: CDK synth + diff
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         # Version comes from package.json `packageManager` field; do NOT add `with: version`.
       - uses: actions/setup-node@v4
@@ -130,7 +130,7 @@ jobs:
       group: deploy-dev
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # The smoke test exercises the API, so only a change that can alter what dev serves runs it.
       # The deploy still runs on every PR, so dev always holds the PR's branch.
       - uses: dorny/paths-filter@v3
@@ -178,7 +178,7 @@ jobs:
       # so a runner-image update can't swap the Swift compiler underneath us.
       XCODE_VERSION: '26.2'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v3
         id: changes
         with:
@@ -220,7 +220,7 @@ jobs:
     name: Codegen drift check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         # Version comes from package.json `packageManager` field; do NOT add `with: version`.
       - uses: actions/setup-node@v4
