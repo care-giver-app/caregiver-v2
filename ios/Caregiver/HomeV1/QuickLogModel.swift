@@ -4,7 +4,7 @@ import OpenAPIRuntime
 /// Every sentence Quick log's run says, as constants and pure functions.
 enum QuickLogText {
     static let journalNote = "Journal note"
-    static let earlierTodayProblem = "Choose a time earlier today."
+    static let earlierProblem = "Choose a time that has already passed."
     static let futureProblem = "Choose a time in the future."
     static let nothingToPlan = "Journal notes and waiting care can't be planned. Go back and pick a tracker."
     static let noteRequired = "Write the note."
@@ -28,9 +28,9 @@ enum QuickLogText {
     static let trackersLabel = "TRACKERS"
     static let addTracker = "Add a tracker"
     static let now = "Now"
-    static let earlierToday = "Earlier today"
+    static let earlier = "Earlier"
     static let futureTime = "A future time"
-    static let pickATime = "Pick a time"
+    static let pickADayAndTime = "Pick a day and time"
     static let planIt = "Plan it"
     static let oneTime = "One time for everything you picked."
     static let planningCaption = "This plans entries instead of logging them. Journal notes can't be planned."
@@ -119,8 +119,8 @@ final class QuickLogModel {
     /// The run's one time.
     enum When: Equatable, Sendable {
         case now
-        /// `earlierTime`: a time today, in the receiver's zone, not after now.
-        case earlierToday
+        /// `earlierTime`: any time not after now, on any day (PRD: Quick log).
+        case earlier
         /// `futureTime`: planning.
         case future
     }
@@ -368,7 +368,7 @@ final class QuickLogModel {
         return true
     }
 
-    /// The receiver's today, against which an earlier time is checked.
+    /// The receiver's today, the earliest day a future time can be picked from.
     var today: LocalDay { LocalDay(clock(), zone: receiver.timeZone) }
 
     var whenProblems: [String] {
@@ -376,9 +376,8 @@ final class QuickLogModel {
         switch when {
         case .now:
             return []
-        case .earlierToday:
-            let sameDay = LocalDay(earlierTime, zone: receiver.timeZone) == LocalDay(now, zone: receiver.timeZone)
-            return sameDay && earlierTime <= now ? [] : [QuickLogText.earlierTodayProblem]
+        case .earlier:
+            return earlierTime <= now ? [] : [QuickLogText.earlierProblem]
         case .future:
             var out: [String] = []
             if !offersFuture || futureTime <= now.addingTimeInterval(Self.futureMargin) {
@@ -526,8 +525,7 @@ final class QuickLogModel {
         }
         let now = clock()
         // A future time that has come while the steps were filled in would log rather
-        // than plan, and an earlier time is no longer today once midnight has passed in
-        // the receiver's zone: back to when, which now says so.
+        // than plan: back to when, which now says so.
         if when != .now, !whenProblems.isEmpty {
             part = .when
             return
@@ -659,7 +657,7 @@ final class QuickLogModel {
     func runTime(now: Date) -> Date {
         switch when {
         case .now: now
-        case .earlierToday: earlierTime
+        case .earlier: earlierTime
         case .future: futureTime
         }
     }
@@ -703,9 +701,9 @@ final class QuickLogModel {
 
     // MARK: - Default times
 
-    /// An hour ago, but never before midnight.
+    /// An hour ago.
     static func defaultEarlier(now: Date, zone: TimeZone) -> Date {
-        max(LocalDay(now, zone: zone).start(in: zone), now.addingTimeInterval(-3600))
+        now.addingTimeInterval(-3600)
     }
 
     /// The first whole hour at least an hour ahead.

@@ -329,20 +329,20 @@ final class QuickLogModelTests: XCTestCase {
         XCTAssertEqual(m.part, .when)
     }
 
-    func testEarlierTodayMustBeTodayAndNotAfterNow() async {
+    func testAnEarlierTimeMayBeAnyDayButNotAfterNow() async {
         let m = await loaded()
         m.toggle(.tracker(id: "bp"))
         m.continueFromPick()
-        m.when = .earlierToday
+        m.when = .earlier
         XCTAssertEqual(m.earlierTime, Q.now.addingTimeInterval(-3600), "an hour ago by default")
         XCTAssertEqual(m.whenProblems, [])
         m.earlierTime = Q.now.addingTimeInterval(600)
-        XCTAssertEqual(m.whenProblems, [QuickLogText.earlierTodayProblem])
-        // 11:30 PM Friday in Chicago.
+        XCTAssertEqual(m.whenProblems, [QuickLogText.earlierProblem])
+        // 11:30 PM Friday in Chicago: yesterday.
         m.earlierTime = Q.at("2026-11-07T05:30:00Z")
-        XCTAssertEqual(m.whenProblems, [QuickLogText.earlierTodayProblem])
-        // 12:30 AM Saturday.
-        m.earlierTime = Q.at("2026-11-07T06:30:00Z")
+        XCTAssertEqual(m.whenProblems, [])
+        // A week back, from a paper log.
+        m.earlierTime = Q.now.addingTimeInterval(-7 * 86_400)
         XCTAssertEqual(m.whenProblems, [])
     }
 
@@ -496,7 +496,7 @@ final class QuickLogModelTests: XCTestCase {
         let m = await loaded()
         [.tracker(id: "bp"), .journalNote].forEach(m.toggle)
         m.continueFromPick()
-        m.when = .earlierToday
+        m.when = .earlier
         let earlier = Q.at("2026-11-07T20:15:00Z") // 2:15 PM
         m.earlierTime = earlier
         await m.continueFromWhen()
@@ -661,19 +661,19 @@ final class QuickLogModelTests: XCTestCase {
 
     // MARK: Review fixes
 
-    func testAnEarlierTimeThatIsNoLongerTodaySendsTheRunBackToWhen() async {
+    func testAnEarlierTimeStillSavesAfterMidnightPasses() async {
         let m = await loaded()
         m.toggle(.tracker(id: "bp"))
         m.continueFromPick()
-        m.when = .earlierToday
-        m.earlierTime = Q.at("2026-11-07T20:15:00Z") // 2:15 PM Saturday
+        m.when = .earlier
+        let earlier = Q.at("2026-11-07T20:15:00Z") // 2:15 PM Saturday
+        m.earlierTime = earlier
         await m.continueFromWhen()
         bpReading(m)
         clock.now = Q.at("2026-11-08T06:30:00Z") // 12:30 AM Sunday in Chicago
         await m.advance()
-        XCTAssertEqual(m.part, .when)
-        XCTAssertEqual(m.whenProblems, [QuickLogText.earlierTodayProblem])
-        XCTAssertEqual(writes.writes, [])
+        XCTAssertEqual(m.part, .result)
+        XCTAssertEqual(writes.writes.count, 1)
     }
 
     func testATrackerPausedSinceTrackerDetailSaysSoAndOffersOnlyCancel() async {
