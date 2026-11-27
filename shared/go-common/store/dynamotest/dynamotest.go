@@ -3,46 +3,24 @@ package dynamotest
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/care-giver-app/caregiver-v2/shared/go-common/internal/dynamolocal"
 	"github.com/care-giver-app/caregiver-v2/shared/go-common/store"
 )
 
 // Start launches DynamoDB Local, creates the four tables (with GSIs), and returns
-// Stores wired to it. The container is terminated via t.Cleanup.
+// Stores wired to it. Every test in the binary shares one container; the tables
+// are this test's own.
 func Start(t *testing.T) *store.Stores {
 	t.Helper()
 	ctx := context.Background()
 
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "amazon/dynamodb-local:2.5.2",
-			ExposedPorts: []string{"8000/tcp"},
-			WaitingFor:   wait.ForHTTP("/").WithPort("8000/tcp").WithStatusCodeMatcher(func(int) bool { return true }),
-		},
-		Started: true,
-	})
-	if err != nil {
-		t.Fatalf("start dynamodb-local: %v", err)
-	}
-	t.Cleanup(func() { _ = container.Terminate(ctx) })
-
-	host, err := container.Host(ctx)
-	if err != nil {
-		t.Fatalf("host: %v", err)
-	}
-	port, err := container.MappedPort(ctx, "8000")
-	if err != nil {
-		t.Fatalf("port: %v", err)
-	}
-	endpoint := fmt.Sprintf("http://%s:%s", host, port.Port())
+	endpoint := dynamolocal.Endpoint(t)
 
 	t.Setenv("AWS_ACCESS_KEY_ID", "local")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "local")
@@ -53,15 +31,16 @@ func Start(t *testing.T) *store.Stores {
 		t.Fatalf("client: %v", err)
 	}
 
+	p := dynamolocal.Prefix()
 	names := store.TableNames{
-		Users:          "test-user",
-		CareGroups:     "test-care-group",
-		Memberships:    "test-membership",
-		Invitations:    "test-invitation",
-		Receivers:      "test-receiver",
-		Trackers:       "test-tracker",
-		Events:         "test-event",
-		ScheduledItems: "test-scheduled-item",
+		Users:          p + "test-user",
+		CareGroups:     p + "test-care-group",
+		Memberships:    p + "test-membership",
+		Invitations:    p + "test-invitation",
+		Receivers:      p + "test-receiver",
+		Trackers:       p + "test-tracker",
+		Events:         p + "test-event",
+		ScheduledItems: p + "test-scheduled-item",
 	}
 	createTables(t, ctx, client, names)
 	return store.New(client, names)
