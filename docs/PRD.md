@@ -2707,6 +2707,13 @@ name, not their address. So an anonymous report ends without promising a reply. 
 device still go, because neither says who someone is, and a bug report without them is a guess.
 Nothing sent is kept in the app. Feedback is a message, not a record.
 
+It is kept where it is read, with no end date, because a bug report that comes back months later
+is still worth having, and whoever sent it may ask for it to be deleted. An anonymous report can be
+deleted only when the request points at the message itself, since nothing kept with it says whose
+it was. Because it is kept, the sheet asks the caregiver, beside the message, to leave out health
+details and care receivers' names: a report rarely needs them to be acted on, and a reading pasted
+into it leaves the care team for an inbox the team does not control.
+
 The support address stays on the screen as text, for anyone who would rather write an email. It is
 the same handoff Landing offers, since before sign-in there is no account to send a form from. The
 terms and the policy are read on the web rather than in the app, because they are the same
@@ -2828,6 +2835,9 @@ because they say who was responsible.
   contains:
     - what kind it is — a bug, a suggestion, or something else
     - the message
+    - >
+      a line beside the message asking the caregiver to leave out health
+      details and care receivers' names
     - >
       send anonymously, off unless turned on. When on, nothing that identifies
       the caregiver goes with it — not their account, their name, or their
@@ -3008,10 +3018,7 @@ because they say who was responsible.
 
 #### Gaps in this flow
 
-- **Feedback can carry care information out of the app.** A caregiver describing a bug may paste a
-  reading, a dose, or a care receiver's name into the message, and it leaves the app for wherever
-  feedback is read. Nothing says whether the sheet warns against this, or what the privacy policy
-  promises about it.
+None open.
 
 ### Insights
 
