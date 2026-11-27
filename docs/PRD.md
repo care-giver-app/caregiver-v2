@@ -1065,7 +1065,7 @@ at how close is close enough.
 
 **When is asked once, for the whole run.** A caregiver writing up the end of a long day is recording
 several things that happened at about one time, and asking again on every step would be asking the
-same question five times to get the same answer. The choices are now, an earlier time today, or a
+same question five times to get the same answer. The choices are now, an earlier time, or a
 future time — and a run given a future time is not logging at all: it creates scheduled entries,
 planned rather than recorded, because a caregiver saying the appointment is next Tuesday is saying
 that something will happen, not that it has. One time governs the whole run, so a run is either
@@ -1074,6 +1074,13 @@ afterward, which the app already allows for any entry. That holds for a picked o
 scheduled time is how a caregiver tells this morning's dose from this evening's, not a second answer
 to when — the run's one time is what the entry records, because what is being logged is when the
 care happened and the only person who knows that is the one logging it.
+
+An earlier time can fall on any day, as far back as the caregiver needs, because a caregiver
+writing up yesterday from memory, or last week from a paper log, knows when it happened, and making
+them record it today and correct it afterward is asking them to record it wrong first. The picker
+does not follow the time back: it still offers today and the forty-eight hours behind it, because
+that is the care still waiting to be settled. An occurrence older than that is logged against its
+tracker, and stays unrecorded, as it already has on Home.
 
 **A planned run still walks every step, and pre-fills rather than records.** What can be known in
 advance is filled in — the dose, which pills, what the appointment is for — while a reading nobody
@@ -1422,8 +1429,8 @@ rather than in the day behind it.
       planned has somewhere to go, and picking the tracker rather than the
       occurrence is how a caregiver says that is what they mean
     - >
-      when, asked once for the whole run: now, an earlier time today, or a
-      future time. A run given a future time is planning rather than logging,
+      when, asked once for the whole run: now, an earlier time on any day, or
+      a future time. A run given a future time is planning rather than logging,
       and creates scheduled entries
     - >
       whether the team should be told if the care goes unrecorded — asked once,
@@ -1482,11 +1489,6 @@ rather than in the day behind it.
   decision nobody made, and leaving it unrecorded understates what the team actually knows. Missed
   was the state that said this, and it was dropped because the app could not tell the two apart on
   its own. Whether a caregiver should be able to tell it by hand is open.
-- **A run cannot reach back to the day an unrecorded occurrence belongs to.** The picker offers
-  occurrences from the forty-eight hours behind today, but the run's one time offers only now or an
-  earlier time today, so yesterday's dose logged this morning records this morning's hour until a
-  caregiver edits the entry afterward. The two rules were settled separately and they do not quite
-  meet.
 - **A one-off scheduled entry cannot be changed once it is made.** Quick log creates one — an
   appointment next Tuesday, a dose planned for the evening — but nothing afterward changes its time,
   its pre-filled values, or whether going unrecorded should alert anyone. Entry detail offers a
