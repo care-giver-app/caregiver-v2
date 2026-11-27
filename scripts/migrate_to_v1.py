@@ -11,6 +11,10 @@ the old key, so a re-run rewrites the same rows rather than duplicating them.
     uv run scripts/migrate_to_v1.py --source prod --target dev --dry-run
     uv run scripts/migrate_to_v1.py --source prod --target dev
     uv run scripts/migrate_to_v1.py --source prod --target prod --cutover   # cutover day only
+
+--only-receiver NAME carries one receiver across: its team, that team's members and
+pending invitations, and the receiver's trackers, entries and scheduled items. Every
+user row still moves. --team-name renames the team that receiver belongs to.
 """
 
 from __future__ import annotations
@@ -224,6 +228,25 @@ def convert_scheduled_item(si: dict, old_tracker: dict, time_zone: str) -> dict:
     return out
 
 
+def narrow(old: dict[str, list[dict]], receiver_name: str, team_name: str | None) -> dict[str, list[dict]]:
+    """Keep one receiver (matched by exact name) and only what hangs off it and its team."""
+    matches = [r for r in old["receiver"] if r["name"] == receiver_name]
+    if len(matches) != 1:
+        raise ValueError(f"expected exactly one receiver named {receiver_name!r}, found {len(matches)}")
+    rid, gid = matches[0]["receiver_id"], matches[0]["care_group_id"]
+    teams = [dict(g, name=team_name or g["name"]) for g in old["care-group"] if g["care_group_id"] == gid]
+    return {
+        "user": old["user"],
+        "care-group": teams,
+        "membership": [x for x in old["membership"] if x["care_group_id"] == gid],
+        "invitation": [x for x in old["invitation"] if x["care_group_id"] == gid],
+        "receiver": matches,
+        "tracker": [x for x in old["tracker"] if x["receiver_id"] == rid],
+        "event": [x for x in old["event"] if x["receiver_id"] == rid],
+        "scheduled-item": [x for x in old["scheduled-item"] if x["receiver_id"] == rid],
+    }
+
+
 # --- I/O ---------------------------------------------------------------------
 
 
@@ -245,7 +268,12 @@ def main() -> int:
     ap.add_argument("--region", default="us-east-2")
     ap.add_argument("--dry-run", action="store_true", help="convert and report; write nothing")
     ap.add_argument("--cutover", action="store_true", help="required to write prod")
+    ap.add_argument("--only-receiver", metavar="NAME", help="carry across only this receiver and its team")
+    ap.add_argument("--team-name", metavar="NAME", help="rename that receiver's team (needs --only-receiver)")
     args = ap.parse_args()
+    if args.team_name and not args.only_receiver:
+        print("--team-name needs --only-receiver", file=sys.stderr)
+        return 2
     if args.target == "prod" and not args.cutover:
         print("refusing to write prod without --cutover", file=sys.stderr)
         return 2
@@ -258,26 +286,36 @@ def main() -> int:
     dst = lambda e: ddb.Table(f"caregiver-{args.target}-v1-{e}")
     now = datetime.now(timezone.utc)
 
-    old_trackers = {t["tracker_id"]: t for t in scan(src("tracker"))}
+    old = {e: scan(src(e)) for e in
+           ("user", "care-group", "membership", "invitation", "receiver", "tracker", "event", "scheduled-item")}
+    if args.only_receiver:
+        try:
+            old = narrow(old, args.only_receiver, args.team_name)
+        except ValueError as err:
+            print(err, file=sys.stderr)
+            return 1
+        print(f"only receiver {args.only_receiver!r}, team {old['care-group'][0]['name']!r}\n")
+
+    old_trackers = {t["tracker_id"]: t for t in old["tracker"]}
     plan: dict[str, list[dict]] = {
-        "user": [convert_user(u) for u in scan(src("user"))],
-        "team": [convert_team(g) for g in scan(src("care-group"))],
-        "membership": [convert_membership(m) for m in scan(src("membership"))],
-        "invitation": [i for i in (convert_invitation(x, now) for x in scan(src("invitation"))) if i],
-        "receiver": [convert_receiver(r, args.time_zone) for r in scan(src("receiver"))],
+        "user": [convert_user(u) for u in old["user"]],
+        "team": [convert_team(g) for g in old["care-group"]],
+        "membership": [convert_membership(m) for m in old["membership"]],
+        "invitation": [i for i in (convert_invitation(x, now) for x in old["invitation"]) if i],
+        "receiver": [convert_receiver(r, args.time_zone) for r in old["receiver"]],
         "tracker": [convert_tracker(t) for t in old_trackers.values()],
         "entry": [],
     }
 
     problems: list[str] = []
-    for e in scan(src("event")):
+    for e in old["event"]:
         t = old_trackers.get(e["tracker_id"])
         if t is None:
             problems.append(f"event {e['event_id']}: tracker {e['tracker_id']} missing")
             continue
         problems += [f"event {e['event_id']}: unmatched choice {u}" for u in unmatched_choices(t, e.get("values", {}))]
         plan["entry"].append(convert_event(e, t))
-    for si in scan(src("scheduled-item")):
+    for si in old["scheduled-item"]:
         t = old_trackers.get(si["tracker_id"])
         if t is None:
             problems.append(f"scheduled item {si['scheduled_item_id']}: tracker {si['tracker_id']} missing")

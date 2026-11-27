@@ -111,5 +111,47 @@ class Conversions(unittest.TestCase):
         self.assertIsNone(m.convert_invitation({**base, "status": "pending", "expires_at": now.timestamp() - 1}, now))
 
 
+class Narrow(unittest.TestCase):
+    OLD = {
+        "user": [{"user_id": "u1"}, {"user_id": "u2"}],
+        "care-group": [{"care_group_id": "g1", "name": "Family"}, {"care_group_id": "g2", "name": "Other"}],
+        "membership": [{"care_group_id": "g1", "user_id": "u1"}, {"care_group_id": "g2", "user_id": "u2"}],
+        "invitation": [{"care_group_id": "g1"}, {"care_group_id": "g2"}],
+        "receiver": [
+            {"receiver_id": "r1", "care_group_id": "g1", "name": "Sheri"},
+            {"receiver_id": "r2", "care_group_id": "g1", "name": "Test"},
+            {"receiver_id": "r3", "care_group_id": "g2", "name": "Elsewhere"},
+        ],
+        "tracker": [{"tracker_id": "t1", "receiver_id": "r1"}, {"tracker_id": "t2", "receiver_id": "r2"}],
+        "event": [{"event_id": "e1", "receiver_id": "r1"}, {"event_id": "e2", "receiver_id": "r2"}],
+        "scheduled-item": [{"scheduled_item_id": "s1", "receiver_id": "r1"}, {"scheduled_item_id": "s2", "receiver_id": "r3"}],
+    }
+
+    def test_keeps_one_receiver_and_its_team(self):
+        out = m.narrow(self.OLD, "Sheri", "Williams Family")
+        self.assertEqual([r["receiver_id"] for r in out["receiver"]], ["r1"])
+        self.assertEqual(out["care-group"], [{"care_group_id": "g1", "name": "Williams Family"}])
+        self.assertEqual([x["user_id"] for x in out["membership"]], ["u1"])
+        self.assertEqual(len(out["invitation"]), 1)
+        self.assertEqual([x["tracker_id"] for x in out["tracker"]], ["t1"])
+        self.assertEqual([x["event_id"] for x in out["event"]], ["e1"])
+        self.assertEqual([x["scheduled_item_id"] for x in out["scheduled-item"]], ["s1"])
+        self.assertEqual(len(out["user"]), 2)  # every account still moves
+
+    def test_keeps_team_name_without_rename(self):
+        self.assertEqual(m.narrow(self.OLD, "Sheri", None)["care-group"][0]["name"], "Family")
+
+    def test_does_not_mutate_source(self):
+        m.narrow(self.OLD, "Sheri", "Williams Family")
+        self.assertEqual(self.OLD["care-group"][0]["name"], "Family")
+
+    def test_refuses_missing_or_ambiguous_name(self):
+        with self.assertRaises(ValueError):
+            m.narrow(self.OLD, "Nobody", None)
+        dup = {**self.OLD, "receiver": self.OLD["receiver"] + [{"receiver_id": "r9", "care_group_id": "g2", "name": "Sheri"}]}
+        with self.assertRaises(ValueError):
+            m.narrow(dup, "Sheri", None)
+
+
 if __name__ == "__main__":
     unittest.main()
