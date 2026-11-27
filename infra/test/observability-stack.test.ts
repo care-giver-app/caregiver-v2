@@ -31,7 +31,7 @@ describe('ObservabilityStack', () => {
     });
     const template = Template.fromStack(stack);
     template.resourceCountIs('AWS::CloudWatch::Dashboard', 1);
-    template.resourceCountIs('AWS::CloudWatch::Alarm', 5);
+    template.resourceCountIs('AWS::CloudWatch::Alarm', 4);
     template.hasResourceProperties('AWS::CloudWatch::Alarm', {
       AlarmName: 'caregiver-dev-generator-errors',
       MetricName: 'Errors',

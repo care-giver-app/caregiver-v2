@@ -68,20 +68,6 @@ export class ObservabilityStack extends cdk.Stack {
     });
     throttleAlarm.addAlarmAction(action);
 
-    const noInvocationsAlarm = new cw.Alarm(this, 'ApiNoInvocationsAlarm', {
-      alarmName: `caregiver-${props.stage}-api-no-invocations`,
-      metric: invocations,
-      threshold: 0,
-      evaluationPeriods: 3,
-      comparisonOperator: cw.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
-      treatMissingData: cw.TreatMissingData.BREACHING,
-    });
-    // noInvocationsAlarm is noisy on dev (low traffic), so the alarm resource is
-    // always created (visible on the dashboard) but only notifies SNS in prod.
-    if (props.stage === 'prod') {
-      noInvocationsAlarm.addAlarmAction(action);
-    }
-
     new cw.Dashboard(this, 'Dashboard', {
       dashboardName: `Caregiver-${props.stage === 'prod' ? 'Prod' : 'Dev'}-Overview`,
       widgets: [
