@@ -102,6 +102,8 @@ enum SettingsText {
 
     static let whatKind = "What kind?"
     static let message = "Message"
+    /// PRD: About this app — feedback is kept where it is read, so it asks for no care details.
+    static let careDetailsWarning = "Please leave out health details and care receivers’ names."
     static let sendAnonymously = "Send anonymously"
     static let send = "Send"
     static let withAccountCaption =

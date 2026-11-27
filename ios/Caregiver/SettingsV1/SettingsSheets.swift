@@ -229,6 +229,7 @@ struct SendFeedbackSheet: View {
                 .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
                 .background { RoundedRectangle(cornerRadius: 14).fill(Theme.Colors.surface) }
                 .overlay { RoundedRectangle(cornerRadius: 14).stroke(Theme.Colors.border, lineWidth: 1) }
+            SettingsCaption(SettingsText.careDetailsWarning)
             SettingsRow(icon: nil, label: SettingsText.sendAnonymously) {
                 SettingsSwitch(label: SettingsText.sendAnonymously, isOn: $model.anonymous)
             }

@@ -182,15 +182,17 @@ struct QuickLogV1Sheet: View {
                         Text(HomeText.clock(now, zone: zone))
                             .foregroundStyle(Theme.Colors.textTertiary)
                     }
-                    whenRow(.earlierToday, title: QuickLogText.earlierToday) {
-                        if model.when != .earlierToday {
-                            Text(QuickLogText.pickATime).foregroundStyle(Theme.Colors.accent)
+                    whenRow(.earlier, title: QuickLogText.earlier) {
+                        if model.when != .earlier {
+                            Text(QuickLogText.pickADayAndTime).foregroundStyle(Theme.Colors.accent)
                         }
                     }
-                    if model.when == .earlierToday {
-                        HStack(spacing: 12) {
+                    if model.when == .earlier {
+                        HStack(alignment: .top, spacing: 12) {
+                            timeBox(label: "Date", selection: $model.earlierTime,
+                                    range: Date.distantPast...now, components: .date)
                             timeBox(label: "Time", selection: $model.earlierTime,
-                                    range: model.today.start(in: zone)...now, components: .hourAndMinute)
+                                    range: Date.distantPast...now, components: .hourAndMinute)
                         }
                     }
                     if model.offersFuture {
